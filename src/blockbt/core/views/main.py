@@ -17,4 +17,4 @@ def index(request: HttpRequest) -> HttpResponse:
     HttpResponse
         Renderowany szablon strony glownej.
     """
-    return render(request, "core/index.html")
+    return render(request, "core/home.html")

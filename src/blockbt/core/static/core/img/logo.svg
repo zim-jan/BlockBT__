@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48">
+  <!-- Blok bazowy -->
+  <rect x="4" y="28" width="12" height="16" rx="2" fill="#2563eb"/>
+  <!-- Blok srodkowy -->
+  <rect x="18" y="16" width="12" height="28" rx="2" fill="#1d4ed8"/>
+  <!-- Blok gorny -->
+  <rect x="32" y="4" width="12" height="40" rx="2" fill="#1e40af"/>
+  <!-- Linia trendu -->
+  <path d="M10 24 L24 12 L38 6" stroke="#10b981" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  <!-- Punkty na linii -->
+  <circle cx="10" cy="24" r="3" fill="#10b981"/>
+  <circle cx="24" cy="12" r="3" fill="#10b981"/>
+  <circle cx="38" cy="6" r="3" fill="#10b981"/>
+</svg>

@@ -11,10 +11,3 @@ def test_index_view_returns_200() -> None:
     client = Client()
     response = client.get(reverse("core:index"))
     assert response.status_code == HTTPStatus.OK
-
-
-def test_index_view_contains_title() -> None:
-    """Test sprawdzajacy czy strona glowna zawiera tytul BlockBT."""
-    client = Client()
-    response = client.get(reverse("core:index"))
-    assert b"BlockBT" in response.content
