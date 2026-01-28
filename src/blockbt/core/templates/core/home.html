@@ -1,0 +1,59 @@
+{% extends "core/base.html" %}
+{% load static %}
+
+{% block title %}BlockBT - Backtesting strategii algorytmicznych{% endblock %}
+
+{% block meta_description %}BlockBT to aplikacja webowa do backtestingu strategii algorytmicznych. Testuj swoje strategie inwestycyjne na danych historycznych.{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'core/css/home.css' %}">
+{% endblock %}
+
+{% block content %}
+<section class="hero">
+    <div class="container">
+        <h1 class="hero__title">BlockBT</h1>
+        <p class="hero__subtitle">
+            Profesjonalne srodowisko do backtestingu strategii algorytmicznych.
+            Testuj, analizuj i optymalizuj swoje strategie inwestycyjne.
+        </p>
+        <div class="hero__actions">
+            <a href="#features" class="btn btn--lg hero__btn--white">Poznaj mozliwosci</a>
+            <a href="#cta" class="btn btn--lg hero__btn--outline">Rozpocznij</a>
+        </div>
+    </div>
+</section>
+
+<section id="features" class="features">
+    <div class="container">
+        <h2 class="features__title">Funkcjonalnosci</h2>
+        <div class="features__grid">
+            <article class="card feature-card">
+                <div class="feature-card__icon">[C]</div>
+                <h3 class="feature-card__title">Backtesting</h3>
+                <p class="feature-card__description">
+                    Testuj strategie na danych historycznych z precyzyjnymi wynikami
+                    i szczegolowymi statystykami.
+                </p>
+            </article>
+            <article class="card feature-card">
+                <div class="feature-card__icon">[A]</div>
+                <h3 class="feature-card__title">Analiza</h3>
+                <p class="feature-card__description">
+                    Kompleksowa analiza wynikow z metrykami takimi jak Sharpe Ratio,
+                    Maximum Drawdown i wiele innych.
+                </p>
+            </article>
+            <article class="card feature-card">
+                <div class="feature-card__icon">[O]</div>
+                <h3 class="feature-card__title">Optymalizacja</h3>
+                <p class="feature-card__description">
+                    Optymalizuj parametry strategii aby znalezc najlepsze konfiguracje
+                    dla Twoich celow inwestycyjnych.
+                </p>
+            </article>
+        </div>
+    </div>
+</section>
+
+{% endblock %}
