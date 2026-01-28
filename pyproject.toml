@@ -1,0 +1,82 @@
+[project]
+name = "blockbt"
+version = "0.1.0"
+description = "BlockBT – środowisko do backtestingu strategii algorytmicznych w architekturze izolowanej (Air-Gapped) z wykorzystaniem modelu BYOL."
+readme = "README.md"
+authors = [
+    { name = "zim-jan", email = "janek.zimny@gmail.com" },
+    { name = "Przydan" },
+    { name = "yanuzs" }
+]
+requires-python = ">=3.12"
+dependencies = [
+    "django>=6.0.1",
+]
+
+[project.scripts]
+blockbt = "blockbt:main"
+
+[build-system]
+requires = ["uv_build>=0.9.22,<0.10.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "django>=6.0.1",
+    "pdoc>=16.0.0",
+    "pyright>=1.1.408",
+    "pytest>=9.0.2",
+    "pytest-django>=4.11.1",
+    "ruff>=0.14.14",
+]
+
+# -- Ruff -----------------------------------------------------------------
+
+[tool.ruff]
+target-version = "py312"
+src = ["src"]
+line-length = 88
+
+[tool.ruff.lint.pydocstyle]
+convention = "numpy"
+
+[tool.ruff.lint]
+select = ["ALL"]
+ignore = [
+    # -- Dodawaj reguly do ignorowania ponizej --
+    "D104", # undocumented-public-package - missing docstring in public package
+    "D203", # incorrect-blank-line-before-class - blank line before class docstring
+    "D213", # multi-line-summary-second-line - multi-line summary should start at second line
+    "D401", # non-imperative-mood - first word of docstring should be imperative mood
+    "T201", # print - use of print function
+    "COM812", # missing-trailing-comma - missing trailing comma
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["blockbt"]
+
+[tool.ruff.lint.per-file-ignores]
+"**/migrations/*.py" = ["E501", "N", "UP"]
+"**/tests/*.py" = ["S101", "PLR2004"]
+
+# -- Pyright --------------------------------------------------------------
+
+[tool.pyright]
+pythonVersion = "3.12"
+pythonPlatform = "Linux"
+venvPath = "."
+venv = ".venv"
+typeCheckingMode = "basic"
+include = ["src"]
+exclude = ["**/migrations", "**/tests"]
+# -- Dodawaj sciezki do ignorowania ponizej --
+# ignore = []
+
+# -- Pytest ----------------------------------------------------------------
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "blockbt.settings"
+pythonpath = ["src"]
+testpaths = ["src/blockbt/core/tests"]
+python_files = "test_*.py"
+python_functions = "test_*"
