@@ -21,6 +21,8 @@ from blockbt.db.models import SimulationResult, StrategyTemplate
 from blockbt.db.session import get_session
 from blockbt.engine.loader import EngineLoader
 from blockbt.connectors.registry import ConnectorRegistry
+from blockbt.mcp.report_builder import ReportBuilder
+from blockbt.mcp.llm_client import OllamaClient
 
 # ── Auth gate ─────────────────────────────────────────────────────────────────
 if not is_logged_in():
@@ -189,6 +191,30 @@ if "last_result" in st.session_state:
         st.warning("Brak danych krzywej kapitału.")
 
     st.caption(f"Zapisano jako SimulationResult ID: **{data['sim_id']}**")
+
+    # ── AI Analyst ────────────────────────────────────────────────────────────
+    st.divider()
+    st.subheader("🤖 AI Analityk")
+    st.caption("Wykorzystuje lokalny model LLM (Ollama) do analizy wyników.")
+    
+    if st.button("Wygeneruj raport AI", type="secondary", use_container_width=True):
+        with st.spinner("AI analizuje dane..."):
+            payload = ReportBuilder.build(
+                result=r,
+                strategy_name=data["strategy_name"],
+                raw_params=ws,
+            )
+            prompt = payload.to_prompt()
+            
+            client = OllamaClient()
+            # Używamy stream=False, ponieważ Streamlit i tak zablokuje renderowanie
+            # aż do zakończenia bloku z powodu synchronicznej metody urlliba.
+            report = client.generate_report(prompt, stream=False)
+            
+            if report.startswith("[ERROR]"):
+                st.error(report)
+            else:
+                st.info(report)
 
 # ── History ───────────────────────────────────────────────────────────────────
 st.divider()

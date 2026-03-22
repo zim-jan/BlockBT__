@@ -71,7 +71,8 @@ class Settings(BaseSettings):
     MCP_EQUITY_CURVE_MAX_POINTS: int = 500
     OPENAI_API_KEY: str | None = None
     ANTHROPIC_API_KEY: str | None = None
-    OLLAMA_BASE_URL: str | None = None  # e.g. http://localhost:11434
+    OLLAMA_BASE_URL: str = "http://192.168.19.31:11434"  # Ollama server
+    OLLAMA_MODEL: str = "llama3"  # default model tag
 
     def effective_vbtpro_path(self) -> Path | None:
         """Return the resolved vectorbtpro path, checking the well-known sibling dir."""
