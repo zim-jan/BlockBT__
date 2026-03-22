@@ -76,8 +76,9 @@ class Settings(BaseSettings):
 
     def effective_vbtpro_path(self) -> Path | None:
         """Return the resolved vectorbtpro path, checking the well-known sibling dir."""
-        if self.VBTPRO_PATH and self.VBTPRO_PATH.exists():
-            return self.VBTPRO_PATH
+        vbtpro = self.VBTPRO_PATH
+        if vbtpro is not None and vbtpro.exists():
+            return vbtpro
         candidate = self.PROJECT_ROOT / "vectorbt.pro-main"
         if candidate.exists():
             return candidate

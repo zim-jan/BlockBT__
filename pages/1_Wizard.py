@@ -37,6 +37,7 @@ defaults: dict = {
     "wiz_sma_fast": 10,
     "wiz_sma_slow": 30,
     "wiz_strategy_name": "SMA Crossover",
+    "wiz_notes": "",
     "wiz_initial_capital": 10_000.0,
 }
 for k, v in defaults.items():
@@ -110,6 +111,8 @@ elif step == 2:
     wiz_sma_fast = col_f.number_input("SMA Fast (okresy)", min_value=2, max_value=100, value=st.session_state["wiz_sma_fast"])
     wiz_sma_slow = col_s.number_input("SMA Slow (okresy)", min_value=5, max_value=500, value=st.session_state["wiz_sma_slow"])
 
+    wiz_notes = st.text_area("Notatki do strategii (opcjonalnie)", value=st.session_state.get("wiz_notes", ""))
+
     if wiz_sma_fast >= wiz_sma_slow:
         st.warning("⚠ SMA Fast powinno być mniejsze niż SMA Slow.")
 
@@ -120,6 +123,7 @@ elif step == 2:
     if col_next.button("Dalej →", use_container_width=True, type="primary"):
         st.session_state.update(
             wiz_strategy_name=wiz_strategy_name,
+            wiz_notes=wiz_notes,
             wiz_initial_capital=wiz_initial_capital,
             wiz_sma_fast=int(wiz_sma_fast),
             wiz_sma_slow=int(wiz_sma_slow),
@@ -166,7 +170,7 @@ elif step == 3:
             tpl = StrategyTemplate(
                 user_id=s["user_id"],
                 name=s["wiz_strategy_name"],
-                description="SMA Crossover — wygenerowane przez kreatora",
+                description=s.get("wiz_notes", "Brak notatki") or "Brak notatki",
                 wizard_state=wizard_state,
             )
             db.add(tpl)

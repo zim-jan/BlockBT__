@@ -172,7 +172,7 @@ if "last_result" in st.session_state:
             y=[s["value"] for s in samples],
             mode="lines",
             name="Kapitał",
-            line=dict(color="#4f8bf9", width=2),
+            line={"color": "#4f8bf9", "width": 2},
             fill="tozeroy",
             fillcolor="rgba(79,139,249,0.08)",
             hovertemplate="%{x}<br>%{y:,.2f} USD<extra></extra>",
@@ -239,7 +239,7 @@ with get_session() as db:
             "Zwrot %": f"{s.total_return_pct:.2f}%" if s.total_return_pct else "—",
             "Sharpe": f"{s.sharpe_ratio:.3f}" if s.sharpe_ratio else "—",
             "Max DD %": f"{s.max_drawdown_pct:.2f}%" if s.max_drawdown_pct else "—",
-            "Data": str(s.run_at)[:19],
+            "Data": s.run_at.strftime("%Y-%m-%d %H:%M:%S"),
         }
         for s in sims
     ]
