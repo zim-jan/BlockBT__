@@ -140,22 +140,45 @@ class OpenSourceEngine(StrategyEngine):
         params: dict[str, Any],
         vbt: Any,
     ) -> tuple[pd.Series, pd.Series]:
-        """Translate wizard_state indicator/rule params into boolean signal series.
-
-        Phase 1 default: SMA crossover (fast crosses above/below slow).
+        """Translate wizard_state parameters into boolean signal series.
+        
+        Supports Phase 5: MACD strategy via pandas-ta.
+        Falls back to Phase 1 SMA Crossover via vectorbt.
         """
-        indicators = params.get("indicators", [])
-        windows = [
-            ind["params"]["window"]
-            for ind in indicators
-            if ind.get("type") == "SMA"
-        ]
+        strategy_type = params.get("strategy_type", "sma_crossover")
 
-        if len(windows) >= 2:
-            fast_w, slow_w = sorted(windows)[:2]
-        else:
-            # Sensible defaults if wizard didn't define SMAs
-            fast_w, slow_w = 20, 50
+        if strategy_type == "macd":
+            import pandas_ta as ta  # type: ignore[import]
+
+            fast = params.get("macd_fast", 12)
+            slow = params.get("macd_slow", 26)
+            signal = params.get("macd_signal", 9)
+            
+            # Calculate MACD directly on the Series using the global function
+            macd_df = ta.macd(close, fast=fast, slow=slow, signal=signal)
+            
+            if macd_df is None or macd_df.empty:
+                logger.warning("OpenSourceEngine: `pandas-ta` MACD returned no data")
+                blank = pd.Series(False, index=close.index)
+                return blank, blank
+            
+            # Default columns: MACD_12_26_9, MACDh_12_26_9, MACDs_12_26_9
+            macd_line = macd_df.iloc[:, 0]  # The actual MACD line
+            sig_line  = macd_df.iloc[:, 2]  # The signal line
+            
+            # Crossover logic:
+            # Entry: MACD crosses ABOVE Signal
+            entries = (macd_line > sig_line) & (macd_line.shift(1) <= sig_line.shift(1))
+            # Exit: MACD crosses BELOW Signal
+            exits = (macd_line < sig_line) & (macd_line.shift(1) >= sig_line.shift(1))
+            
+            return entries, exits
+
+        # -------------------------------------------------------------
+        # Fallback: Default SMA Crossover
+        # -------------------------------------------------------------
+        fast_w = params.get("sma_fast", 10)
+        slow_w = params.get("sma_slow", 30)
 
         fast_ma = vbt.MA.run(close, window=fast_w).ma
         slow_ma = vbt.MA.run(close, window=slow_w).ma

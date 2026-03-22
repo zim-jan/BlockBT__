@@ -22,9 +22,12 @@ src/blockbt/engine/loader.py
 src/blockbt/engine/opensource_engine.py
 src/blockbt/engine/pro_engine.py
 src/blockbt/mcp/__init__.py
+src/blockbt/mcp/llm_client.py
 src/blockbt/mcp/protocol.py
 src/blockbt/mcp/report_builder.py
 src/blockbt/strategy/__init__.py
+src/blockbt/ui/__init__.py
+src/blockbt/ui/auth.py
 src/blockbt/utils/__init__.py
 src/blockbt/utils/logging.py
 src/blockbt/utils/parquet.py

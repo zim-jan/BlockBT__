@@ -47,6 +47,7 @@ nav:
   - Wstęp (Overview): index.md
   - Metodologia i Technologie (Sekcja C1): c1_metodologia.md
   - "Realizacja Projektu: Faza 1 (Sekcja C2)": c2_realizacja_faza1.md
+  - "Realizacja Projektu: Ekosystem i Integracje (Sekcja C3)": c3_realizacja_faza2_5.md
   - Dokumentacja Kodu (API):
       - Engine: api/engine.md
       - Database: api/db.md

@@ -42,6 +42,9 @@ dependencies = [
     "dateparser>=1.1",
     "scipy>=1.10",
     "scikit-learn>=1.2",
+    # phase 5 advanced trading
+    "optuna>=3.0",
+    "pandas-ta",
 
     # Alpaca (optional; install with extras)
     # "alpaca-py>=0.14",
