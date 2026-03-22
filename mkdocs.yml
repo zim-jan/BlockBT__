@@ -1,0 +1,54 @@
+site_name: Dokumentacja Techniczna BlockBT
+site_description: System Backtestingu Strategii Algorytmicznych
+theme:
+  name: material
+  language: pl
+  features:
+    - navigation.tabs
+    - navigation.indexes
+    - toc.integrate
+  palette:
+    - scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Przełącz na tryb ciemny
+    - scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Przełącz na tryb jasny
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - tables
+
+plugins:
+  - search
+  - mkdocstrings:
+      handlers:
+        python:
+          paths: [src]
+          options:
+            docstring_style: google
+            show_source: true
+            show_root_heading: true
+
+nav:
+  - Wstęp (Overview): index.md
+  - Metodologia i Technologie (Sekcja C1): c1_metodologia.md
+  - "Realizacja Projektu: Faza 1 (Sekcja C2)": c2_realizacja_faza1.md
+  - Dokumentacja Kodu (API):
+      - Engine: api/engine.md
+      - Database: api/db.md
+      - Connectors: api/connectors.md
+      - MCP: api/mcp.md
