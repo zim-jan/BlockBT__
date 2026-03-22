@@ -23,7 +23,7 @@ class EngineLoader:
     _instance: StrategyEngine | None = None
 
     @classmethod
-    def load(cls, force_reload: bool = False) -> StrategyEngine:
+    def load(cls, force_reload: bool = False, force_opensource: bool = False) -> StrategyEngine:
         """Return the appropriate engine, caching the result.
 
         Parameters
@@ -31,7 +31,18 @@ class EngineLoader:
         force_reload:
             If True, discard the cached engine and re-evaluate BYOL availability.
             Useful after the user drops in a vbtpro folder mid-session.
+        force_opensource:
+            If True, always return OpenSourceEngine regardless of BYOL availability.
+            Used by the System Status diagnostic page to override the engine.
         """
+        if force_opensource:
+            # Do not cache a forced-OSS engine so the normal engine is still
+            # available on the next call without force_opensource.
+            from blockbt.engine.opensource_engine import OpenSourceEngine
+            oss = OpenSourceEngine()
+            logger.debug("EngineLoader: force_opensource=True → OpenSourceEngine")
+            return oss
+
         if cls._instance is not None and not force_reload:
             return cls._instance
 
