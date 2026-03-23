@@ -3,7 +3,7 @@ Name: blockbt
 Version: 0.1.0
 Summary: BlockBT — Self-hosted algorithmic backtesting environment (Dual-Engine, BYOL)
 License: proprietary
-Requires-Python: >=3.10
+Requires-Python: >=3.12
 Description-Content-Type: text/markdown
 Requires-Dist: pandas>=2.0
 Requires-Dist: pyarrow>=14.0
@@ -52,18 +52,24 @@ BlockBT to zaawansowane środowisko do testowania strategii inwestycyjnych typu 
 
 Aby uruchomić projekt lokalnie, wykonaj poniższe kroki:
 
-### 1. Klonowanie i Środowisko
+### Opcja A: Tradycyjny `pip`
 ```bash
-git clone <repository_url>
-cd my_project
 python -m venv .venv
 source .venv/bin/activate  # lub .venv\Scripts\activate na Windows
-```
-
-### 2. Instalacja zależności
-```bash
 pip install --upgrade pip
 pip install -e .
+```
+
+### Opcja B: Nowoczesny `uv` (Zalecane — Szybciej ⚡)
+Jeśli masz zainstalowany [uv](https://github.com/astral-sh/uv):
+```bash
+uv venv
+source .venv/bin/activate
+uv pip install -e .
+```
+Możesz również po prostu uruchomić aplikację bez ręcznej aktywacji środowiska:
+```bash
+uv run streamlit run app.py
 ```
 
 ### 3. Konfiguracja (Baza Danych)

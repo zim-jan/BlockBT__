@@ -24,7 +24,7 @@ BlockBT opiera się na pięciu głównych warstwach, które są od siebie logicz
 
 ## 🛠️ Stack Techniczny
 
-- **Core**: Python 3.10+
+- **Core**: Python 3.12+
 - **Backtesting**: [vectorbt](https://vectorbt.dev/) (Open Source / PRO)
 - **UI**: [Streamlit](https://streamlit.io/) + [streamlit-flow-component](https://github.com/langchain-ai/langchain)
 - **Database**: SQLite (SQLAlchemy)
