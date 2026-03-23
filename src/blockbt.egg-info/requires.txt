@@ -22,6 +22,8 @@ optuna>=3.0
 pandas-ta
 fastapi>=0.100
 uvicorn[standard]>=0.23
+streamlit-flow-component
+streamlit-cookies-controller
 
 [alpaca]
 alpaca-py>=0.14
