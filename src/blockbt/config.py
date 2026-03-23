@@ -52,7 +52,7 @@ class Settings(BaseSettings):
     # ------------------------------------------------------------------
     # If vectorbtpro directory exists in the project root, mark as BYOL-available.
     VBTPRO_PATH: Path | None = _PROJECT_ROOT / "vectorbt.pro-main" # explicit override via env
-    PREFER_PRO_ENGINE: bool = True # set True to force ProEngine even without full vbtpro
+    PREFER_PRO_ENGINE: bool = False # set True to force ProEngine even without full vbtpro
 
     # ------------------------------------------------------------------
     # Data Connectors

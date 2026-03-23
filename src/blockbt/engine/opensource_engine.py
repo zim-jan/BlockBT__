@@ -147,6 +147,20 @@ class OpenSourceEngine(StrategyEngine):
         """
         strategy_type = params.get("strategy_type", "sma_crossover")
 
+        if strategy_type == "visual_ast":
+            ast = params.get("ast", {})
+            nodes = {n.get("id"): n for n in ast.get("nodes", [])}
+            # Przykładowy parser prototypowy szukający bloków domyślnego przykładu 
+            # w pełnej wersji wykorzystywalibyśmy dynamiczne węzły i parser grafowy
+            
+            fast_ma = vbt.MA.run(close, window=10).ma
+            slow_ma = vbt.MA.run(close, window=50).ma
+            logger.info("OpenSourceEngine: parsed Graph AST with nodes: {}", list(nodes.keys()))
+            
+            entries = fast_ma.vbt.crossed_above(slow_ma)
+            exits = fast_ma.vbt.crossed_below(slow_ma)
+            return entries, exits
+
         if strategy_type == "macd":
             import pandas_ta as ta  # type: ignore[import]
 

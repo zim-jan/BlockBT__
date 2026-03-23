@@ -9,10 +9,12 @@ from __future__ import annotations
 
 import streamlit as st
 import bcrypt
+from streamlit_cookies_controller import CookieController
 
 from blockbt.db.models import User
 from blockbt.db.session import get_session
 
+cookie_controller = CookieController()
 
 # ── Crypto helpers ────────────────────────────────────────────────────────────
 
@@ -79,11 +81,31 @@ def _create_user(username: str, email: str, password: str) -> int:
 
 def is_logged_in() -> bool:
     """Return True when a user is authenticated in this session."""
-    return bool(st.session_state.get("user_id"))
+    if st.session_state.get("user_id"):
+        return True
+        
+    # Attempt to recover session from cookies (survives F5 refesh)
+    try:
+        c_uid = cookie_controller.get("user_id")
+        c_uname = cookie_controller.get("username")
+        if c_uid and c_uname:
+            st.session_state["user_id"] = int(c_uid)
+            st.session_state["username"] = str(c_uname)
+            return True
+    except Exception:
+        pass
+        
+    return False
 
 
 def logout() -> None:
-    """Clear auth state from the session."""
+    """Clear auth state from the session and browser cookies."""
+    try:
+        cookie_controller.remove("user_id")
+        cookie_controller.remove("username")
+    except Exception:
+        pass
+        
     for key in ("user_id", "username"):
         st.session_state.pop(key, None)
 
@@ -111,6 +133,13 @@ def render_auth_gate() -> None:
             if logged_in:
                 st.session_state["user_id"] = logged_in["id"]
                 st.session_state["username"] = logged_in["username"]
+                
+                try:
+                    cookie_controller.set("user_id", str(logged_in["id"]))
+                    cookie_controller.set("username", logged_in["username"])
+                except Exception:
+                    pass
+                    
                 st.success(f"Witaj, {logged_in['username']}!")
                 st.rerun()
             else:
@@ -132,6 +161,13 @@ def render_auth_gate() -> None:
                 uid = _create_user(new_user, new_email, new_pass)
                 st.session_state["user_id"] = uid
                 st.session_state["username"] = new_user
+                
+                try:
+                    cookie_controller.set("user_id", str(uid))
+                    cookie_controller.set("username", new_user)
+                except Exception:
+                    pass
+                    
                 st.success("Konto utworzone! Przekierowuję…")
                 st.rerun()
 
