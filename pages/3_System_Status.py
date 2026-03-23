@@ -70,7 +70,7 @@ info = engine.get_engine_info()
 # Wyświetl status
 colA, colB, colC = st.columns(3)
 
-is_pro = "pro" in info.get("engine", "").lower()
+is_pro = "pro" in info.get("name", "").lower()
 
 with colA:
     if is_pro:
@@ -79,7 +79,7 @@ with colA:
         st.warning("🔓 **OpenSourceEngine** aktywny")
 
 with colB:
-    st.metric("Nazwa silnika", info.get("engine", "—"))
+    st.metric("Nazwa silnika", info.get("name", "—"))
 
 with colC:
     st.metric("Wersja", info.get("version", "—"))

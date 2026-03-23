@@ -20,6 +20,8 @@ scipy>=1.10
 scikit-learn>=1.2
 optuna>=3.0
 pandas-ta
+fastapi>=0.100
+uvicorn[standard]>=0.23
 
 [alpaca]
 alpaca-py>=0.14

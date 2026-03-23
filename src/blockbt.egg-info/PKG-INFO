@@ -27,6 +27,8 @@ Requires-Dist: scipy>=1.10
 Requires-Dist: scikit-learn>=1.2
 Requires-Dist: optuna>=3.0
 Requires-Dist: pandas-ta
+Requires-Dist: fastapi>=0.100
+Requires-Dist: uvicorn[standard]>=0.23
 Provides-Extra: alpaca
 Requires-Dist: alpaca-py>=0.14; extra == "alpaca"
 Provides-Extra: dev

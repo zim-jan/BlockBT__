@@ -62,7 +62,7 @@ class EngineLoader:
         # Attempt PRO path if the user has indicated they want it.
         if settings.PREFER_PRO_ENGINE or settings.effective_vbtpro_path():
             engine = ProEngine()
-            if engine.is_available():
+            if engine.is_available() or settings.PREFER_PRO_ENGINE:
                 return engine
             # vbtpro path exists but couldn't be imported — log and fall back.
             logger.warning(

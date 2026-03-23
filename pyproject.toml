@@ -46,6 +46,10 @@ dependencies = [
     "optuna>=3.0",
     "pandas-ta",
 
+    # Phase 6: REST API
+    "fastapi>=0.100",
+    "uvicorn[standard]>=0.23",
+
     # Alpaca (optional; install with extras)
     # "alpaca-py>=0.14",
 ]
