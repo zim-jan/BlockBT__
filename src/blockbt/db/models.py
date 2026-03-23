@@ -179,6 +179,7 @@ class SimulationResult(Base):
         String(32), nullable=False, default="pending"
     )  # pending | running | completed | failed
     error_log: Mapped[str | None] = mapped_column(Text, nullable=True)
+    ai_analysis_report: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     # relationships
     strategy_template: Mapped["StrategyTemplate"] = relationship(

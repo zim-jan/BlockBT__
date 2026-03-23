@@ -198,23 +198,30 @@ if "last_result" in st.session_state:
     st.caption("Wykorzystuje lokalny model LLM (Ollama) do analizy wyników.")
     
     if st.button("Wygeneruj raport AI", type="secondary", use_container_width=True):
-        with st.spinner("AI analizuje dane..."):
-            payload = ReportBuilder.build(
-                result=r,
-                strategy_name=data["strategy_name"],
-                raw_params=ws,
-            )
-            prompt = payload.to_prompt()
-            
-            client = OllamaClient()
-            # Używamy stream=False, ponieważ Streamlit i tak zablokuje renderowanie
-            # aż do zakończenia bloku z powodu synchronicznej metody urlliba.
-            report = client.generate_report(prompt, stream=False)
-            
-            if report.startswith("[ERROR]"):
-                st.error(report)
+        sim_id = data["sim_id"]
+        with get_session() as db:
+            sim = db.get(SimulationResult, sim_id)
+            if sim and sim.ai_analysis_report:
+                st.info(sim.ai_analysis_report)
             else:
-                st.info(report)
+                with st.spinner("AI analizuje dane..."):
+                    payload = ReportBuilder.build(
+                        result=r,
+                        strategy_name=data["strategy_name"],
+                        raw_params=ws,
+                    )
+                    prompt = payload.to_prompt()
+                    
+                    client = OllamaClient()
+                    report = client.generate_report(prompt, stream=False)
+                    
+                    if report.startswith("[ERROR]"):
+                        st.error(report)
+                    else:
+                        st.info(report)
+                        if sim:
+                            sim.ai_analysis_report = report
+                            db.commit()
 
 # ── History ───────────────────────────────────────────────────────────────────
 st.divider()

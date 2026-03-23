@@ -19,11 +19,10 @@ from blockbt.config import settings
 # ── Defaults ──────────────────────────────────────────────────────────────────
 
 _SYSTEM_PROMPT = (
-    "Jesteś doświadczonym ekspertem ds. algorytmicznego handlu i analizy "
-    "ilościowej. Przeanalizuj poniższe wyniki backtestu strategii i napisz "
-    "krótki, profesjonalny raport po polsku. Oceń wyniki, wskaż mocne i słabe "
-    "strony strategii oraz zaproponuj konkretne kierunki optymalizacji. "
-    "Bądź zwięzły i rzeczowy."
+    "Jesteś głównym analitykiem finansowym (Quant). Twoim zadaniem jest ocena wyników strategii algorytmicznej. "
+    "Zignoruj techniczną strukturę pliku JSON i skup się wyłącznie na liczbach. Zinterpretuj wskaźnik Sharpe'a, "
+    "Max Drawdown oraz Win Rate. Napisz zwięzły, profesjonalny wniosek na temat ryzyka i stabilności tej strategii. "
+    "Kategorycznie zabrania się opisywania czym są poszczególne pola JSON."
 )
 
 
