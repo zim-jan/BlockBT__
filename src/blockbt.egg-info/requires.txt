@@ -24,6 +24,7 @@ fastapi>=0.100
 uvicorn[standard]>=0.23
 streamlit-flow-component
 streamlit-cookies-controller
+pandas-stubs~=2.3.3
 
 [alpaca]
 alpaca-py>=0.14
