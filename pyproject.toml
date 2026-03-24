@@ -15,23 +15,18 @@ dependencies = [
     "pandas>=2.0",
     "pyarrow>=14.0",
     "yfinance>=0.2.40",
-
     # Database
     "sqlalchemy>=2.0",
     "alembic>=1.13",
-
     # Config & validation
     "pydantic>=2.5",
     "pydantic-settings>=2.2",
     "python-dotenv>=1.0",
-
     # Logging
     "loguru>=0.7",
-
     # Security
     "bcrypt>=4.1",
     "cryptography>=42.0",
-
     # vectorbt deps (vendored)
     "numba>=0.56",
     "dill>=0.3",
@@ -45,17 +40,15 @@ dependencies = [
     # phase 5 advanced trading
     "optuna>=3.0",
     "pandas-ta",
-
     # Phase 6: REST API
     "fastapi>=0.100",
     "uvicorn[standard]>=0.23",
-
     # Phase 7: Node-based Drag & Drop GUI
     "streamlit-flow-component",
     "streamlit-cookies-controller",
-
     # Alpaca (optional; install with extras)
     # "alpaca-py>=0.14",
+    "pandas-stubs~=2.3.3",
 ]
 
 [project.optional-dependencies]

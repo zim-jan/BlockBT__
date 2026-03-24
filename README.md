@@ -26,6 +26,21 @@ Możesz również po prostu uruchomić aplikację bez ręcznej aktywacji środow
 uv run streamlit run app.py
 ```
 
+### Opcja C:
+Usuń błędne środowisko: {{rm -rf .venv}}
+
+Pobierz konkretną wersję Pythona (jeśli jej nie masz):
+uv python install 3.12
+
+Utwórz środowisko twardo przypisane do 3.12:
+uv venv --python 3.12
+
+Aktywuj je w swoim terminalu (fish):
+source .venv/bin/activate.fish
+
+Ponów instalację:
+uv pip install -e .
+
 ### 3. Konfiguracja (Baza Danych)
 Projekt korzysta z SQLite. Przy pierwszym uruchomieniu tabele zostaną utworzone automatycznie, lub możesz użyć migruacji:
 ```bash
