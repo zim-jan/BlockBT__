@@ -12,4 +12,4 @@ vectorbt.pro-main/*
 .openclaw/*
 # .gitignore
 .env
-/data/
+data/

@@ -143,7 +143,7 @@ class AlpacaConnector(BaseDataConnector):
             )
 
     @staticmethod
-    def _map_timeframe(timeframe: str) -> "TimeFrame":  # type: ignore[name-defined]
+    def _map_timeframe(timeframe: str) -> TimeFrame:  # type: ignore[name-defined]
         """Map BlockBT timeframe strings to Alpaca SDK TimeFrame objects."""
         from alpaca.data.timeframe import TimeFrame, TimeFrameUnit  # type: ignore[import]
 
