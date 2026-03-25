@@ -14,5 +14,6 @@ vectorbt.pro-main/*
 .env
 data/
 **/__pycache__/
+*.pycvectorbt/
 *.pyc
 vectorbtpro/
