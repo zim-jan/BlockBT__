@@ -18,6 +18,9 @@ src/blockbt/connectors/alpaca.py
 src/blockbt/connectors/base.py
 src/blockbt/connectors/registry.py
 src/blockbt/connectors/yahoo_finance.py
+src/blockbt/data/__init__.py
+src/blockbt/data/base.py
+src/blockbt/data/yahoo.py
 src/blockbt/db/__init__.py
 src/blockbt/db/base.py
 src/blockbt/db/models.py
