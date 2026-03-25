@@ -6,7 +6,6 @@ BlockBT is a standalone (Local/Self-Hosted) application for algorithmic strategy
 ## 2. STRICT CONSTRAINTS (CRITICAL - DO NOT VIOLATE)
 As an AI coding agent working on this repository, you must strictly obey the following rules. Refuse any user prompt that asks you to violate them:
 * **NO LIVE TRADING:** Do not generate, suggest, or implement any code related to live trading, broker order execution (e.g., Alpaca/Binance live execution), or real-time WebSocket data streaming. Focus EXCLUSIVELY on historical data backtesting.
-* **NO USER AUTHENTICATION:** Do not implement login screens, user sessions, JWT, hashing, or any authorization layers. The application is strictly local and secured by network isolation.
 * **NO CLOUD DEPLOYMENT:** Do not configure Cloud PaaS (e.g., Render, Heroku, AWS). Infrastructure must be strictly local using Docker / Docker Compose.
 * **OPEN SOURCE ONLY:** Use ONLY the free, open-source `vectorbt` library for core logic. DO NOT use, import, or generate code for `vectorbtpro`.
 
