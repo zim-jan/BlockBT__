@@ -58,6 +58,17 @@ Projekt korzysta z SQLite. Przy pierwszym uruchomieniu tabele zostaną utworzone
 alembic upgrade head
 ```
 
+### 4. vectorbt i vectorbt.pro
+```bash
+# VectorBT OpenSource
+git clone https://github.com/polakowo/vectorbt.git
+
+# VectorBT PRO
+unzip
+go to folder 
+uv pip install -U ".[base]"
+```
+
 ### 4. Uruchomienie Aplikacji
 ```bash
 streamlit run app.py

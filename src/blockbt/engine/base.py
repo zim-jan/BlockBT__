@@ -12,6 +12,51 @@ from typing import Any
 
 import pandas as pd
 
+# ---------------------------------------------------------------------------
+# Result container
+# ---------------------------------------------------------------------------
+
+
+@dataclass
+class BacktestResult:
+    """Minimal, engine-agnostic result container.
+
+    Engine implementations populate the headline fields directly.
+    The ``raw`` dict holds the full, engine-specific output for audit trails
+    and serialisation into ``SimulationResult.full_metrics_json``.
+    """
+
+    symbol: str
+    timeframe: str
+    engine_name: str
+
+    # Headline metrics (None if engine couldn't compute them)
+    total_return_pct: float | None = None
+    sharpe_ratio: float | None = None
+    max_drawdown_pct: float | None = None
+    win_rate_pct: float | None = None
+    num_trades: int | None = None
+    initial_capital: float = 10_000.0
+    final_capital: float | None = None
+
+    # Rich data
+    equity_curve: pd.Series | None = None  # index=datetime, value=portfolio_value
+    raw: dict[str, Any] = field(default_factory=dict)
+
+    def to_headline_dict(self) -> dict[str, Any]:
+        """Return a flat dict of scalar metrics (safe for JSON serialisation)."""
+        return {
+            "symbol": self.symbol,
+            "timeframe": self.timeframe,
+            "engine": self.engine_name,
+            "total_return_pct": self.total_return_pct,
+            "sharpe_ratio": self.sharpe_ratio,
+            "max_drawdown_pct": self.max_drawdown_pct,
+            "win_rate_pct": self.win_rate_pct,
+            "num_trades": self.num_trades,
+            "initial_capital": self.initial_capital,
+            "final_capital": self.final_capital,
+        }
 
 
 # ---------------------------------------------------------------------------
