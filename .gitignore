@@ -9,6 +9,7 @@ TOOLS.md
 USER.md
 # vectorbt.pro-main.zip
 vectorbt.pro-main/*
+<<<<<<< dev-przydan-jules
 vectorbtpro/*
 .openclaw/*
 # .gitignore
@@ -20,3 +21,8 @@ data/
 vectorbtpro/
 vectorbt/
 *.pyc
+=======
+.openclaw/*
+# .gitignore
+.env
+>>>>>>> przydan-dev-antygravity
