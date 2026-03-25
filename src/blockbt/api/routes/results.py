@@ -1,9 +1,10 @@
-from fastapi import APIRouter, Depends, HTTPException
 from typing import Any
 
-from blockbt.db.session import get_session
-from blockbt.db.models import SimulationResult
+from fastapi import APIRouter, Depends, HTTPException
+
 from blockbt.api.dependencies import get_api_key
+from blockbt.db.models import SimulationResult
+from blockbt.db.session import get_session
 
 router = APIRouter(dependencies=[Depends(get_api_key)])
 

@@ -1,13 +1,13 @@
 import datetime
-from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
-from sqlalchemy.orm import Session
 from typing import Any
 
-from blockbt.db.session import get_session
-from blockbt.db.models import StrategyTemplate, SimulationResult
-from blockbt.engine.loader import EngineLoader
-from blockbt.connectors.registry import ConnectorRegistry
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
+
 from blockbt.api.dependencies import get_api_key
+from blockbt.connectors.registry import ConnectorRegistry
+from blockbt.db.models import SimulationResult, StrategyTemplate
+from blockbt.db.session import get_session
+from blockbt.engine.loader import EngineLoader
 
 router = APIRouter(dependencies=[Depends(get_api_key)])
 
