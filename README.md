@@ -27,19 +27,30 @@ uv run streamlit run app.py
 ```
 
 ### Opcja C:
-Usuń błędne środowisko: {{rm -rf .venv}}
-
+Usuń błędne środowisko: 
+```bash
+rm -rf .venv
+```
 Pobierz konkretną wersję Pythona (jeśli jej nie masz):
+```bash
 uv python install 3.12
+```
 
 Utwórz środowisko twardo przypisane do 3.12:
+```bash
 uv venv --python 3.12
 
+```
+
 Aktywuj je w swoim terminalu (fish):
+```bash
 source .venv/bin/activate.fish
+```
 
 Ponów instalację:
+```bash
 uv pip install -e .
+```
 
 ### 3. Konfiguracja (Baza Danych)
 Projekt korzysta z SQLite. Przy pierwszym uruchomieniu tabele zostaną utworzone automatycznie, lub możesz użyć migruacji:
@@ -69,6 +80,12 @@ Jeśli chcesz rozszerzyć możliwości BlockBT, zajrzyj do dedykowanych przewodn
 - [Dodawanie Nowych API](docs/developer/extending_data.md)
 - [Rozszerzanie GUI i Węzłów](docs/developer/extending_gui.md)
 - [Zarządzanie Bazą Danych](docs/developer/extending_db.md)
+
+## 📚 Uruchomienie mkdocs
+```bash
+uv sync --extra dev
+uv run mkdocs serve
+```
 
 ## 👤 Autor & Licencja
 Stworzone przez: **przydan**
