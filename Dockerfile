@@ -15,10 +15,13 @@ WORKDIR /app
 COPY pyproject.toml uv.lock ./
 
 # Install dependencies
-RUN uv sync --frozen
+RUN uv sync --frozen --no-install-project --no-dev
 
 # Copy the rest of the application code
 COPY . .
+
+# Sync the project
+RUN uv sync --frozen --no-dev
 
 # Expose Streamlit port
 EXPOSE 8501
