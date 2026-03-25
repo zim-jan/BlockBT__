@@ -22,7 +22,7 @@ import pandas as pd
 from loguru import logger
 
 from blockbt.config import settings
-from blockbt.engine.base import BacktestResult, BaseStrategyEngine
+from blockbt.engine.base import BaseStrategyEngine
 
 
 class ProEngine(BaseStrategyEngine):

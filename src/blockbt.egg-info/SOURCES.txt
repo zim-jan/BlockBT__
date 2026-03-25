@@ -30,6 +30,7 @@ src/blockbt/engine/base.py
 src/blockbt/engine/indicators.py
 src/blockbt/engine/loader.py
 src/blockbt/engine/opensource_engine.py
+src/blockbt/engine/optimizer.py
 src/blockbt/engine/pro_engine.py
 src/blockbt/mcp/__init__.py
 src/blockbt/mcp/llm_client.py

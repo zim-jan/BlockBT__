@@ -85,12 +85,18 @@ if st.button("▶ Uruchom Backtest", type="primary"):
             "sma_fast": int(ws.get("sma_fast", 10)),
             "sma_slow": int(ws.get("sma_slow", 30)),
         }
-        result = engine.run_backtest(ohlcv, params)
+
+        try:
+            result = engine.run_backtest(ohlcv, params)
+        except Exception as e:
+            st.error(f"Błąd podczas uruchamiania backtestu: {e}")
+            st.stop()
 
         # 3. Build equity curve samples list
         equity_samples: list[dict] = []
-        if result.equity_curve is not None:
-            eq = result.equity_curve.reset_index()
+        equity_curve = result.get("equity_curve")
+        if equity_curve is not None:
+            eq = equity_curve.reset_index()
             eq.columns = ["date", "value"]
             eq["date"] = eq["date"].astype(str)
             equity_samples = eq.to_dict(orient="records")
@@ -103,35 +109,39 @@ if st.button("▶ Uruchom Backtest", type="primary"):
         except (KeyError, ValueError):
             period_start = period_end = datetime.datetime.utcnow()
 
-        with get_session() as db:
-            sim = SimulationResult(
-                strategy_template_id=selected_id,
-                symbol=ws["symbol"],
-                timeframe=ws.get("timeframe", "1d"),
-                period_start=period_start,
-                period_end=period_end,
-                engine_used=result.engine_name,
-                initial_capital=params["initial_capital"],
-                total_return_pct=result.total_return_pct,
-                sharpe_ratio=result.sharpe_ratio,
-                max_drawdown_pct=result.max_drawdown_pct,
-                win_rate_pct=result.win_rate_pct,
-                num_trades=result.num_trades,
-                final_capital=result.final_capital,
-                full_metrics_json={
-                    "total_return_pct": result.total_return_pct,
-                    "sharpe_ratio": result.sharpe_ratio,
-                    "max_drawdown_pct": result.max_drawdown_pct,
-                    "win_rate_pct": result.win_rate_pct,
-                    "num_trades": result.num_trades,
-                    "final_capital": result.final_capital,
-                },
-                equity_curve_json=equity_samples,
-                status="completed",
-            )
-            db.add(sim)
-            db.flush()
-            sim_id = sim.id
+        try:
+            with get_session() as db:
+                sim = SimulationResult(
+                    strategy_template_id=selected_id,
+                    symbol=ws["symbol"],
+                    timeframe=ws.get("timeframe", "1d"),
+                    period_start=period_start,
+                    period_end=period_end,
+                    engine_used=result.get("engine_name", "unknown"),
+                    initial_capital=params["initial_capital"],
+                    total_return_pct=result.get("total_return_pct"),
+                    sharpe_ratio=result.get("sharpe_ratio"),
+                    max_drawdown_pct=result.get("max_drawdown_pct"),
+                    win_rate_pct=result.get("win_rate_pct"),
+                    num_trades=result.get("num_trades"),
+                    final_capital=result.get("final_capital"),
+                    full_metrics_json={
+                        "total_return_pct": result.get("total_return_pct"),
+                        "sharpe_ratio": result.get("sharpe_ratio"),
+                        "max_drawdown_pct": result.get("max_drawdown_pct"),
+                        "win_rate_pct": result.get("win_rate_pct"),
+                        "num_trades": result.get("num_trades"),
+                        "final_capital": result.get("final_capital"),
+                    },
+                    equity_curve_json=equity_samples,
+                    status="completed",
+                )
+                db.add(sim)
+                db.flush()
+                sim_id = sim.id
+        except Exception as e:
+            st.error(f"Błąd podczas zapisu do bazy danych: {e}")
+            st.stop()
 
         st.session_state["last_result"] = {
             "sim_id": sim_id,
@@ -152,14 +162,14 @@ if "last_result" in st.session_state:
 
     c1, c2, c3, c4, c5 = st.columns(5)
     c1.metric("Całkowity zwrot",
-              f"{r.total_return_pct:.2f}%" if r.total_return_pct is not None else "—")
+              f"{r.get('total_return_pct'):.2f}%" if r.get('total_return_pct') is not None else "—")
     c2.metric("Wskaźnik Sharpe'a",
-              f"{r.sharpe_ratio:.3f}" if r.sharpe_ratio is not None else "—")
+              f"{r.get('sharpe_ratio'):.3f}" if r.get('sharpe_ratio') is not None else "—")
     c3.metric("Max Drawdown",
-              f"{r.max_drawdown_pct:.2f}%" if r.max_drawdown_pct is not None else "—")
+              f"{r.get('max_drawdown_pct'):.2f}%" if r.get('max_drawdown_pct') is not None else "—")
     c4.metric("Win Rate",
-              f"{r.win_rate_pct:.1f}%" if r.win_rate_pct is not None else "—")
-    c5.metric("Transakcje", r.num_trades if r.num_trades is not None else "—")
+              f"{r.get('win_rate_pct'):.1f}%" if r.get('win_rate_pct') is not None else "—")
+    c5.metric("Transakcje", r.get('num_trades') if r.get('num_trades') is not None else "—")
 
     st.divider()
 

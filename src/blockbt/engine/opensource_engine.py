@@ -15,7 +15,7 @@ import pandas as pd
 from loguru import logger
 
 from blockbt.config import settings
-from blockbt.engine.base import BacktestResult, BaseStrategyEngine
+from blockbt.engine.base import BaseStrategyEngine
 from blockbt.engine.indicators import IndicatorService
 
 # ---------------------------------------------------------------------------
@@ -32,7 +32,7 @@ class OpenSourceEngine(BaseStrategyEngine):
     Capabilities (Phase 1 MVP):
     - Simple SMA crossover strategy as a proof-of-concept runner.
     - Computes headline metrics: total return, Sharpe, max drawdown, win rate.
-    - Full portfolio stats stored in ``BacktestResult.raw``.
+    - Full portfolio stats stored in ``raw``.
 
     Extension points:
     - Override ``_build_entries_exits`` to plug in richer indicator logic.

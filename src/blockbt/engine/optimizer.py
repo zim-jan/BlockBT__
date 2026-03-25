@@ -14,7 +14,7 @@ import pandas as pd
 from loguru import logger
 
 from blockbt.config import settings
-from blockbt.engine.base import StrategyEngine
+from blockbt.engine.base import BaseStrategyEngine
 
 # Make vendored vectorbt importable
 _VENDORED_VBT = settings.PROJECT_ROOT / "vectorbt"
@@ -36,7 +36,7 @@ class GridSearchOptimizer:
 
     def __init__(
         self,
-        engine: StrategyEngine,
+        engine: BaseStrategyEngine,
         indicator_layer: Callable[
             ..., tuple[pd.Series | pd.DataFrame, pd.Series | pd.DataFrame]
         ],
