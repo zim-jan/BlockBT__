@@ -13,3 +13,5 @@ vectorbt.pro-main/*
 # .gitignore
 .env
 data/
+**/__pycache__/
+*.pyc
