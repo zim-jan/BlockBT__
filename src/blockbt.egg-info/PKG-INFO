@@ -32,6 +32,7 @@ Requires-Dist: uvicorn[standard]>=0.23
 Requires-Dist: streamlit-flow-component
 Requires-Dist: streamlit-cookies-controller
 Requires-Dist: pandas-stubs~=2.3.3
+Requires-Dist: dash-bootstrap-components>=2.0.4
 Provides-Extra: alpaca
 Requires-Dist: alpaca-py>=0.14; extra == "alpaca"
 Provides-Extra: dev
@@ -79,7 +80,7 @@ Usuń błędne środowisko:
 rm -rf .venv
 ```
 Pobierz konkretną wersję Pythona (jeśli jej nie masz):
-```
+```bash
 uv python install 3.12
 ```
 
@@ -90,15 +91,30 @@ uv venv --python 3.12
 ```
 
 Aktywuj je w swoim terminalu (fish):
+```bash
 source .venv/bin/activate.fish
+```
 
 Ponów instalację:
+```bash
 uv pip install -e .
+```
 
 ### 3. Konfiguracja (Baza Danych)
 Projekt korzysta z SQLite. Przy pierwszym uruchomieniu tabele zostaną utworzone automatycznie, lub możesz użyć migruacji:
 ```bash
 alembic upgrade head
+```
+
+### 4. vectorbt i vectorbt.pro
+```bash
+# VectorBT OpenSource
+git clone https://github.com/polakowo/vectorbt.git
+
+# VectorBT PRO
+unzip
+go to folder 
+uv pip install -U ".[base]"
 ```
 
 ### 4. Uruchomienie Aplikacji

@@ -8,7 +8,7 @@ SOUL.md
 TOOLS.md
 USER.md
 # vectorbt.pro-main.zip
-vectorbt.pro-main/*
+vectorbtpro/*
 .openclaw/*
 # .gitignore
 .env
