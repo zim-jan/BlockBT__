@@ -88,3 +88,9 @@ ignore_missing_imports = true
 testpaths = ["tests"]
 addopts = "-v --tb=short"
 asyncio_mode = "auto"
+filterwarnings = [
+    "ignore::DeprecationWarning:vectorbt.*",
+    "ignore::FutureWarning:vectorbt.*",
+    "ignore::UserWarning:vectorbt.*",
+    "ignore::DeprecationWarning:numba.*",
+]
