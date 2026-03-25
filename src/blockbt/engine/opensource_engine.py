@@ -15,7 +15,8 @@ import pandas as pd
 from loguru import logger
 
 from blockbt.config import settings
-from blockbt.engine.base import BacktestResult, StrategyEngine
+from blockbt.engine.base import BaseStrategyEngine
+from blockbt.engine.indicators import IndicatorService
 
 # ---------------------------------------------------------------------------
 # Make vendored vectorbt importable before anything else touches it.
@@ -25,13 +26,13 @@ if _VENDORED_VBT.exists() and str(_VENDORED_VBT) not in sys.path:
     sys.path.insert(0, str(_VENDORED_VBT))
 
 
-class OpenSourceEngine(StrategyEngine):
+class OpenSourceEngine(BaseStrategyEngine):
     """Backtest engine using the public open-source ``vectorbt`` library.
 
     Capabilities (Phase 1 MVP):
     - Simple SMA crossover strategy as a proof-of-concept runner.
     - Computes headline metrics: total return, Sharpe, max drawdown, win rate.
-    - Full portfolio stats stored in ``BacktestResult.raw``.
+    - Full portfolio stats stored in ``raw``.
 
     Extension points:
     - Override ``_build_entries_exits`` to plug in richer indicator logic.
@@ -57,7 +58,7 @@ class OpenSourceEngine(StrategyEngine):
         self,
         data: pd.DataFrame,
         params: dict[str, Any],
-    ) -> BacktestResult:
+    ) -> dict[str, Any]:
         """Run a vectorbt-powered backtest.
 
         Parameters
@@ -81,9 +82,10 @@ class OpenSourceEngine(StrategyEngine):
         close = data["close"]
 
         # ------------------------------------------------------------------
-        # Build entry / exit signals
+        # Generowanie sygnałów wejścia / wyjścia z użyciem IndicatorService
         # ------------------------------------------------------------------
-        entries, exits = self._build_entries_exits(close, params, vbt)
+        indicator_service = IndicatorService()
+        entries, exits = indicator_service.generate_signals(close, params, vbt)
 
         # ------------------------------------------------------------------
         # Run portfolio simulation
@@ -106,20 +108,21 @@ class OpenSourceEngine(StrategyEngine):
             stats.get("Total Trades", "N/A"),
         )
 
-        return BacktestResult(
-            symbol=symbol,
-            timeframe=timeframe,
-            engine_name=self.ENGINE_NAME,
-            total_return_pct=self._safe_float(stats.get("Total Return [%]")),
-            sharpe_ratio=self._safe_float(stats.get("Sharpe Ratio")),
-            max_drawdown_pct=self._safe_float(stats.get("Max Drawdown [%]")),
-            win_rate_pct=self._safe_float(stats.get("Win Rate [%]")),
-            num_trades=self._safe_int(stats.get("Total Trades")),
-            initial_capital=initial_capital,
-            final_capital=self._safe_float(stats.get("End Value")),
-            equity_curve=equity,
-            raw=stats.to_dict() if hasattr(stats, "to_dict") else dict(stats),
-        )
+        # Return dictionary instead of BacktestResult to meet the strict requirement
+        return {
+            "symbol": symbol,
+            "timeframe": timeframe,
+            "engine_name": self.ENGINE_NAME,
+            "total_return_pct": self._safe_float(stats.get("Total Return [%]")),
+            "sharpe_ratio": self._safe_float(stats.get("Sharpe Ratio")),
+            "max_drawdown_pct": self._safe_float(stats.get("Max Drawdown [%]")),
+            "win_rate_pct": self._safe_float(stats.get("Win Rate [%]")),
+            "num_trades": self._safe_int(stats.get("Total Trades")),
+            "initial_capital": initial_capital,
+            "final_capital": self._safe_float(stats.get("End Value")),
+            "equity_curve": equity,
+            "raw": stats.to_dict() if hasattr(stats, "to_dict") else dict(stats),
+        }
 
     def get_engine_info(self) -> dict[str, str]:
         return {
@@ -161,29 +164,21 @@ class OpenSourceEngine(StrategyEngine):
             return entries, exits
 
         if strategy_type == "macd":
-            import pandas_ta as ta  # type: ignore[import]
-
             fast = params.get("macd_fast", 12)
             slow = params.get("macd_slow", 26)
             signal = params.get("macd_signal", 9)
+
+            # Calculate MACD directly on the Series using vectorbt
+            macd = vbt.MACD.run(close, fast_window=fast, slow_window=slow, signal_window=signal)
             
-            # Calculate MACD directly on the Series using the global function
-            macd_df = ta.macd(close, fast=fast, slow=slow, signal=signal)
-            
-            if macd_df is None or macd_df.empty:
-                logger.warning("OpenSourceEngine: `pandas-ta` MACD returned no data")
-                blank = pd.Series(False, index=close.index)
-                return blank, blank
-            
-            # Default columns: MACD_12_26_9, MACDh_12_26_9, MACDs_12_26_9
-            macd_line = macd_df.iloc[:, 0]  # The actual MACD line
-            sig_line  = macd_df.iloc[:, 2]  # The signal line
+            macd_line = macd.macd
+            sig_line = macd.signal
             
             # Crossover logic:
             # Entry: MACD crosses ABOVE Signal
-            entries = (macd_line > sig_line) & (macd_line.shift(1) <= sig_line.shift(1))
+            entries = macd_line.vbt.crossed_above(sig_line)
             # Exit: MACD crosses BELOW Signal
-            exits = (macd_line < sig_line) & (macd_line.shift(1) >= sig_line.shift(1))
+            exits = macd_line.vbt.crossed_below(sig_line)
             
             return entries, exits
 

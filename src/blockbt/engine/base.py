@@ -8,7 +8,6 @@ rest of the application code is engine-agnostic.
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from dataclasses import dataclass, field
 from typing import Any
 
 import pandas as pd
@@ -65,15 +64,15 @@ class BacktestResult:
 # ---------------------------------------------------------------------------
 
 
-class StrategyEngine(ABC):
-    """Abstract interface every BackBT execution engine must satisfy.
+class BaseStrategyEngine(ABC):
+    """Abstrakcyjny interfejs, który musi spełniać każdy silnik wykonawczy BlockBT.
 
-    Design contract:
-    - All methods are **synchronous** (async wrappers at API layer if needed).
-    - Engines must never raise ImportError to callers — all missing-library
-      handling goes inside the engine class itself.
-    - The ``run_backtest`` method accepts a **standardised parameter dict**
-      that mirrors the ``wizard_state`` JSON schema; engines translate internally.
+    Kontrakt projektowy:
+    - Wszystkie metody są **synchroniczne** (wrappery async na poziomie API w razie potrzeby).
+    - Silniki nigdy nie powinny zgłaszać ImportError do wywołujących - cała obsługa
+      brakujących bibliotek odbywa się wewnątrz samej klasy silnika.
+    - Metoda ``run_backtest`` przyjmuje **ustandaryzowany słownik parametrów**,
+      który odzwierciedla schemat JSON ``wizard_state``; silniki tłumaczą go wewnętrznie.
     """
 
     # Human-readable engine identifier — override in subclasses.
@@ -89,7 +88,7 @@ class StrategyEngine(ABC):
         self,
         data: pd.DataFrame,
         params: dict[str, Any],
-    ) -> BacktestResult:
+    ) -> dict[str, Any]:
         """Execute a backtest and return a normalised result.
 
         Parameters
@@ -129,12 +128,23 @@ class StrategyEngine(ABC):
         """
         return []
 
-    def get_stats(self, result: BacktestResult) -> dict[str, Any]:
+    def get_stats(self, result: dict[str, Any]) -> dict[str, Any]:
         """Return all statistics from a completed backtest result.
 
-        Default: delegates to ``result.to_headline_dict()``.
+        Default: returns the standard keys from the dict result.
         """
-        return result.to_headline_dict()
+        return {
+            "symbol": result.get("symbol"),
+            "timeframe": result.get("timeframe"),
+            "engine": result.get("engine_name"),
+            "total_return_pct": result.get("total_return_pct"),
+            "sharpe_ratio": result.get("sharpe_ratio"),
+            "max_drawdown_pct": result.get("max_drawdown_pct"),
+            "win_rate_pct": result.get("win_rate_pct"),
+            "num_trades": result.get("num_trades"),
+            "initial_capital": result.get("initial_capital"),
+            "final_capital": result.get("final_capital"),
+        }
 
     def __repr__(self) -> str:
         return f"<{self.__class__.__name__} name={self.ENGINE_NAME!r}>"

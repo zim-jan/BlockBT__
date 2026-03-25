@@ -1,5 +1,5 @@
 """
-ReportBuilder — converts a BacktestResult into a ready-to-send MCPPayload.
+ReportBuilder — converts a dict[str, Any] into a ready-to-send MCPPayload.
 
 Handles:
 - Equity curve downsampling (configurable max points)
@@ -8,7 +8,8 @@ Handles:
 
 Usage:
     from blockbt.mcp.report_builder import ReportBuilder
-    from blockbt.engine.base import BacktestResult
+    from typing import Any
+# from blockbt.engine.base import dict[str, Any]
 
     payload = ReportBuilder.build(result, strategy_name="My SMA Strategy")
     print(payload.to_prompt())          # send to LLM as user message
@@ -23,7 +24,8 @@ from typing import Any
 import pandas as pd
 
 from blockbt.config import settings
-from blockbt.engine.base import BacktestResult
+from typing import Any
+# from blockbt.engine.base import dict[str, Any]
 from blockbt.mcp.protocol import (
     MCPContext,
     MCPMetrics,
@@ -33,12 +35,12 @@ from blockbt.mcp.protocol import (
 
 
 class ReportBuilder:
-    """Transforms a BacktestResult into a structured MCPPayload."""
+    """Transforms a dict[str, Any] into a structured MCPPayload."""
 
     @classmethod
     def build(
         cls,
-        result: BacktestResult,
+        result: dict[str, Any],
         strategy_name: str = "Unnamed Strategy",
         raw_params: dict[str, Any] | None = None,
         max_equity_points: int | None = None,
@@ -47,7 +49,7 @@ class ReportBuilder:
 
         Parameters
         ----------
-        result:           Completed BacktestResult from any engine.
+        result:           Completed dict[str, Any] from any engine.
         strategy_name:    Human name of the strategy (from wizard_state).
         raw_params:       Original wizard_state params for reference.
         max_equity_points:
@@ -60,23 +62,23 @@ class ReportBuilder:
 
         context = MCPContext(
             strategy_name=strategy_name,
-            symbol=result.symbol,
-            timeframe=result.timeframe,
+            symbol=result.get("symbol", "UNKNOWN"),
+            timeframe=result.get("timeframe", "1d"),
             period=MCPPeriod(start=period_start, end=period_end),
-            engine=result.engine_name,
-            initial_capital=result.initial_capital,
+            engine=result.get("engine_name", "base"),
+            initial_capital=result.get("initial_capital", 10000.0),
         )
 
         metrics = MCPMetrics(
-            total_return_pct=result.total_return_pct,
-            sharpe_ratio=result.sharpe_ratio,
-            max_drawdown_pct=result.max_drawdown_pct,
-            win_rate_pct=result.win_rate_pct,
-            num_trades=result.num_trades,
-            final_capital=result.final_capital,
+            total_return_pct=result.get("total_return_pct", 0.0),
+            sharpe_ratio=result.get("sharpe_ratio", 0.0),
+            max_drawdown_pct=result.get("max_drawdown_pct", 0.0),
+            win_rate_pct=result.get("win_rate_pct", 0.0),
+            num_trades=result.get("num_trades", 0),
+            final_capital=result.get("final_capital", 0.0),
         )
 
-        equity_samples = cls._sample_equity_curve(result.equity_curve, max_pts)
+        equity_samples = cls._sample_equity_curve(result.get("equity_curve"), max_pts)
 
         return MCPPayload(
             schema_version="1.0",
@@ -92,10 +94,10 @@ class ReportBuilder:
     # ------------------------------------------------------------------
 
     @staticmethod
-    def _extract_period(result: BacktestResult) -> tuple[str, str]:
+    def _extract_period(result: dict[str, Any]) -> tuple[str, str]:
         """Extract ISO date strings for the simulation period."""
-        if result.equity_curve is not None and not result.equity_curve.empty:
-            idx = result.equity_curve.index
+        if result.get("equity_curve") is not None and not result.get("equity_curve").empty:
+            idx = result.get("equity_curve").index
             return str(idx[0].date()), str(idx[-1].date())
         return "unknown", "unknown"
 

@@ -12,16 +12,15 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 import optuna
 import streamlit as st
-import plotly.graph_objects as go
-
-from blockbt.ui.auth import is_logged_in, render_auth_gate
-from blockbt.db.models import StrategyTemplate
-from blockbt.db.session import get_session
-from blockbt.engine.loader import EngineLoader
-from blockbt.connectors.registry import ConnectorRegistry
 
 # Optuna plotly visualization uses standard plotly
 from optuna.visualization import plot_optimization_history, plot_param_importances
+
+from blockbt.connectors.registry import ConnectorRegistry
+from blockbt.db.models import StrategyTemplate
+from blockbt.db.session import get_session
+from blockbt.engine.loader import EngineLoader
+from blockbt.ui.auth import is_logged_in, render_auth_gate
 
 # ── Auth gate ─────────────────────────────────────────────────────────────────
 if not is_logged_in():
@@ -118,10 +117,11 @@ if st.button("🚀 Uruchom Optymalizację", type="primary", use_container_width=
             result = engine.run_backtest(ohlcv, params)
             
             # Maximize Sharpe. Penalize zero trades.
-            sr = result.sharpe_ratio
-            if sr is None or result.num_trades == 0:
+            sr = result.get("sharpe_ratio")
+            num_trades = result.get("num_trades", 0)
+            if sr is None or num_trades == 0:
                 return -99.0
-            return sr
+            return float(sr)
 
         # 3. Create Study & Optimize
         optuna.logging.set_verbosity(optuna.logging.WARNING)
