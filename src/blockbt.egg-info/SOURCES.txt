@@ -27,6 +27,7 @@ src/blockbt/db/models.py
 src/blockbt/db/session.py
 src/blockbt/engine/__init__.py
 src/blockbt/engine/base.py
+src/blockbt/engine/indicators.py
 src/blockbt/engine/loader.py
 src/blockbt/engine/opensource_engine.py
 src/blockbt/engine/pro_engine.py

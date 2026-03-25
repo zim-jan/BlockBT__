@@ -20,7 +20,7 @@ import pandas as pd
 
 @dataclass
 class BacktestResult:
-    """Minimal, engine-agnostic result container.
+    """Minimalny kontener wyników niezależny od silnika.
 
     Engine implementations populate the headline fields directly.
     The ``raw`` dict holds the full, engine-specific output for audit trails
@@ -45,7 +45,7 @@ class BacktestResult:
     raw: dict[str, Any] = field(default_factory=dict)
 
     def to_headline_dict(self) -> dict[str, Any]:
-        """Return a flat dict of scalar metrics (safe for JSON serialisation)."""
+        """Zwraca płaski słownik z metrykami skalarnymi (bezpieczny do serializacji JSON)."""
         return {
             "symbol": self.symbol,
             "timeframe": self.timeframe,
@@ -65,15 +65,15 @@ class BacktestResult:
 # ---------------------------------------------------------------------------
 
 
-class StrategyEngine(ABC):
-    """Abstract interface every BackBT execution engine must satisfy.
+class BaseStrategyEngine(ABC):
+    """Abstrakcyjny interfejs, który musi spełniać każdy silnik wykonawczy BlockBT.
 
-    Design contract:
-    - All methods are **synchronous** (async wrappers at API layer if needed).
-    - Engines must never raise ImportError to callers — all missing-library
-      handling goes inside the engine class itself.
-    - The ``run_backtest`` method accepts a **standardised parameter dict**
-      that mirrors the ``wizard_state`` JSON schema; engines translate internally.
+    Kontrakt projektowy:
+    - Wszystkie metody są **synchroniczne** (wrappery async na poziomie API w razie potrzeby).
+    - Silniki nigdy nie powinny zgłaszać ImportError do wywołujących - cała obsługa
+      brakujących bibliotek odbywa się wewnątrz samej klasy silnika.
+    - Metoda ``run_backtest`` przyjmuje **ustandaryzowany słownik parametrów**,
+      który odzwierciedla schemat JSON ``wizard_state``; silniki tłumaczą go wewnętrznie.
     """
 
     # Human-readable engine identifier — override in subclasses.
@@ -89,7 +89,7 @@ class StrategyEngine(ABC):
         self,
         data: pd.DataFrame,
         params: dict[str, Any],
-    ) -> BacktestResult:
+    ) -> dict[str, Any]:
         """Execute a backtest and return a normalised result.
 
         Parameters

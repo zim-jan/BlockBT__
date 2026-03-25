@@ -14,16 +14,16 @@ from __future__ import annotations
 from loguru import logger
 
 from blockbt.config import settings
-from blockbt.engine.base import StrategyEngine
+from blockbt.engine.base import BaseStrategyEngine
 
 
 class EngineLoader:
     """Singleton-style factory for the active BlockBT engine."""
 
-    _instance: StrategyEngine | None = None
+    _instance: BaseStrategyEngine | None = None
 
     @classmethod
-    def load(cls, force_reload: bool = False, force_opensource: bool = False) -> StrategyEngine:
+    def load(cls, force_reload: bool = False, force_opensource: bool = False) -> BaseStrategyEngine:
         """Return the appropriate engine, caching the result.
 
         Parameters
@@ -55,7 +55,7 @@ class EngineLoader:
         return cls._instance
 
     @classmethod
-    def _create_engine(cls) -> StrategyEngine:
+    def _create_engine(cls) -> BaseStrategyEngine:
         from blockbt.engine.opensource_engine import OpenSourceEngine
         from blockbt.engine.pro_engine import ProEngine
 

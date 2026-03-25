@@ -1,5 +1,5 @@
 """
-Tests for the Dual-Engine loader and ProEngine mock stubs.
+Testy dla Loadera Dual-Engine oraz mocków ProEngine.
 """
 
 from __future__ import annotations
@@ -45,15 +45,15 @@ class TestOpenSourceEngine:
 
         eng = OpenSourceEngine()
         result = eng.run_backtest(sample_ohlcv, minimal_params)
-        assert result.symbol == "TEST"
-        assert result.engine_name == "opensource"
+        assert result["symbol"] == "TEST"
+        assert result["engine_name"] == "opensource"
         # Headline metrics may be None for very short series but should exist
-        assert hasattr(result, "total_return_pct")
-        assert hasattr(result, "equity_curve")
+        assert "total_return_pct" in result
+        assert "equity_curve" in result
 
 
 class TestProEngineMock:
-    """ProEngine MUST work even without vbtpro installed (mock mode)."""
+    """ProEngine MUSI działać nawet bez zainstalowanego vbtpro (tryb mock)."""
 
     def test_instantiates_without_vbtpro(self):
         from blockbt.engine.pro_engine import ProEngine
@@ -70,9 +70,9 @@ class TestProEngineMock:
             pytest.skip("Real vbtpro detected — mock path not exercised")
 
         result = engine.run_backtest(sample_ohlcv, minimal_params)
-        assert result.engine_name == "pro_mock"
-        assert result.total_return_pct is not None
-        assert result.equity_curve is not None
+        assert result["engine_name"] == "pro_mock"
+        assert result["total_return_pct"] is not None
+        assert result["equity_curve"] is not None
 
     def test_mock_result_is_deterministic(self, sample_ohlcv, minimal_params):
         from blockbt.engine.pro_engine import ProEngine
@@ -83,5 +83,5 @@ class TestProEngineMock:
 
         r1 = engine.run_backtest(sample_ohlcv, minimal_params)
         r2 = engine.run_backtest(sample_ohlcv, minimal_params)
-        assert r1.total_return_pct == r2.total_return_pct
-        assert r1.num_trades == r2.num_trades
+        assert r1["total_return_pct"] == r2["total_return_pct"]
+        assert r1["num_trades"] == r2["num_trades"]

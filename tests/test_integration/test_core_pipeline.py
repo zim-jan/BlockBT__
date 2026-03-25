@@ -39,15 +39,15 @@ def test_scenario_1_macd_pipeline(tmp_path, sample_ohlcv):
     result = engine.run_backtest(cached_df, params)
 
     # 4. Verify SimulationResult structure & metrics
-    assert result.symbol == "TEST"
-    assert result.engine_name == "opensource"
-    assert isinstance(result.total_return_pct, float)
-    assert result.num_trades is not None
-    assert isinstance(result.raw, dict)
+    assert result["symbol"] == "TEST"
+    assert result["engine_name"] == "opensource"
+    assert isinstance(result["total_return_pct"], float)
+    assert result["num_trades"] is not None
+    assert isinstance(result["raw"], dict)
     
     # Check if raw portfolio stats are effectively loaded
-    assert "Start Value" in result.raw or "Start" in result.raw
-    assert "End Value" in result.raw or "End" in result.raw
+    assert "Start Value" in result["raw"] or "Start" in result["raw"]
+    assert "End Value" in result["raw"] or "End" in result["raw"]
 
 
 def test_scenario_2_optuna_optimizer(db_session, sample_ohlcv):
@@ -74,7 +74,7 @@ def test_scenario_2_optuna_optimizer(db_session, sample_ohlcv):
         params.update({"sma_fast": sma_fast, "sma_slow": sma_slow})
         
         result = engine.run_backtest(sample_ohlcv, params)
-        sr = result.sharpe_ratio
+        sr = result["sharpe_ratio"]
         
         # In this tiny sample some trials might have 0 trades -> None Sharpe Ratio
         if sr is None or pd.isna(sr):
