@@ -12,6 +12,7 @@ from __future__ import annotations
 import json
 import urllib.error
 import urllib.request
+
 from loguru import logger
 
 from blockbt.config import settings

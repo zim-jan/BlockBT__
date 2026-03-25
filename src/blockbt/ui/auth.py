@@ -7,8 +7,8 @@ login / registration Streamlit widgets.
 
 from __future__ import annotations
 
-import streamlit as st
 import bcrypt
+import streamlit as st
 from streamlit_cookies_controller import CookieController
 
 from blockbt.db.models import User

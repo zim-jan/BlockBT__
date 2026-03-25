@@ -1,0 +1,15 @@
+# .agentignore
+# AGENTS.md
+BOOTSTRAP.md
+HEARTBEAT.md
+IDENTITY.md
+MEMORY.md
+SOUL.md
+TOOLS.md
+USER.md
+# vectorbt.pro-main.zip
+vectorbt.pro-main/*
+.openclaw/*
+# .gitignore
+.env
+data/

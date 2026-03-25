@@ -67,7 +67,7 @@ class User(Base):
     )
 
     # relationships
-    strategy_templates: Mapped[list["StrategyTemplate"]] = relationship(
+    strategy_templates: Mapped[list[StrategyTemplate]] = relationship(
         "StrategyTemplate", back_populates="user", lazy="select"
     )
 
@@ -109,8 +109,8 @@ class StrategyTemplate(Base):
     )
 
     # relationships
-    user: Mapped["User"] = relationship("User", back_populates="strategy_templates")
-    simulation_results: Mapped[list["SimulationResult"]] = relationship(
+    user: Mapped[User] = relationship("User", back_populates="strategy_templates")
+    simulation_results: Mapped[list[SimulationResult]] = relationship(
         "SimulationResult", back_populates="strategy_template", lazy="select"
     )
 
@@ -182,7 +182,7 @@ class SimulationResult(Base):
     ai_analysis_report: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     # relationships
-    strategy_template: Mapped["StrategyTemplate"] = relationship(
+    strategy_template: Mapped[StrategyTemplate] = relationship(
         "StrategyTemplate", back_populates="simulation_results"
     )
 
