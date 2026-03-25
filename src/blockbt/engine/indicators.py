@@ -49,28 +49,20 @@ class IndicatorService:
             return entries, exits
 
         if strategy_type == "macd":
-            try:
-                import pandas_ta as ta  # type: ignore[import]
-                fast = params.get("macd_fast", 12)
-                slow = params.get("macd_slow", 26)
-                signal = params.get("macd_signal", 9)
+            fast = params.get("macd_fast", 12)
+            slow = params.get("macd_slow", 26)
+            signal = params.get("macd_signal", 9)
 
-                macd_df = ta.macd(close, fast=fast, slow=slow, signal=signal)
+            # Korzystamy z natywnego wskaźnika vbt.MACD w celach wektoryzacji
+            macd = vbt.MACD.run(close, fast_window=fast, slow_window=slow, signal_window=signal)
 
-                if macd_df is None or macd_df.empty:
-                    logger.warning("IndicatorService: `pandas-ta` MACD nie zwrócił danych")
-                    blank = pd.Series(False, index=close.index)
-                    return blank, blank
+            macd_line = macd.macd
+            sig_line = macd.signal
 
-                macd_line = macd_df.iloc[:, 0]
-                sig_line  = macd_df.iloc[:, 2]
+            entries = macd_line.vbt.crossed_above(sig_line)
+            exits = macd_line.vbt.crossed_below(sig_line)
 
-                entries = (macd_line > sig_line) & (macd_line.shift(1) <= sig_line.shift(1))
-                exits = (macd_line < sig_line) & (macd_line.shift(1) >= sig_line.shift(1))
-
-                return entries, exits
-            except ImportError:
-                logger.warning("IndicatorService: Brak pandas_ta, spadek do domyślnego SMA")
+            return entries, exits
 
         # -------------------------------------------------------------
         # Fallback / Domyślnie: SMA Crossover (wymaganie MVP)
