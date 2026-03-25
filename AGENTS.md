@@ -10,10 +10,10 @@ As an AI coding agent working on this repository, you must strictly obey the fol
 * **OPEN SOURCE ONLY:** Use ONLY the free, open-source `vectorbt` library for core logic. DO NOT use, import, or generate code for `vectorbtpro`.
 
 ## 3. Tech Stack & Conventions
-* **Language:** Python 3.10+ (Strict type hinting required).
+* **Language:** Python 3.12+ (Strict type hinting required).
 * **Core Engine:** `vectorbt` (Open Source), `pandas`, `numpy`.
 * **GUI:** `streamlit` (Local UI, forced to bind to `127.0.0.1`).
-* **Infrastructure:** Docker, Docker Compose (Base image: `python:3.10-slim`).
+* **Infrastructure:** Docker, Docker Compose (Base image: `python:3.12-slim`).
 * **Database:** SQLite + SQLAlchemy 2.x (Local file-based only).
 
 ## 4. Module Roles & Architecture
