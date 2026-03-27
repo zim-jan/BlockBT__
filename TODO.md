@@ -6,7 +6,7 @@
 
 #### 2. Możliwość edycji system prompta do analizy strategii. 
 
-- trzymanie w bazie system propta per user
+- trzymanie w bazie system prompta per user
 - pierwszy niech bedzie domyslny 
 - uzytkownik moze zapisać kilka system promptów
 - 

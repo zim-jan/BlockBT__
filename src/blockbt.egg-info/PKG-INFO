@@ -108,7 +108,7 @@ alembic upgrade head
 ### 4. vectorbt i vectorbt.pro
 ```bash
 # VectorBT OpenSource
-git clone https://github.com/polakowo/vectorbt.git
+git clone https://github.com/przydan/vectorbt.git
 
 # VectorBT PRO
 unzip
@@ -143,6 +143,10 @@ Jeśli chcesz rozszerzyć możliwości BlockBT, zajrzyj do dedykowanych przewodn
 ```bash
 uv sync --extra dev
 uv run mkdocs serve
+```
+
+```bash
+dd if=/dev/urandom bs=32 count=1 2>/dev/null | openssl base64
 ```
 
 ## 👤 Autor & Licencja

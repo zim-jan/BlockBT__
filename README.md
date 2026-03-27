@@ -61,7 +61,7 @@ alembic upgrade head
 ### 4. vectorbt i vectorbt.pro
 ```bash
 # VectorBT OpenSource
-git clone https://github.com/polakowo/vectorbt.git
+git clone https://github.com/przydan/vectorbt.git
 
 # VectorBT PRO
 unzip
