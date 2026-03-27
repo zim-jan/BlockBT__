@@ -5,20 +5,9 @@ This file bootstraps the database, applies the authentication gate,
 and wires the multipage navigation sidebar.
 """
 
-import sys
-from pathlib import Path
-
-# Make sure the source package is importable regardless of working directory.
-_ROOT = Path(__file__).parent
-sys.path.insert(0, str(_ROOT / "src"))
-
 import streamlit as st
 
-from blockbt.db.session import init_db
 from blockbt.ui.auth import is_logged_in, logout, render_auth_gate
-
-# ── One-time DB initialisation (creates tables if they don't exist) ───────────
-init_db()
 
 # ── Page meta ────────────────────────────────────────────────────────────────
 st.set_page_config(
