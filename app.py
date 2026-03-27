@@ -23,12 +23,12 @@ if not is_logged_in():
 
 # ── Sidebar ───────────────────────────────────────────────────────────────────
 with st.sidebar:
-    st.title("📈 BlockBT")
+    st.title("BlockBT")
     st.caption(f"Zalogowany: **{st.session_state.get('username', '—')}**")
     st.divider()
-    st.page_link("app.py", label="🏠 Strona główna", icon="🏠")
-    st.page_link("pages/1_Wizard.py", label="🧙 Kreator Strategii", icon="🧙")
-    st.page_link("pages/2_Dashboard.py", label="📊 Dashboard", icon="📊")
+    st.page_link("app.py", label="Strona główna", icon="🏠")
+    st.page_link("pages/1_Wizard.py", label="Kreator Strategii", icon="🧙")
+    st.page_link("pages/2_Dashboard.py", label="Dashboard", icon="📊")
     st.divider()
     if st.button("🚪 Wyloguj", use_container_width=True):
         logout()

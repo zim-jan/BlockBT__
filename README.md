@@ -98,6 +98,10 @@ uv sync --extra dev
 uv run mkdocs serve
 ```
 
+```bash
+dd if=/dev/urandom bs=32 count=1 2>/dev/null | openssl base64
+```
+
 ## 👤 Autor & Licencja
 Stworzone przez: **przydan**
 Licencja: MIT / Proprietary (dla modułów PRO)
