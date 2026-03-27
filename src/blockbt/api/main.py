@@ -5,7 +5,7 @@ import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from blockbt.api.routes import strategies, results
+from blockbt.api.routes import results, strategies
 
 app = FastAPI(
     title="BlockBT REST API",

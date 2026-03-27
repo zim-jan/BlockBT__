@@ -12,6 +12,7 @@ from __future__ import annotations
 import datetime
 from typing import Any
 
+from cryptography.fernet import Fernet
 from sqlalchemy import (
     Boolean,
     DateTime,
@@ -21,11 +22,39 @@ from sqlalchemy import (
     Integer,
     String,
     Text,
+    TypeDecorator,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.types import JSON
 
+from blockbt.config import settings
 from blockbt.db.base import Base
+
+
+class EncryptedString(TypeDecorator):
+    """Szyfruje i deszyfruje dane typu string z wykorzystaniem klucza Fernet.
+    Baza danych przechowuje zaszyfrowaną wersję tekstową.
+    """
+
+    impl = Text
+    cache_ok = True
+
+    def __init__(self, *args: Any, **kwargs: Any):
+        super().__init__(*args, **kwargs)
+        self._fernet = Fernet(settings.SECRET_KEY.encode("utf-8"))
+
+    def process_bind_param(self, value: Any | None, dialect: Any) -> str | None:
+        """Szyfruje dane przed zapisem do bazy."""
+        if value is None:
+            return None
+        # Jeśli aplikacja przekazuje ciąg tekstowy (np. format JSON)
+        return self._fernet.encrypt(str(value).encode("utf-8")).decode("utf-8")
+
+    def process_result_value(self, value: Any | None, dialect: Any) -> str | None:
+        """Deszyfruje dane po odczycie z bazy."""
+        if value is None:
+            return None
+        return self._fernet.decrypt(value.encode("utf-8")).decode("utf-8")
 
 # ---------------------------------------------------------------------------
 # helpers
@@ -57,7 +86,7 @@ class User(Base):
     username: Mapped[str] = mapped_column(String(64), nullable=False, unique=True)
     email: Mapped[str] = mapped_column(String(255), nullable=False, unique=True)
     password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
-    api_keys_json: Mapped[str | None] = mapped_column(Text, nullable=True)
+    api_keys_json: Mapped[str | None] = mapped_column(EncryptedString, nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     created_at: Mapped[datetime.datetime] = mapped_column(
         DateTime, nullable=False, default=_utcnow
@@ -67,7 +96,7 @@ class User(Base):
     )
 
     # relationships
-    strategy_templates: Mapped[list["StrategyTemplate"]] = relationship(
+    strategy_templates: Mapped[list[StrategyTemplate]] = relationship(
         "StrategyTemplate", back_populates="user", lazy="select"
     )
 
@@ -109,8 +138,8 @@ class StrategyTemplate(Base):
     )
 
     # relationships
-    user: Mapped["User"] = relationship("User", back_populates="strategy_templates")
-    simulation_results: Mapped[list["SimulationResult"]] = relationship(
+    user: Mapped[User] = relationship("User", back_populates="strategy_templates")
+    simulation_results: Mapped[list[SimulationResult]] = relationship(
         "SimulationResult", back_populates="strategy_template", lazy="select"
     )
 
@@ -182,7 +211,7 @@ class SimulationResult(Base):
     ai_analysis_report: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     # relationships
-    strategy_template: Mapped["StrategyTemplate"] = relationship(
+    strategy_template: Mapped[StrategyTemplate] = relationship(
         "StrategyTemplate", back_populates="simulation_results"
     )
 

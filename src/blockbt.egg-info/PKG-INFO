@@ -2,7 +2,6 @@ Metadata-Version: 2.4
 Name: blockbt
 Version: 0.1.0
 Summary: BlockBT — Self-hosted algorithmic backtesting environment (Dual-Engine, BYOL)
-License: proprietary
 Requires-Python: >=3.12
 Description-Content-Type: text/markdown
 Requires-Dist: pandas>=2.0
@@ -32,6 +31,7 @@ Requires-Dist: uvicorn[standard]>=0.23
 Requires-Dist: streamlit-flow-component
 Requires-Dist: streamlit-cookies-controller
 Requires-Dist: pandas-stubs~=2.3.3
+Requires-Dist: dash-bootstrap-components>=2.0.4
 Provides-Extra: alpaca
 Requires-Dist: alpaca-py>=0.14; extra == "alpaca"
 Provides-Extra: dev
@@ -74,24 +74,46 @@ uv run streamlit run app.py
 ```
 
 ### Opcja C:
-Usuń błędne środowisko: {{rm -rf .venv}}
-
+Usuń błędne środowisko: 
+```bash
+rm -rf .venv
+```
 Pobierz konkretną wersję Pythona (jeśli jej nie masz):
+```bash
 uv python install 3.12
+```
 
 Utwórz środowisko twardo przypisane do 3.12:
+```bash
 uv venv --python 3.12
 
+```
+
 Aktywuj je w swoim terminalu (fish):
+```bash
 source .venv/bin/activate.fish
+```
 
 Ponów instalację:
+```bash
 uv pip install -e .
+```
 
 ### 3. Konfiguracja (Baza Danych)
 Projekt korzysta z SQLite. Przy pierwszym uruchomieniu tabele zostaną utworzone automatycznie, lub możesz użyć migruacji:
 ```bash
 alembic upgrade head
+```
+
+### 4. vectorbt i vectorbt.pro
+```bash
+# VectorBT OpenSource
+git clone https://github.com/polakowo/vectorbt.git
+
+# VectorBT PRO
+unzip
+go to folder 
+uv pip install -U ".[base]"
 ```
 
 ### 4. Uruchomienie Aplikacji
@@ -116,6 +138,12 @@ Jeśli chcesz rozszerzyć możliwości BlockBT, zajrzyj do dedykowanych przewodn
 - [Dodawanie Nowych API](docs/developer/extending_data.md)
 - [Rozszerzanie GUI i Węzłów](docs/developer/extending_gui.md)
 - [Zarządzanie Bazą Danych](docs/developer/extending_db.md)
+
+## 📚 Uruchomienie mkdocs
+```bash
+uv sync --extra dev
+uv run mkdocs serve
+```
 
 ## 👤 Autor & Licencja
 Stworzone przez: **przydan**

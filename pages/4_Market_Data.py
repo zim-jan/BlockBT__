@@ -6,17 +6,16 @@ overlay popular technical indicators, and visualize candlestick charts.
 """
 
 import sys
-from pathlib import Path
 from datetime import datetime, timedelta
+from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-import pandas as pd
-import streamlit as st
 import plotly.graph_objects as go
+import streamlit as st
 
-from blockbt.ui.auth import is_logged_in, render_auth_gate
 from blockbt.connectors.registry import ConnectorRegistry
+from blockbt.ui.auth import is_logged_in, render_auth_gate
 
 # ── Auth gate ─────────────────────────────────────────────────────────────────
 if not is_logged_in():

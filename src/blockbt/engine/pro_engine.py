@@ -22,10 +22,10 @@ import pandas as pd
 from loguru import logger
 
 from blockbt.config import settings
-from blockbt.engine.base import BacktestResult, StrategyEngine
+from blockbt.engine.base import BaseStrategyEngine
 
 
-class ProEngine(StrategyEngine):
+class ProEngine(BaseStrategyEngine):
     """Engine that wraps vectorbtpro via BYOL dynamic import.
 
     When the user has NOT supplied a vbtpro installation the engine still
@@ -70,7 +70,7 @@ class ProEngine(StrategyEngine):
             )
 
     # ------------------------------------------------------------------
-    # StrategyEngine interface
+    # BaseStrategyEngine interface
     # ------------------------------------------------------------------
 
     def is_available(self) -> bool:
@@ -86,7 +86,7 @@ class ProEngine(StrategyEngine):
         self,
         data: pd.DataFrame,
         params: dict[str, Any],
-    ) -> BacktestResult:
+    ) -> dict[str, Any]:
         if self._mock_mode:
             return self._run_mock_backtest(data, params)
         return self._run_pro_backtest(data, params)
@@ -108,7 +108,7 @@ class ProEngine(StrategyEngine):
         self,
         data: pd.DataFrame,
         params: dict[str, Any],
-    ) -> BacktestResult:
+    ) -> dict[str, Any]:
         """Delegate backtest to the real vectorbtpro API.
 
         This method intentionally uses the same high-level pattern as
@@ -141,7 +141,7 @@ class ProEngine(StrategyEngine):
         stats = portfolio.stats()
         equity = portfolio.value()
 
-        return BacktestResult(
+        return dict(
             symbol=symbol,
             timeframe=timeframe,
             engine_name=self.ENGINE_NAME,
@@ -164,7 +164,7 @@ class ProEngine(StrategyEngine):
         self,
         data: pd.DataFrame,
         params: dict[str, Any],
-    ) -> BacktestResult:
+    ) -> dict[str, Any]:
         """Return a clearly-labelled stub result when vbtpro is absent.
 
         Mock values are deterministic (fixed seed random walk on equity curve)
@@ -189,7 +189,7 @@ class ProEngine(StrategyEngine):
 
         total_return = float((equity.iloc[-1] / initial_capital - 1) * 100)
 
-        return BacktestResult(
+        return dict(
             symbol=symbol,
             timeframe=timeframe,
             engine_name="pro_mock",  # clearly indicates mock mode

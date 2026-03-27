@@ -3,7 +3,6 @@ from fastapi.testclient import TestClient
 
 from blockbt.api.main import app
 from blockbt.db.models import StrategyTemplate, User
-from blockbt.db.session import get_session
 
 client = TestClient(app)
 
@@ -11,8 +10,9 @@ HEADERS = {
     "X-API-Key": "blockbt-secret-key-123"
 }
 
-from unittest.mock import patch
 import contextlib
+from unittest.mock import patch
+
 
 @pytest.fixture(autouse=True)
 def override_get_session(db_session):

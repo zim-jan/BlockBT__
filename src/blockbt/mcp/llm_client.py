@@ -12,6 +12,7 @@ from __future__ import annotations
 import json
 import urllib.error
 import urllib.request
+
 from loguru import logger
 
 from blockbt.config import settings
@@ -32,7 +33,7 @@ class OllamaClient:
     Parameters
     ----------
     base_url:
-        Base URL of the Ollama server, e.g. ``"http://192.168.19.31:11434"``.
+        Base URL of the Ollama server, e.g. ``"http://localhost:11434"``.
         Falls back to the ``OLLAMA_BASE_URL`` setting when not provided.
     model:
         Ollama model tag, e.g. ``"llama3"``.

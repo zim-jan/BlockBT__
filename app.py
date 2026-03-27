@@ -5,20 +5,9 @@ This file bootstraps the database, applies the authentication gate,
 and wires the multipage navigation sidebar.
 """
 
-import sys
-from pathlib import Path
-
-# Make sure the source package is importable regardless of working directory.
-_ROOT = Path(__file__).parent
-sys.path.insert(0, str(_ROOT / "src"))
-
 import streamlit as st
 
-from blockbt.db.session import init_db
 from blockbt.ui.auth import is_logged_in, logout, render_auth_gate
-
-# ── One-time DB initialisation (creates tables if they don't exist) ───────────
-init_db()
 
 # ── Page meta ────────────────────────────────────────────────────────────────
 st.set_page_config(
@@ -34,12 +23,12 @@ if not is_logged_in():
 
 # ── Sidebar ───────────────────────────────────────────────────────────────────
 with st.sidebar:
-    st.title("📈 BlockBT")
+    st.title("BlockBT")
     st.caption(f"Zalogowany: **{st.session_state.get('username', '—')}**")
     st.divider()
-    st.page_link("app.py", label="🏠 Strona główna", icon="🏠")
-    st.page_link("pages/1_Wizard.py", label="🧙 Kreator Strategii", icon="🧙")
-    st.page_link("pages/2_Dashboard.py", label="📊 Dashboard", icon="📊")
+    st.page_link("app.py", label="Strona główna", icon="🏠")
+    st.page_link("pages/1_Wizard.py", label="Kreator Strategii", icon="🧙")
+    st.page_link("pages/2_Dashboard.py", label="Dashboard", icon="📊")
     st.divider()
     if st.button("🚪 Wyloguj", use_container_width=True):
         logout()

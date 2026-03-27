@@ -5,16 +5,15 @@ Tests for the MCP ReportBuilder and MCPPayload.
 from __future__ import annotations
 
 import json
+from typing import Any
 
 import pandas as pd
-import pytest
 
-from blockbt.engine.base import BacktestResult
 from blockbt.mcp.protocol import MCPPayload
 from blockbt.mcp.report_builder import ReportBuilder
 
 
-def _make_result(n: int = 100) -> BacktestResult:
+def _make_result(n: int = 100) -> dict[str, Any]:
     import numpy as np
 
     dates = pd.date_range("2022-01-01", periods=n, freq="D")
@@ -22,7 +21,7 @@ def _make_result(n: int = 100) -> BacktestResult:
         10_000 * (1 + np.random.default_rng(7).normal(0.001, 0.01, n)).cumprod(),
         index=dates,
     )
-    return BacktestResult(
+    return dict(
         symbol="AAPL",
         timeframe="1d",
         engine_name="opensource",

@@ -1,13 +1,13 @@
 import datetime
-from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
-from sqlalchemy.orm import Session
 from typing import Any
 
-from blockbt.db.session import get_session
-from blockbt.db.models import StrategyTemplate, SimulationResult
-from blockbt.engine.loader import EngineLoader
-from blockbt.connectors.registry import ConnectorRegistry
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
+
 from blockbt.api.dependencies import get_api_key
+from blockbt.connectors.registry import ConnectorRegistry
+from blockbt.db.models import SimulationResult, StrategyTemplate
+from blockbt.db.session import get_session
+from blockbt.engine.loader import EngineLoader
 
 router = APIRouter(dependencies=[Depends(get_api_key)])
 
@@ -83,22 +83,22 @@ def run_backtest_task(sim_id: int, template_id: int):
             result = engine.run_backtest(ohlcv, params)
             
             # Save results
-            sim.engine_used = result.engine_name
-            sim.total_return_pct = result.total_return_pct
-            sim.sharpe_ratio = result.sharpe_ratio
-            sim.max_drawdown_pct = result.max_drawdown_pct
-            sim.win_rate_pct = result.win_rate_pct
-            sim.num_trades = result.num_trades
-            sim.final_capital = result.final_capital
+            sim.engine_used = result.get("engine_name", "opensource")
+            sim.total_return_pct = result.get("total_return_pct")
+            sim.sharpe_ratio = result.get("sharpe_ratio")
+            sim.max_drawdown_pct = result.get("max_drawdown_pct")
+            sim.win_rate_pct = result.get("win_rate_pct")
+            sim.num_trades = result.get("num_trades")
+            sim.final_capital = result.get("final_capital")
             
             sim.full_metrics_json = {
-                "total_return_pct": result.total_return_pct,
-                "sharpe_ratio": result.sharpe_ratio,
+                "total_return_pct": result.get("total_return_pct"),
+                "sharpe_ratio": result.get("sharpe_ratio"),
             }
             
             equity_samples = []
-            if result.equity_curve is not None:
-                eq = result.equity_curve.reset_index()
+            if result.get("equity_curve") is not None:
+                eq = result.get("equity_curve").reset_index()
                 eq.columns = ["date", "value"]
                 eq["date"] = eq["date"].astype(str)
                 equity_samples = eq.to_dict(orient="records")
