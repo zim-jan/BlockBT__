@@ -31,6 +31,11 @@ class Settings(BaseSettings):
     APP_VERSION: str = "0.1.0"
     DEBUG: bool = False
 
+    # Security
+    SECRET_KEY: str = Field(
+        description="A URL-safe base64-encoded 32-byte key for Fernet encryption. Generate with: python -c \"from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())\""
+    )
+
     # ------------------------------------------------------------------
     # Paths
     # ------------------------------------------------------------------
