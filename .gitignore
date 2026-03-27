@@ -1,5 +1,4 @@
-# .agentignore
-# AGENTS.md
+.agentignore
 BOOTSTRAP.md
 HEARTBEAT.md
 IDENTITY.md
@@ -7,12 +6,10 @@ MEMORY.md
 SOUL.md
 TOOLS.md
 USER.md
-# vectorbt.pro-main.zip
+vectorbt.pro-main.zip
 vectorbt.pro-main/*
-<<<<<<< dev-przydan-jules
 vectorbtpro/*
 .openclaw/*
-# .gitignore
 .env
 data/
 **/__pycache__/
@@ -20,11 +17,5 @@ data/
 *.pyc
 vectorbtpro/
 vectorbt.pro-main/
-vectorbtpro/
 vectorbt/
-*.pyc
-=======
-.openclaw/*
-# .gitignore
-.env
->>>>>>> przydan-dev-antygravity
+
