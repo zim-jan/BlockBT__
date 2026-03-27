@@ -7,7 +7,6 @@ from __future__ import annotations
 import pytest
 
 from blockbt.db.models import SimulationResult, StrategyTemplate, User
-from blockbt.db.session import init_db
 
 
 class TestDatabaseSchema:
