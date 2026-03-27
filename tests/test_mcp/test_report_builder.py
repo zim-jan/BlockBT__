@@ -5,11 +5,10 @@ Tests for the MCP ReportBuilder and MCPPayload.
 from __future__ import annotations
 
 import json
+from typing import Any
 
 import pandas as pd
-import pytest
 
-from typing import Any
 from blockbt.mcp.protocol import MCPPayload
 from blockbt.mcp.report_builder import ReportBuilder
 

@@ -4,8 +4,10 @@ W ramach MVP implementuje podstawową logikę opartą na przecięciu dwóch śre
 """
 
 from typing import Any
+
 import pandas as pd
 from loguru import logger
+
 
 class IndicatorService:
     """

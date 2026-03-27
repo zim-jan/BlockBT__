@@ -13,16 +13,16 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-import streamlit as st
 import plotly.graph_objects as go
+import streamlit as st
 
-from blockbt.ui.auth import is_logged_in, render_auth_gate
+from blockbt.connectors.registry import ConnectorRegistry
 from blockbt.db.models import SimulationResult, StrategyTemplate
 from blockbt.db.session import get_session
 from blockbt.engine.loader import EngineLoader
-from blockbt.connectors.registry import ConnectorRegistry
-from blockbt.mcp.report_builder import ReportBuilder
 from blockbt.mcp.llm_client import OllamaClient
+from blockbt.mcp.report_builder import ReportBuilder
+from blockbt.ui.auth import is_logged_in, render_auth_gate
 
 # ── Auth gate ─────────────────────────────────────────────────────────────────
 if not is_logged_in():

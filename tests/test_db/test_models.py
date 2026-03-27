@@ -25,7 +25,7 @@ class TestDatabaseSchema:
 
         reload(cfg_mod)
         reload(s_mod)
-        from blockbt.db.session import drop_db, init_db
+        from blockbt.db.session import drop_db
 
         init_db()
         drop_db()  # cleanup

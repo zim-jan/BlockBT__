@@ -7,16 +7,16 @@ Sections:
 """
 
 import sys
-from pathlib import Path
 from datetime import datetime
+from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 import streamlit as st
 
-from blockbt.ui.auth import is_logged_in, render_auth_gate
-from blockbt.engine.loader import EngineLoader
 from blockbt.config import settings
+from blockbt.engine.loader import EngineLoader
+from blockbt.ui.auth import is_logged_in, render_auth_gate
 
 # ── Auth gate ─────────────────────────────────────────────────────────────────
 if not is_logged_in():
@@ -186,6 +186,7 @@ st.divider()
 st.subheader("🐍 Środowisko Uruchomieniowe")
 
 import platform
+
 colE1, colE2, colE3, colE4 = st.columns(4)
 colE1.metric("Python", platform.python_version())
 colE2.metric("OS", platform.system())

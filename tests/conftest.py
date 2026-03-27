@@ -43,7 +43,6 @@ def db_session(tmp_path, monkeypatch):
     import blockbt.db.session as sess_mod
 
     reload(sess_mod)
-    from blockbt.db.session import _SessionLocal, drop_db, init_db
 
     init_db()
 

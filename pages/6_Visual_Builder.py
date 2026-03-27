@@ -6,19 +6,18 @@ Drag & Drop GUI using streamlit-flow.
 
 import sys
 from pathlib import Path
-import json
 
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 import streamlit as st
 import streamlit_flow as sf
-from streamlit_flow.elements import StreamlitFlowNode, StreamlitFlowEdge
-from streamlit_flow.state import StreamlitFlowState
+from streamlit_flow.elements import StreamlitFlowEdge, StreamlitFlowNode
 from streamlit_flow.layouts import TreeLayout
+from streamlit_flow.state import StreamlitFlowState
 
-from blockbt.ui.auth import is_logged_in, render_auth_gate
 from blockbt.db.models import StrategyTemplate
 from blockbt.db.session import get_session
+from blockbt.ui.auth import is_logged_in, render_auth_gate
 
 if not is_logged_in():
     render_auth_gate()

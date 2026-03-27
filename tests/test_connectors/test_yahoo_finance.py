@@ -5,12 +5,10 @@ Tests for YahooFinanceConnector — Parquet caching round-trip.
 
 from __future__ import annotations
 
-from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import numpy as np
 import pandas as pd
-import pytest
 
 
 def _make_ohlcv(n: int = 50) -> pd.DataFrame:
