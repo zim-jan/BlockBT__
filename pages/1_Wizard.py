@@ -14,10 +14,10 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 import streamlit as st
 
-from blockbt.ui.auth import is_logged_in, render_auth_gate
 from blockbt.connectors.registry import ConnectorRegistry
 from blockbt.db.models import StrategyTemplate
 from blockbt.db.session import get_session
+from blockbt.ui.auth import is_logged_in, render_auth_gate
 
 # ── Auth gate ─────────────────────────────────────────────────────────────────
 if not is_logged_in():

@@ -1,12 +1,9 @@
-import os
-from pathlib import Path
 
 import optuna
 import pandas as pd
-import pytest
 
-from blockbt.engine.loader import EngineLoader
 from blockbt.db.models import StrategyTemplate
+from blockbt.engine.loader import EngineLoader
 
 
 def test_scenario_1_macd_pipeline(tmp_path, sample_ohlcv):

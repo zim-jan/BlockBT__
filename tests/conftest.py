@@ -4,11 +4,15 @@ Tests conftest — shared fixtures for the BlockBT test suite.
 
 from __future__ import annotations
 
+import os
+
+# Set a dummy SECRET_KEY so imports won't fail globally during pytest collection
+os.environ["SECRET_KEY"] = "yNmj9oJp0YJXY7vWvJ0M2bI-W3k6U_X1qR5u7M_fA-Q="
+
 import pandas as pd
 import pytest
 
 from blockbt.db.session import drop_db, init_db
-
 
 # ---------------------------------------------------------------------------
 # Database fixtures
@@ -25,6 +29,7 @@ def db_session(tmp_path, monkeypatch):
     """
     db_url = f"sqlite:///{tmp_path}/test_blockbt.db"
     monkeypatch.setenv("DATABASE_URL", db_url)
+    monkeypatch.setenv("SECRET_KEY", "yNmj9oJp0YJXY7vWvJ0M2bI-W3k6U_X1qR5u7M_fA-Q=")
 
     from importlib import reload
 
@@ -38,7 +43,6 @@ def db_session(tmp_path, monkeypatch):
     import blockbt.db.session as sess_mod
 
     reload(sess_mod)
-    from blockbt.db.session import _SessionLocal, drop_db, init_db
 
     init_db()
 

@@ -74,10 +74,14 @@ where = ["src"]
 [tool.ruff]
 line-length = 100
 target-version = "py310"
+extend-exclude = ["alembic", "migrations"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B"]
 ignore = ["B008"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["blockbt"]
 
 [tool.mypy]
 python_version = "3.10"
@@ -88,3 +92,9 @@ ignore_missing_imports = true
 testpaths = ["tests"]
 addopts = "-v --tb=short"
 asyncio_mode = "auto"
+filterwarnings = [
+    "ignore::DeprecationWarning:vectorbt.*",
+    "ignore::FutureWarning:vectorbt.*",
+    "ignore::UserWarning:vectorbt.*",
+    "ignore::DeprecationWarning:numba.*",
+]

@@ -7,7 +7,6 @@ from __future__ import annotations
 import pytest
 
 from blockbt.db.models import SimulationResult, StrategyTemplate, User
-from blockbt.db.session import init_db
 
 
 class TestDatabaseSchema:
@@ -19,12 +18,13 @@ class TestDatabaseSchema:
         monkeypatch.setenv("DATABASE_URL", db_url)
         from importlib import reload
 
+        monkeypatch.setenv("SECRET_KEY", "yNmj9oJp0YJXY7vWvJ0M2bI-W3k6U_X1qR5u7M_fA-Q=")
         import blockbt.config as cfg_mod
         import blockbt.db.session as s_mod
 
         reload(cfg_mod)
         reload(s_mod)
-        from blockbt.db.session import drop_db, init_db
+        from blockbt.db.session import drop_db
 
         init_db()
         drop_db()  # cleanup
@@ -50,6 +50,32 @@ class TestUserModel:
         with pytest.raises(IntegrityError):
             db_session.add(User(username="bob", email="bob2@a.com", password_hash="x"))
             db_session.flush()
+
+    def test_encrypted_api_keys(self, db_session):
+        """Verify that api_keys_json is encrypted in the DB and decrypted on read."""
+        user = User(
+            username="crypto",
+            email="crypto@example.com",
+            password_hash="x",
+            api_keys_json='{"binance": "secret123"}',
+        )
+        db_session.add(user)
+        db_session.flush()
+
+        # Access via ORM - should be decrypted
+        assert user.api_keys_json == '{"binance": "secret123"}'
+
+        # Access via raw SQL - should be encrypted
+        from sqlalchemy import text
+
+        result = db_session.execute(
+            text("SELECT api_keys_json FROM users WHERE username = 'crypto'")
+        ).scalar()
+
+        # The raw DB value should not be the plaintext string
+        assert result != '{"binance": "secret123"}'
+        # Fernet tokens usually start with 'gAAAAA'
+        assert result.startswith("gAAAAA")
 
 
 class TestStrategyTemplateModel:
