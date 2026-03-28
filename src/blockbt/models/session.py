@@ -36,7 +36,12 @@ def _resolve_db_url() -> str:
         return db_url
 
     # Priority 3: local dev default
-    fallback = Path(__file__).resolve().parents[4] / "local_data" / "db" / "blockbt.db"
+    # Path(__file__) is src/blockbt/models/session.py
+    # .parents[0] is models
+    # .parents[1] is blockbt
+    # .parents[2] is src
+    # .parents[3] is project root
+    fallback = Path(__file__).resolve().parents[3] / "local_data" / "db" / "blockbt.db"
     fallback.parent.mkdir(parents=True, exist_ok=True)
     return f"sqlite:///{fallback}"
 

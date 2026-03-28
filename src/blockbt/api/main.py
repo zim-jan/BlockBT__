@@ -5,8 +5,8 @@ Air-Gapped architecture: strictly local, no auth, no live trading.
 DB tables are created at startup via the lifespan context manager.
 """
 
+from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
-from typing import AsyncIterator
 
 import uvicorn
 from fastapi import FastAPI
@@ -15,7 +15,6 @@ from loguru import logger
 
 from blockbt.api.routes import backtest, strategies, workflows
 from blockbt.models.session import init_db
-
 
 # ---------------------------------------------------------------------------
 # Lifespan — runs init_db() once at startup
