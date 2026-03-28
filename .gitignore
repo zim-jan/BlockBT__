@@ -1,38 +1,27 @@
-# Python-generated files
-__pycache__/
-*.py[oc]
-build/
-dist/
-wheels/
-*.egg-info
-
-# Virtual environments
-.venv
-
-# Django
-db.sqlite3
-db.sqlite3-journal
-*.log
-media/
-staticfiles/
-
-# IDE
-.vscode/
-.idea/
-.claude/
-*.swp
-*.swo
-*~
-
-# Cache
-.cache/
-.pytest_cache/
-.ruff_cache/
-
-# OS
-.DS_Store
-Thumbs.db
-
-# DBs
-*.sqlite3
-*.db
+# .agentignore
+# AGENTS.md
+BOOTSTRAP.md
+HEARTBEAT.md
+IDENTITY.md
+MEMORY.md
+SOUL.md
+TOOLS.md
+USER.md
+# vectorbt.pro-main.zip
+vectorbtpro/*
+.openclaw/*
+# .gitignore
+.env
+data/
+**/__pycache__/
+*.pycvectorbt/
+*.pyc
+vectorbtpro/
+vectorbt/
+*.pycvectorbt/
+*.pyc
+vectorbtpro/
+vectorbt.pro-main/
+vectorbtpro/
+vectorbt/
+*.pyc
