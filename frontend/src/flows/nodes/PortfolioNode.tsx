@@ -74,6 +74,11 @@ export function PortfolioNode({ data }: Props) {
               label="Final Capital"
               value={metrics.final_capital != null ? `$${metrics.final_capital.toLocaleString('en-US', { maximumFractionDigits: 0 })}` : '—'}
             />
+            <div className="rf-action-row" style={{ marginTop: '1rem', display: 'flex', justifyContent: 'center' }}>
+              <button disabled title="Integration pending via MCP" style={{ padding: '0.5rem 1rem', cursor: 'not-allowed', opacity: 0.6, backgroundColor: '#333', color: '#fff', border: '1px solid #555', borderRadius: '4px' }}>
+                Analyze Results via AI (MCP)
+              </button>
+            </div>
           </div>
         )}
         {isFailed && (
