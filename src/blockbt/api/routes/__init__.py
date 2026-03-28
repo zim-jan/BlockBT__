@@ -1,1 +1,1 @@
-# Inicjalizacja sub-modułów routerów
+"""API routes package."""

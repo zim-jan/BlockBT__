@@ -10,6 +10,7 @@ As an AI coding agent working on this repository, you must strictly obey the fol
 * **OPEN SOURCE ONLY:** Use ONLY the free, open-source `vectorbt` library for core logic. DO NOT use, import, or generate code for `vectorbtpro`.
 * **FRONTEND ISOLATION:** React frontend must communicate with the backend ONLY via a REST API (FastAPI). NO direct file system access from frontend.
 * **LOCAL-ONLY BINDING:** Both backend API (`127.0.0.1:8000`) and frontend dev server (`127.0.0.1:3000`) must bind to localhost exclusively.
+* **ENVIRONMENT COMPLIANCE:** Before proceeding with any technical task, verify that all required frameworks and tools defined in Section 3 are present. If any are missing or misconfigured, do not attempt to auto-install or modify the system environment independently. Instead, provide the user with a clear diagnostic report and specific, manual installation instructions.
 
 ## 3. Tech Stack & Conventions
 
