@@ -103,7 +103,7 @@ class BaseDataConnector(ABC):
         ...
 
     def health_check(self) -> dict[str, str]:
-        """Return connector health / auth status for diagnostics."""
+        """Return connector health / authorization status for diagnostics."""
         return {
             "connector": self.CONNECTOR_KEY,
             "requires_auth": str(self.REQUIRES_AUTH),

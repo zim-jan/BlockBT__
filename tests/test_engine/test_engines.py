@@ -5,6 +5,7 @@ Testy dla Loadera Dual-Engine oraz mocków ProEngine.
 from __future__ import annotations
 
 
+import pytest
 class TestEngineLoader:
     def test_returns_engine_instance(self):
         from blockbt.engine.loader import EngineLoader
