@@ -1,7 +1,6 @@
-import sys
 
 filename = "src/blockbt/models/orm.py"
-with open(filename, "r") as f:
+with open(filename) as f:
     content = f.read()
 
 # Fix line lengths

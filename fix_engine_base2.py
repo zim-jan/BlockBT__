@@ -1,7 +1,6 @@
-import sys
 
 filename = "src/blockbt/engine/base.py"
-with open(filename, "r") as f:
+with open(filename) as f:
     content = f.read()
 
 content = content.replace("from dataclasses import dataclass, field\n", "")

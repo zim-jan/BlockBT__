@@ -1,8 +1,7 @@
 import sys
-import re
 
 filename = "src/blockbt/api/routes/results.py"
-with open(filename, "r") as f:
+with open(filename) as f:
     content = f.read()
 
 # Add ChatMessage import

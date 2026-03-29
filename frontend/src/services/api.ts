@@ -57,4 +57,18 @@ export const api = {
         body: JSON.stringify(payload),
       }),
   },
+
+  results: {
+    analyze: (jobId: number) =>
+      request<components['schemas']['AIAnalysisResponse']>(`/api/results/${jobId}/analyze`, {
+        method: 'POST',
+      }),
+    getChat: (jobId: number) =>
+      request<components['schemas']['ChatMessageResponse'][]>(`/api/results/${jobId}/chat`),
+    sendChat: (jobId: number, payload: components['schemas']['ChatRequest']) =>
+      request<components['schemas']['ChatMessageResponse']>(`/api/results/${jobId}/chat`, {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      }),
+  },
 }

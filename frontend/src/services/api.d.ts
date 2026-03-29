@@ -136,7 +136,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/results/{sim_id}": {
+    "/api/results/{job_id}": {
         parameters: {
             query?: never;
             header?: never;
@@ -147,7 +147,7 @@ export interface paths {
          * Get Simulation Result
          * @description Retrieve the status and metrics of a backtest run by its Simulation ID.
          */
-        get: operations["get_simulation_result_api_results__sim_id__get"];
+        get: operations["get_simulation_result_api_results__job_id__get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -156,7 +156,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/results/{sim_id}/analyze": {
+    "/api/results/{job_id}/analyze": {
         parameters: {
             query?: never;
             header?: never;
@@ -169,7 +169,31 @@ export interface paths {
          * Analyze Simulation Result
          * @description Generate an AI analysis report for a completed simulation.
          */
-        post: operations["analyze_simulation_result_api_results__sim_id__analyze_post"];
+        post: operations["analyze_simulation_result_api_results__job_id__analyze_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/results/{job_id}/chat": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Chat History
+         * @description Retrieve the chat history for a specific backtest job.
+         */
+        get: operations["get_chat_history_api_results__job_id__chat_get"];
+        put?: never;
+        /**
+         * Add Chat Message
+         * @description Pobiera wiadomość użytkownika, przekazuje kontekst i zwraca odpowiedź LLM.
+         */
+        post: operations["add_chat_message_api_results__job_id__chat_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -219,6 +243,25 @@ export interface components {
             sma_slow?: number | null;
             /** Initial Capital */
             initial_capital?: number | null;
+        };
+        /** ChatMessageResponse */
+        ChatMessageResponse: {
+            /** Id */
+            id: number;
+            /** Role */
+            role: string;
+            /** Content */
+            content: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+        };
+        /** ChatRequest */
+        ChatRequest: {
+            /** Content */
+            content: string;
         };
         /** HTTPValidationError */
         HTTPValidationError: {
@@ -586,14 +629,14 @@ export interface operations {
             };
         };
     };
-    get_simulation_result_api_results__sim_id__get: {
+    get_simulation_result_api_results__job_id__get: {
         parameters: {
             query?: never;
             header?: {
                 "X-API-Key"?: string | null;
             };
             path: {
-                sim_id: number;
+                job_id: number;
             };
             cookie?: never;
         };
@@ -621,14 +664,14 @@ export interface operations {
             };
         };
     };
-    analyze_simulation_result_api_results__sim_id__analyze_post: {
+    analyze_simulation_result_api_results__job_id__analyze_post: {
         parameters: {
             query?: never;
             header?: {
                 "X-API-Key"?: string | null;
             };
             path: {
-                sim_id: number;
+                job_id: number;
             };
             cookie?: never;
         };
@@ -641,6 +684,76 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AIAnalysisResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_chat_history_api_results__job_id__chat_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-API-Key"?: string | null;
+            };
+            path: {
+                job_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChatMessageResponse"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    add_chat_message_api_results__job_id__chat_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-API-Key"?: string | null;
+            };
+            path: {
+                job_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ChatRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChatMessageResponse"];
                 };
             };
             /** @description Validation Error */

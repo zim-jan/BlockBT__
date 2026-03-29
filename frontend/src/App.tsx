@@ -2,7 +2,8 @@ import { useQuery } from '@tanstack/react-query'
 import './App.css'
 import { WorkflowEditor } from './flows/WorkflowEditor'
 import { MainLayout } from './components/Layout/MainLayout'
-import { SlideOutChatPanel } from './components/ChatPanel/SlideOutChatPanel'
+import { ChatPanel } from './components/ChatPanel'
+import { useChatStore } from './store/chatStore'
 
 interface HealthResponse {
   status: string
@@ -19,6 +20,8 @@ function App() {
     refetchInterval: 10_000,
   })
 
+  const { isOpen, jobId, closeChat } = useChatStore()
+
   return (
     <MainLayout>
       {/* Absolute positioned health indicator over the flow canvas */}
@@ -26,7 +29,7 @@ function App() {
           {isLoading ? '⏳ Connecting...' : isError ? '🔴 API Offline' : `🟢 API ${health?.status}`}
       </div>
       <WorkflowEditor />
-      <SlideOutChatPanel />
+      <ChatPanel isOpen={isOpen} jobId={jobId} onClose={closeChat} />
     </MainLayout>
   )
 }
