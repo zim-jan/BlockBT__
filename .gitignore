@@ -69,5 +69,6 @@ vectorbt/
 *.pyc
 vectorbtpro/
 vectorbt.pro-main/
-#vectorbt/
+vectorbt/
+vectorbt_src/
 
