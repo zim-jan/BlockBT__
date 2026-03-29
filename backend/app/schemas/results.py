@@ -1,13 +1,18 @@
+import datetime
+
 from pydantic import BaseModel
 
 
 class ChatRequest(BaseModel):
-    message: str
+    content: str
+
 
 class ChatMessageResponse(BaseModel):
+    id: int
     role: str
     content: str
-    timestamp: str
+    created_at: datetime.datetime
+
 
 class AIAnalysisResponse(BaseModel):
     prompt: str | None = None
