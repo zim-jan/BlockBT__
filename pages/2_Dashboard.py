@@ -15,7 +15,6 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 import plotly.graph_objects as go
 import streamlit as st
-
 from blockbt.connectors.registry import ConnectorRegistry
 from blockbt.db.models import SimulationResult, StrategyTemplate
 from blockbt.db.session import get_session

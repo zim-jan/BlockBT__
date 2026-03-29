@@ -12,15 +12,14 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 import optuna
 import streamlit as st
-
-# Optuna plotly visualization uses standard plotly
-from optuna.visualization import plot_optimization_history, plot_param_importances
-
 from blockbt.connectors.registry import ConnectorRegistry
 from blockbt.db.models import StrategyTemplate
 from blockbt.db.session import get_session
 from blockbt.engine.loader import EngineLoader
 from blockbt.ui.auth import is_logged_in, render_auth_gate
+
+# Optuna plotly visualization uses standard plotly
+from optuna.visualization import plot_optimization_history, plot_param_importances
 
 # ── Auth gate ─────────────────────────────────────────────────────────────────
 if not is_logged_in():

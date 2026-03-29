@@ -13,7 +13,6 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 import streamlit as st
-
 from blockbt.config import settings
 from blockbt.engine.loader import EngineLoader
 from blockbt.ui.auth import is_logged_in, render_auth_gate
