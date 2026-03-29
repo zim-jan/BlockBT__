@@ -29,6 +29,7 @@ Requires-Dist: fastapi>=0.100
 Requires-Dist: uvicorn[standard]>=0.23
 Requires-Dist: pandas-stubs~=2.3.3
 Requires-Dist: dash-bootstrap-components>=2.0.4
+Requires-Dist: path>=17.1.1
 Provides-Extra: alpaca
 Requires-Dist: alpaca-py>=0.14; extra == "alpaca"
 Provides-Extra: dev

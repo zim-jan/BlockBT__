@@ -21,9 +21,6 @@ backend/app/services/connectors/alpaca.py
 backend/app/services/connectors/base.py
 backend/app/services/connectors/registry.py
 backend/app/services/connectors/yahoo_finance.py
-backend/app/services/data/__init__.py
-backend/app/services/data/base.py
-backend/app/services/data/yahoo.py
 backend/app/services/engine/__init__.py
 backend/app/services/engine/base.py
 backend/app/services/engine/indicators.py
@@ -50,11 +47,9 @@ backend/tests/test_connectors/test_yahoo_finance.py
 backend/tests/test_data/__init__.py
 backend/tests/test_data/test_data_connector.py
 backend/tests/test_db/__init__.py
-backend/tests/test_db/test_models.py
 backend/tests/test_engine/__init__.py
 backend/tests/test_engine/test_engines.py
 backend/tests/test_engine/test_indicator_service.py
 backend/tests/test_engine/test_optimizer.py
-backend/tests/test_integration/test_core_pipeline.py
 backend/tests/test_mcp/__init__.py
 backend/tests/test_mcp/test_report_builder.py

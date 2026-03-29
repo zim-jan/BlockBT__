@@ -8,7 +8,7 @@ class StrategyCreate(BaseModel):
     name: str
     description: str | None = None
     parameters_schema: dict[str, Any] | None = None
-    code_content: str
+    code_content: str = ""
 
 class StrategyResponse(BaseModel):
     id: str

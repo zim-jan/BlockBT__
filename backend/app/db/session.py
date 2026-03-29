@@ -42,7 +42,7 @@ def _resolve_db_url() -> str:
     # .parents[1] is blockbt
     # .parents[2] is src
     # .parents[3] is project root
-    fallback = Path(__file__).resolve().parents[3] / "local_data" / "db" / "blockbt.db"
+    fallback = Path(__file__).resolve().parents[3] / "backend" / "data" / "db" / "blockbt.db"
     fallback.parent.mkdir(parents=True, exist_ok=True)
     return f"sqlite:///{fallback}"
 

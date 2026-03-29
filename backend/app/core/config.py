@@ -12,8 +12,9 @@ from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 # Project root is three levels up from this file: src/blockbt/config.py
-_PROJECT_ROOT = Path(__file__).resolve().parents[2]
+_PROJECT_ROOT = Path(__file__).resolve().parents[3]
 
+# print('path' + _PROJECT_ROOT)
 
 class Settings(BaseSettings):
     """Central configuration object. Override any value via environment variable."""
@@ -41,15 +42,15 @@ class Settings(BaseSettings):
     # Paths
     # ------------------------------------------------------------------
     PROJECT_ROOT: Path = _PROJECT_ROOT
-    DATA_DIR: Path = _PROJECT_ROOT / "local_data"
-    PARQUET_DIR: Path = _PROJECT_ROOT / "local_data" / "cache"
-    LOG_DIR: Path = _PROJECT_ROOT / "local_data" / "logs"
+    DATA_DIR: Path = _PROJECT_ROOT / "backend" / "data"
+    PARQUET_DIR: Path = _PROJECT_ROOT / "backend" / "data" / "cache"
+    LOG_DIR: Path = _PROJECT_ROOT / "backend" / "data" / "logs"
 
     # ------------------------------------------------------------------
     # Database
     # ------------------------------------------------------------------
     DATABASE_URL: str = Field(
-        default_factory=lambda: f"sqlite:///{_PROJECT_ROOT / 'local_data' / 'db' / 'blockbt.db'}",
+        default_factory=lambda: f"sqlite:///{_PROJECT_ROOT / "backend" / "data" / 'db' / 'blockbt.db'}",
         description="SQLAlchemy connection string. Defaults to local SQLite.",
     )
 
@@ -93,7 +94,7 @@ class Settings(BaseSettings):
     def ensure_dirs(self) -> None:
         """Create runtime directories if they don't exist."""
         # Ensure database directory exists if using default SQLite
-        db_dir = self.PROJECT_ROOT / "local_data" / "db"
+        db_dir = self.PROJECT_ROOT / "backend" / "data" / "db"
 
         for d in (self.DATA_DIR, self.PARQUET_DIR, self.LOG_DIR, db_dir):
             d.mkdir(parents=True, exist_ok=True)
