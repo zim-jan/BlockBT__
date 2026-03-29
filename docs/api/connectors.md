@@ -4,8 +4,8 @@ Poniżej znajduje się automatycznie wygenerowana dokumentacja modułów odpowia
 
 ## blockbt.connectors.base
 
-::: app.services.connectors.base
+::: blockbt.connectors.base
 
 ## blockbt.connectors.yahoo_finance
 
-::: app.services.connectors.yahoo_finance
+::: blockbt.connectors.yahoo_finance

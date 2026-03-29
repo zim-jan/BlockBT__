@@ -4,8 +4,8 @@ Poniżej znajduje się automatycznie wygenerowana dokumentacja dla modułów bud
 
 ## blockbt.mcp.protocol
 
-::: app.services.mcp.protocol
+::: blockbt.mcp.protocol
 
 ## blockbt.mcp.report_builder
 
-::: app.services.mcp.report_builder
+::: blockbt.mcp.report_builder

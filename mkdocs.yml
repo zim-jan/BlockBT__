@@ -37,33 +37,30 @@ plugins:
   - mkdocstrings:
       handlers:
         python:
-          paths: [backend]
+          paths: [src]
           options:
             docstring_style: google
             show_source: true
             show_root_heading: true
 
 nav:
-  - Wstęp i Koncepcja:
-      - Wstęp (Overview): index.md
-      - Metodologia i Technologie (C1): c1_metodologia.md
-      - Faza 1 (C2): c2_realizacja_faza1.md
-      - Ekosystem i Integracje (C3): c3_realizacja_faza2_5.md
-  - Architektura Systemu:
-      - Warstwa Danych (Data Layer): data_layer.md
-      - Warstwa Silnika (Engine Layer): engine_layer.md
-      - Warstwa Optymalizacji (Optimization Layer): optimization_layer.md
-  - Przewodnik Dewelopera (DEV):
-      - Ogólnie: developer/overview.md
-      - Wzorce Backtestingu: developer/backtesting_patterns.md
-      - Zestawienie Klas: developer/class_reference.md
-      - Dodawanie Zródeł Danych: developer/extending_data.md
-      - Rozszerzanie Bazy Danych: developer/extending_db.md
-      - Rozszerzanie GUI: developer/extending_gui.md
-  - Referencja API (Kod):
+  - Wstęp (Overview): index.md
+  - Metodologia i Technologie (Sekcja C1): c1_metodologia.md
+  - "Realizacja Projektu: Faza 1 (Sekcja C2)": c2_realizacja_faza1.md
+  - "Realizacja Projektu: Ekosystem i Integracje (Sekcja C3)": c3_realizacja_faza2_5.md
+  - "Audyt Bezpieczeństwa (DevSecOps)": security_audit_report.md
+  - Dokumentacja Kodu:
       - Engine: api/engine.md
       - Database: api/db.md
       - Connectors: api/connectors.md
       - MCP: api/mcp.md
-  - Bezpieczeństwo:
-      - Audyt Bezpieczeństwa (DevSecOps): security_audit_report.md
+  - DEV:
+      - Ogólnie: developer/overview.md
+      - Backtest patterns: developer/backtesting_patterns.md
+      - Klasy: developer/class_reference.md
+      - Ext data: developer/extending_data.md
+      - Ext db: developer/extending_db.md
+      - Ext gui: developer/extending_gui.md
+      - Data layer: data_layer.md
+      - Engine layer: engine_layer.md
+      - Optimization_layer: optimization_layer.md

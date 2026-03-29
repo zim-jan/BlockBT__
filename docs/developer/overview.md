@@ -10,16 +10,16 @@ BlockBT opiera się na pięciu głównych warstwach, które są od siebie logicz
    - Lokalizacja: `frontend/`.
    - Rola: Interfejs użytkownika, kreatory (Wizards), wizualizacje Plotly i edytor grafowy React Flow (`6_Visual_Builder.py`).
 2. **Business Logic / Engine Layer**:
-   - Lokalizacja: `backend/app/services/engine/`.
+   - Lokalizacja: `src/blockbt/engine/`.
    - Rola: Abstrakcja silników backtestingowych (`StrategyEngine`). Obsługuje zarówno silnik OpenSource (`vectorbt`), jak i dynamicznie ładowany ProEngine.
 3. **Data Access Layer (Connectors)**:
-   - Lokalizacja: `backend/app/services/connectors/`.
+   - Lokalizacja: `src/blockbt/connectors/`.
    - Rola: Łączenie się z API zewnętrznymi (Yahoo, Alpaca) i cache'owanie danych w formacie Parquet dla maksymalnej wydajności.
 4. **Data Persistence Layer (Database)**:
-   - Lokalizacja: `backend/app/`.
+   - Lokalizacja: `src/blockbt/db/`.
    - Rola: SQLAlchemy ORM. Przechowywanie użytkowników, szablonów strategii (`StrategyTemplate`) oraz wyników symulacji.
 5. **API Layer (REST)**:
-   - Lokalizacja: `backend/app/api/`.
+   - Lokalizacja: `src/blockbt/api/`.
    - Rola: Wystawianie funkcjonalności systemu na zewnątrz (FastAPI).
 
 ## 🛠️ Stack Techniczny
@@ -33,9 +33,9 @@ BlockBT opiera się na pięciu głównych warstwach, które są od siebie logicz
 
 ## 📂 Główne Lokalizacje Kodowe
 
-- `opensource_engine.py` — Implementacja parsera AST i logiki silnika wektorowego.
-- `models.py` — Definicje wszystkich tabel SQL.
-- `config.py` — Centralna konfiguracja (Ścieżki, API Keys, Silniki).
+- [opensource_engine.py](file:///home/przydan/my_project/src/blockbt/engine/opensource_engine.py) — Implementacja parsera AST i logiki silnika wektorowego.
+- [models.py](file:///home/przydan/my_project/src/blockbt/db/models.py) — Definicje wszystkich tabel SQL.
+- [config.py](file:///home/przydan/my_project/src/blockbt/config.py) — Centralna konfiguracja (Ścieżki, API Keys, Silniki).
 
 ---
 ### Następne Kroki:

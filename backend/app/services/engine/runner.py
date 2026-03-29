@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """
 run_vectorbt_backtest — Phase 2 background task entry-point.
 
@@ -11,7 +13,6 @@ This function is designed to be called via FastAPI BackgroundTasks:
     background_tasks.add_task(run_vectorbt_backtest, job_id, parameters)
 """
 
-from __future__ import annotations
 
 import sys
 from pathlib import Path
@@ -160,7 +161,7 @@ def _execute_backtest(parameters: dict[str, Any]) -> dict[str, Any]:
             {"date": str(d.date()), "value": round(float(v), 2)}
             for d, v in zip(
                 equity.index[:: max(1, len(equity) // 200)],
-                equity.values[:: max(1, len(equity) // 200)],
+                equity.values[:: max(1, len(equity) // 200)], strict=False,
             )
         ],
     }
@@ -191,8 +192,8 @@ def run_vectorbt_backtest(job_id: int, parameters: dict[str, Any]) -> None:
     """
     from datetime import datetime, timezone
 
-    from blockbt.models.orm import BacktestJob, JobStatus
-    from blockbt.models.session import get_session
+    from app.db.session import get_session
+    from app.models.orm import BacktestJob, JobStatus
 
     def _utcnow() -> datetime:
         return datetime.now(timezone.utc).replace(tzinfo=None)

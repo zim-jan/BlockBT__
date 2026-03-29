@@ -4,16 +4,16 @@ Poniżej znajduje się automatycznie wygenerowana dokumentacja kodu dla modułó
 
 ## blockbt.engine.base
 
-::: app.services.engine.base
+::: blockbt.engine.base
 
 ## blockbt.engine.loader
 
-::: app.services.engine.loader
+::: blockbt.engine.loader
 
 ## blockbt.engine.opensource_engine
 
-::: app.services.engine.opensource_engine
+::: blockbt.engine.opensource_engine
 
 ## blockbt.engine.pro_engine
 
-::: app.services.engine.pro_engine
+::: blockbt.engine.pro_engine

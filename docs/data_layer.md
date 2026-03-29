@@ -4,7 +4,7 @@ Moduł pozyskiwania i cache'owania historycznych danych giełdowych / krypto dla
 
 ## Klasa Bazowa `BaseDataConnector`
 
-Główny interfejs zdefiniowany w `backend/app/services/connectors/base.py` określa, że każdy nowy konektor danych w BlockBT musi dziedziczyć z `BaseDataConnector` i implementować metodę `fetch_data`.
+Główny interfejs zdefiniowany w `src/blockbt/data/base.py` określa, że każdy nowy konektor danych w BlockBT musi dziedziczyć z `BaseDataConnector` i implementować metodę `fetch_data`.
 
 ### Przykład Interfejsu
 ```python
@@ -19,7 +19,7 @@ class BaseDataConnector(abc.ABC):
 
 ## Yahoo Finance Connector (`YFDataConnector`)
 
-Klasa odpowiedzialna za pobieranie danych za pomocą darmowego API Yahoo Finance (przy użyciu biblioteki `yfinance`), zlokalizowana w `backend/app/services/connectors/yahoo.py`.
+Klasa odpowiedzialna za pobieranie danych za pomocą darmowego API Yahoo Finance (przy użyciu biblioteki `yfinance`), zlokalizowana w `src/blockbt/data/yahoo.py`.
 
 ### Główne Cechy:
 - **Inteligentne Cache'owanie w formacie Parquet:** Dane są zapisywane lokalnie (np. w `data/cache/AAPL.parquet`).

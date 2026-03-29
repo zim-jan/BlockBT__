@@ -8,7 +8,7 @@ Implementacja platformy **BlockBT** bazuje na rygorystycznym doborze współczes
 
 Całość systemu została zrealizowana w oparciu o język **Python (wersja $\ge$ 3.10)**, korzystając w pełni z jego natywnego systemu statycznego typowania (Type Hints). Zwiększa to nie tylko czytelność kodu dla innych inżynierów, ale również pozwala na stosowanie rygorystycznej analizy statycznej za pomocą narzędzi takich jak `mypy` czy `ruff`. Python stanowi globalny standard w dziedzinie analizy ilościowej (Quantitative Finance), gwarantując swobodny dostęp do zoptymalizowanych (najczęściej w `C` bądź `C++`) bibliotek matematycznych typu `numpy` oraz `pandas`.
 
-### Warstwa Trwałości i ORM (SQLite + SQLAlchemy 2.x)
+### Warstwa Trwałośści i ORM (SQLite + SQLAlchemy 2.x)
 
 Dla implementacji warstwy trwałości (Persistence Layer) zdecydowano się na użycie bezserwerowego silnika bazodanowego **SQLite**, działającego z włączonym trybem WAL (Write-Ahead Logging). Zapewnia to kompromis pomiędzy asynchroniczną i szybszą obsługą zapytań a zachowaniem formy pojedynczego, samo-zawierającego się pliku bazodanowego na dysku maszyny badawczej – co jest idealną specyfiką aplikacji *self-hosted*.
 

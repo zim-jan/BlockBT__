@@ -4,7 +4,7 @@ BlockBT korzysta z bazy danych SQLite oraz ORM SQLAlchemy 2.x do przechowywania 
 
 ## 🏗️ Rozszerzanie Modeli
 
-Wszystkie tabele są zdefiniowane w pliku `backend/app/models/orm.py`.
+Wszystkie tabele są zdefiniowane w pliku `src/blockbt/db/models.py`.
 
 ### Jak dodać nową kolumnę?
 1. Otwórz `models.py`.
@@ -36,7 +36,7 @@ alembic upgrade head
 
 ## 🔌 Używanie Sesji w Kodzie
 
-Zawsze używaj context managera `get_session()` z pliku `backend/app/db/session.py`, aby uniknąć błędów wycieku połączeń.
+Zawsze używaj context managera `get_session()` z pliku `src/blockbt/db/session.py`, aby uniknąć błędów wycieku połączeń.
 
 ```python
 from blockbt.db.session import get_session
