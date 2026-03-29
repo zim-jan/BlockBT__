@@ -7,20 +7,6 @@ BlockBT używa minimalistycznego, ale potężnego stacku Streamlit. Dzięki apli
 1. **Stwórz plik w folderze `/pages/`**:
    Np. `7_Performance_Deep_Dive.py`. Streamlit automatycznie wykryje nowy plik i doda go do menu bocznego (nazwa pliku bez numerka stanie się etykietą).
    
-2. **Dodaj Bramkę Autoryzacji**:
-   Każda nowa strona powinna zaczynać się od sprawdzenia sesji, aby nieuprawnieni użytkownicy nie widzieli danych.
-
-```python
-import streamlit as st
-from blockbt.ui.auth import is_logged_in, render_auth_gate
-
-if not is_logged_in():
-    render_auth_gate()
-
-# Twoja logika GUI...
-st.title("Nowa Analiza")
-```
-
 ## 🔀 Rozszerzanie Visual Buildera (Węzły)
 
 Edytor graficzny w `6_Visual_Builder.py` bazuje na bibliotece `streamlit-flow-component`. 

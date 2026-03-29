@@ -8,13 +8,13 @@
 
 ## 2. Audyt Sieciowy (Network Exposure)
 **Status:** **Nałożono restrykcje (Hardening).**
-- Domyślnie serwer uruchomieniowy biblioteki **Streamlit** binduje się pod każdy interfejs sieciowy na hoście (adres `0.0.0.0`). W warunkach np. postawionej maszyny na DigitalOcean stanowi to podatność wystawiającą UI w publicznym internecie zanim powstanie tzw. reverse proxy. 
-- **Akcja korygująca:** Na poziomie sztywnych ustawień deweloperskich (`.streamlit/config.toml`) wymuszono uruchamianie procesu wyłącznie w obrębie maszyny lokalnej (parametrem `server.address = "127.0.0.1"`). 
+- Domyślnie serwer uruchomieniowy środowiska **React (Vite)** binduje się pod każdy interfejs sieciowy na hoście (adres `0.0.0.0`). W warunkach np. postawionej maszyny lokalnej stanowi to podatność wystawiającą UI w sieci zanim powstanie tzw. reverse proxy.
+- **Akcja korygująca:** Na poziomie sztywnych ustawień deweloperskich serwera Vite wymuszono uruchamianie procesu wyłącznie w obrębie maszyny lokalnej.
 
 ## 3. Izolacja Licencyjna (Compliance)
 **Status:** **Zaktualizowano.**
 - Pliki konfiguracyjne chroniące licencjonowany kod we wraperze platformy (`.agentignore`) posiadały nadmiarowy i błędny zapis `libs/vectorbtpro/`.
-- Linijki oczyszczono, zostawiając restrykcyjny wymóg ignorowania przez zewnętrzne pluginy folderu `vectorbt.pro-main/` oraz archiwum startowego licencji.
+- Linijki oczyszczono, zostawiając restrykcyjny wymóg ignorowania przez zewnętrzne pluginy folderu `vectorbt.pro-main/`.
 
 ## Wniosek
 Środowisko projektowe (kod, sieć i zasady integracji CI/CD) zostało w pełni zabezpieczone przed potencjalnymi wyciekami podczas integracji sieciowych. Silnik gotowy na przyjęcie komend REST API w Fazie 6.

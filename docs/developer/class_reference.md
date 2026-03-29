@@ -58,4 +58,3 @@ Modele SQLAlchemy definiujące strukturę SQLite.
 
 - **`OllamaClient`** (`src/blockbt/mcp/llm_client.py`): Klient do komunikacji z lokalnym modelem AI (Llama/Qwen) przez Ollama.
 - **`ReportBuilder`** (`src/blockbt/mcp/report_builder.py`): Przekształca surowe metryki Quant w czytelny dla LLM kontekst (Prompt Engineering).
-- **`CookieController`** (używane w `auth.py`): Zarządzanie stanem sesji w przeglądarce.

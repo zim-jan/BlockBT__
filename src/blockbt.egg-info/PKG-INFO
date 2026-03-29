@@ -113,15 +113,10 @@ chmod +x run_local.sh
 ```
 Skrypt ten automatycznie wygeneruje `.env` z `SECRET_KEY` (jeśli go nie ma), upewni się, że masz pobrane zależności Node.js (`npm install`), a następnie wystartuje równocześnie backend (FastAPI) w tle oraz frontend na pierwszym planie. Zakończenie skryptu `Ctrl+C` poprawnie zatrzyma oba procesy.
 
-### 4. vectorbt i vectorbt.pro
+### 4. vectorbt
 ```bash
 # VectorBT OpenSource
 git clone https://github.com/polakowo/vectorbt.git
-
-# VectorBT PRO (BYOL - Bring Your Own License)
-unzip vectorbt.pro.zip -d vectorbt.pro-main
-cd vectorbt.pro-main
-uv pip install -U ".[base]"
 ```
 
 ## 🏗️ Kluczowe Funkcje

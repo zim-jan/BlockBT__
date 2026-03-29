@@ -4,16 +4,16 @@
 
 Zasadniczym krokiem po implementacji warstwy dostępu do danych cyfrowych oraz abstrakcyjnego silnika wykonawczego, była budowa otwartego ekosystemu GUI i integracja kluczowych podzespołów badawczych dla środowiska Data Science i Quant Trading. Fazy projektowe podzielono na cztery zintegrowane gałęzie:
 
-1. **Graficzny Interfejs Użytkownika (Streamlit)** — realizacja wzorca Multipage App.
+1. **Graficzny Interfejs Użytkownika (React)** — realizacja wzorca Single Page App.
 2. **Monitorowanie Stanu i Architektury (Diagnostyka)** — widoki pozwalające na audyt środowiska BYOL w czasie rzeczywistym.
 3. **Sztuczna Inteligencja (Ollama / MCP)** — adaptacja wzorca Model Context Protocol do delegowania analiz inwestycyjnych pod zewnętrzny model LLM.
-4. **Zaawansowany Backtesting (Optuna i pandas-ta)** — automatyczna, bayesowska optymalizacja parametrów strategii oraz wpieranie logiki decyzyjnej za pomocą profesjonalnej biblioteki wskaźników zaimplementowanej w języku C.
+4. **Podstawowy Backtesting** — optymalizacja parametrów strategii oraz wpieranie logiki decyzyjnej za pomocą natywnych wskaźników (np. SMA Crossover).
 
 ---
 
-## 2.1 Architektura Interfejsu (Streamlit)
+## 2.1 Architektura Interfejsu (React)
 
-Aplikację oparto o framework **Streamlit**, stosując scentralizowany punkt wejścia (`app.py`), system nawigacji bocznej oraz wymuszaną autoryzację. Ze względu na charakter środowiska (ponowne wykonywanie całego pliku przy interakcji), stan w kreatorze strategii przechowywany jest asynchronicznie poprzez obiekty typu *Streamlit Session State* (`st.session_state`).
+Aplikację oparto o framework **React**, stosując scentralizowany punkt wejścia i system nawigacji bocznej. Stan w kreatorze strategii przechowywany jest asynchronicznie po stronie klienta.
 
 1. **Wizard (`1_Wizard.py`)**: Trzykrokowy formularz do konfiguracji założeń (dostawca, instrument, okno czasowe, kapitał początkowy i opis tekstowy). Jego wynikiem jest stan wstrzykiwany jako obiekt JSON (`wizard_state`) do encji ormowanej `StrategyTemplate`.
 2. **Dashboard (`2_Dashboard.py`)**: Panel egzekucji zdefiniowanych szablonów. Wywołuje abstrakcję z warstwy pierwszej (`ConnectorRegistry` i `EngineLoader`), wizualizując stopy zwrotu oraz nakładając interaktywną krzywą kapitału na dedykowanym komponencie Plotly. Wyliczone skalary są transponowane na nowy rekord `SimulationResult`.
@@ -47,9 +47,9 @@ Do podglądu zjawisk analitycznych zaimplementowano tzw. Eksplorator Rynku. Jest
 
 ---
 
-## 2.5 Obliczeniowa Skala Inżynierska: Optuna & pandas-ta
+## 2.5 Obliczeniowa Skala Inżynierska: Optuna & Wskaźniki Natywne
 
 Do warstwy analitycznej (silnik OpenSource) wstrzyknięto wsparcie dla bibliotek optymalizacji hiperparametrycznej stosowanej w Data Science / Quant Trading:
 
-1. **pandas-ta**: Architektura została zrefaktoryzowana w klasie open-source'owego wektorowego silnika tak, by reagowała na wprowadzony klucz (`strategy_type`). Kiedy zadany jest `macd`, następuje wymuszone wywołanie `df.ta.macd()`, wprowadzając pełny system krzyżowania wykładniczych linii MACD ze wstęgami sygnałowymi wektoryzowanymi obok vectorbt w pamięci.
+1. **Wskaźniki Natywne**: Architektura została zaprojektowana w oparciu o silnik open-source'owy wspierający podstawowe metody wektoryzacji. System pozwala na szybkie ewaluacje np. metody przecinania prostych średnich kroczących w pamięci.
 2. **Optymalizator Parametrów (Optuna)**: Wdrożono osobną sekcję optymalizacyjną `5_Optimizer.py` która wykorzystuje estymatory _Tree-structured Parzen Estimator (TPE)_. Algorytm definiuje przedziały okien (np `sma_fast` 2-50, `sma_slow` 50-300). Każdy *trial* Optuny zamyka zapytanie na ułamek sekundy korzystając z cache wczytanego OHLCV, logując historię z punktem krytycznym dążącym do maksymalizacji Sharpe Ratio z jednoczesną penalizacją braku wejść w rynek (kara -99). Najlepszy parametr jest zwrotnie implementowany z automatycznym aliasem na nowej template'cie bazy danych. Została również naniesiona w pełni zintegrowana wizualizacja procesu z paczki `optuna.visualization`.
