@@ -5,7 +5,6 @@ services:
       context: .
       dockerfile: Dockerfile.api
     container_name: blockbt-api
-    user: "${UID:-1000}:${GID:-1000}"
     restart: unless-stopped
     ports:
       - "127.0.0.1:8000:8000"
@@ -16,11 +15,6 @@ services:
     environment:
       - BLOCKBT_DB_PATH=/app/data/db/blockbt.db
       - BLOCKBT_CACHE_DIR=/app/data/cache
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://127.0.0.1:8000/api/health"]
-      interval: 10s
-      timeout: 5s
-      retries: 3
     command: >
       uvicorn blockbt.api.main:app
       --host 0.0.0.0
@@ -38,8 +32,7 @@ services:
     ports:
       - "127.0.0.1:3000:3000"
     depends_on:
-      blockbt-api:
-        condition: service_healthy
+      - blockbt-api
     command: npm run dev -- --host 0.0.0.0
     networks:
       - blockbt-internal
