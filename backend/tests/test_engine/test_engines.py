@@ -9,6 +9,7 @@ Testy dla Loadera Dual-Engine oraz mocków ProEngine.
 
 
 
+import pytest
 class TestEngineLoader:
     def test_returns_engine_instance(self):
         from app.services.engine.loader import EngineLoader
