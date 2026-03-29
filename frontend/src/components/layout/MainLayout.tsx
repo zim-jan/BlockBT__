@@ -1,9 +1,14 @@
 import { ReactNode } from 'react'
 import { Sidebar } from './Sidebar'
-import { MetricCard } from '../Dashboard/MetricCard'
+import { MetricCard } from '../ui/MetricCard'
 import { TrendingUp, TrendingDown, Activity, Minus } from 'lucide-react'
 import { useWorkflowStore } from '../../store/workflowStore'
-import { PortfolioNodeData } from '../../types'
+import { PortfolioNodeData } from '../../types/types'
+import { useQuery } from '@tanstack/react-query'
+
+interface HealthResponse {
+  status: string
+}
 
 interface MainLayoutProps {
   children: ReactNode
@@ -35,16 +40,29 @@ export function MainLayout({ children }: MainLayoutProps) {
     return value < -20 ? 'negative' : 'neutral'
   }
 
+  const { data: health, isLoading, isError } = useQuery<HealthResponse>({
+    queryKey: ['health'],
+    queryFn: async () => {
+      const res = await fetch('/api/health')
+      if (!res.ok) throw new Error('API unreachable')
+      return res.json()
+    },
+    refetchInterval: 10_000,
+  })
+
   return (
     <div className="flex h-screen bg-surface text-on-surface overflow-hidden dark font-body">
       <Sidebar />
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden bg-background">
-        <header className="flex-none p-6 pb-4 border-b border-outline-variant/20 bg-surface-container-low backdrop-blur-sm sticky top-0 z-10 flex justify-between items-center">
+        <header className="flex-none p-6 pb-4 border-b border-outline-variant/20 bg-surface-container-low backdrop-blur-sm sticky top-0 z-10 flex justify-between items-center relative">
             <div>
               <h2 className="font-headline text-xl font-bold tracking-tight">Strategy Builder</h2>
               <p className="font-label text-sm text-on-surface-variant mt-1">Design, test, and optimize trading strategies.</p>
             </div>
-            <div className="flex gap-4">
+            <div className="flex gap-4 items-center">
+                <div className={`status-badge mr-4 ${isLoading ? 'loading' : isError ? 'error' : 'ok'}`}>
+                    {isLoading ? '⏳ Connecting...' : isError ? '🔴 API Offline' : `🟢 API ${health?.status}`}
+                </div>
                 <button className="px-4 py-2 bg-surface-container-high border border-outline-variant/50 font-label text-sm font-medium hover:bg-surface-bright transition-colors">
                   Load Template
                 </button>

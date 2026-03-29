@@ -4,8 +4,8 @@
  * Typed against the generated api.d.ts schemas.
  */
 
-import type { components } from './api.d.ts'
-import type { BacktestJobData, StrategyData } from '../types'
+import type { components } from './api.d'
+import type { BacktestJobData, StrategyData } from '../types/types'
 
 const BASE_URL = import.meta.env.VITE_API_URL ?? ''
 
@@ -53,6 +53,20 @@ export const api = {
     list: () => request<ApiResponse<unknown[]>>('/api/workflows/'),
     save: (payload: components['schemas']['WorkflowCreate']) =>
       request<ApiResponse<unknown>>('/api/workflows/', {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      }),
+  },
+
+  results: {
+    analyze: (jobId: number) =>
+      request<components['schemas']['AIAnalysisResponse']>(`/api/results/${jobId}/analyze`, {
+        method: 'POST',
+      }),
+    getChat: (jobId: number) =>
+      request<components['schemas']['ChatMessageResponse'][]>(`/api/results/${jobId}/chat`),
+    sendChat: (jobId: number, payload: components['schemas']['ChatRequest']) =>
+      request<components['schemas']['ChatMessageResponse']>(`/api/results/${jobId}/chat`, {
         method: 'POST',
         body: JSON.stringify(payload),
       }),

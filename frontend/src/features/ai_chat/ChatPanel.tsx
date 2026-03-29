@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { useChat } from '../hooks/useChat';
+import { useChat } from '../../hooks/useChat';
 import { Send, X, Loader2 } from 'lucide-react';
 
 interface ChatPanelProps {

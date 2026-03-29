@@ -21,7 +21,7 @@ import type {
   PortfolioNodeData,
   JobStatus,
   BacktestMetrics,
-} from '../types'
+} from '../types/types'
 
 // ---------------------------------------------------------------------------
 // Initial canvas nodes — the four-step pipeline as a starting template

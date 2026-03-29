@@ -1,6 +1,6 @@
 import { Handle, Position } from 'reactflow'
-import { useWorkflowStore } from '../../store/workflowStore'
-import type { IndicatorNodeData } from '../../types'
+import { useWorkflowStore } from '../../../store/workflowStore'
+import type { IndicatorNodeData } from '../../../types/types'
 
 interface Props {
   id: string
