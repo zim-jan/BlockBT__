@@ -4,7 +4,7 @@ Ten dokument opisuje warstwę silnika w systemie BlockBT, przygotowaną zgodnie 
 
 ## Inicjalizacja silnika
 
-System BlockBT wykorzystuje wzorzec Factory/Adapter do wyboru odpowiedniego silnika backtestingu. Za ładowanie odpowiedniego silnika odpowiada klasa `EngineLoader` (`src/blockbt/engine/loader.py`).
+System BlockBT wykorzystuje wzorzec Factory/Adapter do wyboru odpowiedniego silnika backtestingu. Za ładowanie odpowiedniego silnika odpowiada klasa `EngineLoader` (`backend/app/services/engine/loader.py`).
 
 ```python
 from blockbt.engine.loader import EngineLoader
