@@ -1,26 +1,15 @@
-
-filename = "src/blockbt/api/routes/results.py"
-with open(filename) as f:
+import re
+with open("backend/app/api/results.py", "r") as f:
     content = f.read()
 
-new_schemas = """
-import datetime
+# Remove old models
+content = re.sub(r'class ChatRequest\(BaseModel\):\n\s+message: str\n\n', '', content)
+content = re.sub(r'class ChatMessageResponse\(BaseModel\):\n\s+role: str\n\s+content: str\n\s+timestamp: str\n\n', '', content)
+content = re.sub(r'class AIAnalysisResponse\(BaseModel\):\n\s+summary: str\n\s+strengths: list\[str\]\n\s+weaknesses: list\[str\]\n\s+recommendations: list\[str\]\n\n', '', content)
 
-class ChatRequest(BaseModel):
-    content: str
+# Add import
+import_stmt = "from app.schemas.results import ChatRequest, ChatMessageResponse, AIAnalysisResponse\n"
+content = import_stmt + content
 
-class ChatMessageResponse(BaseModel):
-    id: int
-    role: str
-    content: str
-    created_at: datetime.datetime
-
-class AIAnalysisResponse(BaseModel):
-"""
-
-content = content.replace("class AIAnalysisResponse(BaseModel):", new_schemas)
-
-with open(filename, "w") as f:
+with open("backend/app/api/results.py", "w") as f:
     f.write(content)
-
-print("Added schemas to results.py")
