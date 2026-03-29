@@ -6,8 +6,8 @@ Witaj w sercu systemu BlockBT! Ten dokument stanowi mapę wysokopoziomową dla k
 
 BlockBT opiera się na pięciu głównych warstwach, które są od siebie logicznie odseparowane:
 
-1. **Frontend Layer (Streamlit)**: 
-   - Lokalizacja: `/pages/` oraz `app.py`.
+1. **Frontend Layer (React / Vite)**:
+   - Lokalizacja: `frontend/`.
    - Rola: Interfejs użytkownika, kreatory (Wizards), wizualizacje Plotly i edytor grafowy React Flow (`6_Visual_Builder.py`).
 2. **Business Logic / Engine Layer**:
    - Lokalizacja: `src/blockbt/engine/`.
@@ -26,15 +26,14 @@ BlockBT opiera się na pięciu głównych warstwach, które są od siebie logicz
 
 - **Core**: Python 3.12+
 - **Backtesting**: [vectorbt](https://vectorbt.dev/) (Open Source / PRO)
-- **UI**: [Streamlit](https://streamlit.io/) + [streamlit-flow-component](https://github.com/langchain-ai/langchain)
+- **UI**: React + Vite + Tailwind
 - **Database**: SQLite (SQLAlchemy)
-- **Analytics**: pandas-ta, Optuna (Optymalizacja Bayesowska)
-- **LLM**: Ollama (Interfejs MCP)
+- **Analytics**: vectorbt (wskaźniki natywne), Optuna (Optymalizacja Bayesowska)
+- **LLM**: Ollama (Interfejs MCP na localhoście)
 
 ## 📂 Główne Lokalizacje Kodowe
 
-- [auth.py](file:///home/przydan/my_project/src/blockbt/ui/auth.py) — Bramka logowania i persystencja ciasteczek.
-- [opensource_engine.py](file:///home/przydan/my_project/src/blockbt/engine/opensource_engine.py) — Implementacja parsera AST i logiki pandas-ta.
+- [opensource_engine.py](file:///home/przydan/my_project/src/blockbt/engine/opensource_engine.py) — Implementacja parsera AST i logiki silnika wektorowego.
 - [models.py](file:///home/przydan/my_project/src/blockbt/db/models.py) — Definicje wszystkich tabel SQL.
 - [config.py](file:///home/przydan/my_project/src/blockbt/config.py) — Centralna konfiguracja (Ścieżki, API Keys, Silniki).
 

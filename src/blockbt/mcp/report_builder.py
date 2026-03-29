@@ -21,8 +21,6 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import Any
 
-import pandas as pd
-
 from blockbt.config import settings
 
 # from blockbt.engine.base import dict[str, Any]
@@ -96,29 +94,86 @@ class ReportBuilder:
     @staticmethod
     def _extract_period(result: dict[str, Any]) -> tuple[str, str]:
         """Extract ISO date strings for the simulation period."""
-        if result.get("equity_curve") is not None and not result.get("equity_curve").empty:
-            idx = result.get("equity_curve").index
-            return str(idx[0].date()), str(idx[-1].date())
+        equity_curve = result.get("equity_curve")
+        if equity_curve is not None and len(equity_curve) > 0:
+            if (
+                isinstance(equity_curve, list)
+                and isinstance(equity_curve[0], dict)
+                and "date" in equity_curve[0]
+            ):
+                return str(equity_curve[0]["date"]), str(equity_curve[-1]["date"])
+            elif isinstance(equity_curve, dict) and "index" in equity_curve:
+                # Handle dict serialized from pandas DataFrame
+                idx = equity_curve["index"]
+                if len(idx) > 0:
+                    return str(idx[0]), str(idx[-1])
+            elif hasattr(equity_curve, "index"):
+                # Handle raw pandas Series gracefully if passed directly
+                idx = equity_curve.index
+                if len(idx) > 0:
+                    start = str(idx[0].date() if hasattr(idx[0], "date") else idx[0])
+                    end = str(idx[-1].date() if hasattr(idx[-1], "date") else idx[-1])
+                    return start, end
         return "unknown", "unknown"
 
     @staticmethod
     def _sample_equity_curve(
-        equity: pd.Series | None,
+        equity: list | dict | Any | None,
         max_points: int,
     ) -> list[dict[str, Any]]:
         """Downsample the equity curve to at most ``max_points`` entries.
 
         Returns a list of ``{"date": "...", "value": ...}`` dicts for JSON.
         """
-        if equity is None or equity.empty:
+        if equity is None or len(equity) == 0:
             return []
 
-        n = len(equity)
-        if n > max_points:
-            step = n // max_points
-            equity = equity.iloc[::step]
+        # If it's a list of dicts or list of floats
+        if isinstance(equity, list):
+            n = len(equity)
+            step = 1 if n <= max_points else n // max_points
+            sampled = equity[::step]
 
-        return [
-            {"date": str(ts.date() if hasattr(ts, "date") else ts), "value": round(float(val), 2)}
-            for ts, val in equity.items()
-        ]
+            result_list = []
+            for i, item in enumerate(sampled):
+                if isinstance(item, dict) and "value" in item:
+                    # List of dicts
+                    date_val = str(item.get("date", f"step_{i}"))
+                    result_list.append({"date": date_val, "value": round(float(item["value"]), 2)})
+                else:
+                    # List of floats (or other scalar types)
+                    result_list.append({"date": f"step_{i * step}", "value": round(float(item), 2)})
+            return result_list
+
+        # If it's a dict (e.g., serialized from pandas Series)
+        if isinstance(equity, dict) and "data" in equity and "index" in equity:
+            data = equity["data"]
+            idx = equity["index"]
+            n = len(data)
+            step = 1 if n <= max_points else n // max_points
+
+            sampled_data = data[::step]
+            sampled_idx = idx[::step]
+
+            return [
+                {"date": str(d), "value": round(float(v), 2)}
+                for d, v in zip(sampled_idx, sampled_data, strict=False)
+            ]
+
+        # Handle raw pandas Series if passed directly by tests
+        if hasattr(equity, "iloc") and hasattr(equity, "items"):
+            n = len(equity)
+            if n > max_points:
+                step = n // max_points
+                equity = equity.iloc[::step]
+
+            return [
+                {
+                    "date": str(ts.date() if hasattr(ts, "date") else ts),
+                    "value": round(float(val), 2),
+                }
+                for ts, val in equity.items()
+            ]
+
+        # Fallback if structure is unknown but evaluates to True
+        return []

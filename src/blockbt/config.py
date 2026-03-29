@@ -40,15 +40,15 @@ class Settings(BaseSettings):
     # Paths
     # ------------------------------------------------------------------
     PROJECT_ROOT: Path = _PROJECT_ROOT
-    DATA_DIR: Path = _PROJECT_ROOT / "data"
-    PARQUET_DIR: Path = _PROJECT_ROOT / "data" / "parquet"
-    LOG_DIR: Path = _PROJECT_ROOT / "data" / "logs"
+    DATA_DIR: Path = _PROJECT_ROOT / "local_data"
+    PARQUET_DIR: Path = _PROJECT_ROOT / "local_data" / "cache"
+    LOG_DIR: Path = _PROJECT_ROOT / "local_data" / "logs"
 
     # ------------------------------------------------------------------
     # Database
     # ------------------------------------------------------------------
     DATABASE_URL: str = Field(
-        default_factory=lambda: f"sqlite:///{_PROJECT_ROOT / 'data' / 'blockbt.db'}",
+        default_factory=lambda: f"sqlite:///{_PROJECT_ROOT / 'local_data' / 'db' / 'blockbt.db'}",
         description="SQLAlchemy connection string. Defaults to local SQLite.",
     )
 
@@ -91,7 +91,10 @@ class Settings(BaseSettings):
 
     def ensure_dirs(self) -> None:
         """Create runtime directories if they don't exist."""
-        for d in (self.DATA_DIR, self.PARQUET_DIR, self.LOG_DIR):
+        # Ensure database directory exists if using default SQLite
+        db_dir = self.PROJECT_ROOT / "local_data" / "db"
+
+        for d in (self.DATA_DIR, self.PARQUET_DIR, self.LOG_DIR, db_dir):
             d.mkdir(parents=True, exist_ok=True)
 
 

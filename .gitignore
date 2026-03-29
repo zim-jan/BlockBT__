@@ -1,5 +1,52 @@
-# .agentignore
-# AGENTS.md
+# ==========================================
+# BlockBT - .gitignore
+# ==========================================
+
+# 1. Lokalne Dane & Bazy (KRYTYCZNE - Air-Gapped)
+/local_data/
+*.db
+*.sqlite
+*.sqlite3
+*.parquet
+
+# 2. Tajemnice (Zmienne Środowiskowe)
+.env
+.env.local
+.env.*.local
+
+# 3. Frontend (React / Node.js)
+/frontend/node_modules/
+/frontend/dist/
+/frontend/build/
+/frontend/.eslintcache
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# 4. Backend (Python / FastAPI)
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.coverage
+htmlcov/
+.venv/
+venv/
+env/
+
+# 5. Wygenerowane artefakty API (Opcjonalnie)
+# Zostawiamy /frontend/src/services/api.d.ts w repo, aby inni mieli typy,
+# ale ignorujemy sam surowy zrzut JSON:
+openapi.json
+/frontend/openapi.json
+
+# 6. IDE / System operacyjny
+.DS_Store
+.idea/
+.vscode/
+*.swp
+
+.agentignore
 BOOTSTRAP.md
 HEARTBEAT.md
 IDENTITY.md
@@ -7,10 +54,10 @@ MEMORY.md
 SOUL.md
 TOOLS.md
 USER.md
-# vectorbt.pro-main.zip
+vectorbt.pro-main.zip
+vectorbt.pro-main/*
 vectorbtpro/*
 .openclaw/*
-# .gitignore
 .env
 data/
 **/__pycache__/
@@ -22,6 +69,5 @@ vectorbt/
 *.pyc
 vectorbtpro/
 vectorbt.pro-main/
-vectorbtpro/
-vectorbt/
-*.pyc
+#vectorbt/
+

@@ -1,12 +1,49 @@
 services:
-  blockbt:
-    build: .
-    container_name: blockbt-ui
-    ports:
-      - "127.0.0.1:8501:8501" # Restrict to localhost as required
-    volumes:
-      - ./data:/app/data
-    environment:
-      - STREAMLIT_SERVER_PORT=8501
-      - STREAMLIT_SERVER_ADDRESS=0.0.0.0
+  # ── Backend: FastAPI + uvicorn ──────────────────────────────────────────
+  blockbt-api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    container_name: blockbt-api
+    user: "${UID:-1000}:${GID:-1000}"
     restart: unless-stopped
+    ports:
+      - "127.0.0.1:8000:8000"
+    volumes:
+      # Air-Gapped persistence: SQLite DB + Parquet data cache
+      - ./local_data/db:/app/data/db
+      - ./local_data/cache:/app/data/cache
+    environment:
+      - BLOCKBT_DB_PATH=/app/data/db/blockbt.db
+      - BLOCKBT_CACHE_DIR=/app/data/cache
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:8000/api/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    command: >
+      uvicorn blockbt.api.main:app
+      --host 0.0.0.0
+      --port 8000
+    networks:
+      - blockbt-internal
+
+  # ── Frontend: React + Vite dev server ──────────────────────────────────
+  blockbt-frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.frontend
+    container_name: blockbt-frontend
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:3000:3000"
+    depends_on:
+      blockbt-api:
+        condition: service_healthy
+    command: npm run dev -- --host 0.0.0.0
+    networks:
+      - blockbt-internal
+
+networks:
+  blockbt-internal:
+    driver: bridge
