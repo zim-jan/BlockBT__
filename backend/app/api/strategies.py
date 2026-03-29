@@ -1,21 +1,33 @@
 from __future__ import annotations
 
-from app.schemas.strategies import StrategyCreate
-
-"""
-Strategies routes — Phase 2: SQLite persistence via SQLAlchemy.
-"""
-
-
 from typing import Any
 
 from fastapi import APIRouter, HTTPException
 
 from app.db.session import get_session
 from app.models.orm import Strategy
+from app.schemas.strategies import StrategyCreate
+
+"""
+Strategies routes — Phase 2: SQLite persistence via SQLAlchemy.
+"""
 
 router = APIRouter()
 
+
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
+
+def _strategy_to_dict(strategy: Strategy) -> dict[str, Any]:
+    """Convert Strategy ORM model to dictionary."""
+    return {
+        "id": str(strategy.id),
+        "name": strategy.name,
+        "description": strategy.description,
+        "parameters": strategy.parameters,
+        "created_at": strategy.created_at,
+    }
 
 # ---------------------------------------------------------------------------
 # Pydantic schemas
@@ -51,7 +63,7 @@ def create_strategy(payload: StrategyCreate) -> dict[str, Any]:
         new_strat = Strategy(
             name=payload.name,
             description=payload.description,
-            parameters=payload.parameters,
+            parameters=payload.parameters if payload.parameters is not None else {},
         )
         db.add(new_strat)
         db.flush()  # get auto-generated id before commit
