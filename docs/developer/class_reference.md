@@ -2,7 +2,7 @@
 
 Ten dokument opisuje kluczowe klasy Pythona, które sterują logiką BlockBT. Zrozumienie ich zależności jest niezbędne do poprawnego rozszerzania systemu.
 
-## 🚀 Engine Layer (`src/blockbt/engine/`)
+## 🚀 Engine Layer (`backend/app/services/engine/`)
 
 Silnik jest sercem obliczeniowym. Wszystkie silniki dziedziczą po wspólnej klasie bazowej.
 
@@ -20,7 +20,7 @@ Silnik jest sercem obliczeniowym. Wszystkie silniki dziedziczą po wspólnej kla
 
 ---
 
-## 📡 Connector Layer (`src/blockbt/connectors/`)
+## 📡 Connector Layer (`backend/app/services/connectors/`)
 
 Konektory odpowiadają za dostarczanie surowych danych OHLCV.
 
@@ -33,7 +33,7 @@ Konektory odpowiadają za dostarczanie surowych danych OHLCV.
 
 ---
 
-## 💾 Database Layer (`src/blockbt/db/`)
+## 💾 Database Layer (`backend/app/`)
 
 Modele SQLAlchemy definiujące strukturę SQLite.
 
@@ -49,5 +49,5 @@ Modele SQLAlchemy definiujące strukturę SQLite.
 
 ## 🧩 Inne Kluczowe Klasy
 
-- **`OllamaClient`** (`src/blockbt/mcp/llm_client.py`): Klient do komunikacji z lokalnym modelem AI (Llama/Qwen) przez Ollama.
-- **`ReportBuilder`** (`src/blockbt/mcp/report_builder.py`): Przekształca surowe metryki Quant w czytelny dla LLM kontekst (Prompt Engineering).
+- **`OllamaClient`** (`backend/app/services/mcp/llm_client.py`): Klient do komunikacji z lokalnym modelem AI (Llama/Qwen) przez Ollama.
+- **`ReportBuilder`** (`backend/app/services/mcp/report_builder.py`): Przekształca surowe metryki Quant w czytelny dla LLM kontekst (Prompt Engineering).

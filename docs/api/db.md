@@ -4,8 +4,8 @@ Poniżej znajduje się autogenerowana dokumentacja kodu dotycząca warstwy utrwa
 
 ## blockbt.db.models
 
-::: blockbt.db.models
+::: app.models.orm
 
 ## blockbt.db.session
 
-::: blockbt.db.session
+::: app.db.session

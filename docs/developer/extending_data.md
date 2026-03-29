@@ -5,7 +5,7 @@ BlockBT jest zaprojektowany tak, aby dodanie nowego brokera lub giełdy (np. Bin
 ## 🏗️ Proces Krok po Kroku
 
 ### 1. Stwórz nowy plik konektora
-W folderze `src/blockbt/connectors/` stwórz plik, np. `binance.py`.
+W folderze `backend/app/services/connectors/` stwórz plik, np. `binance.py`.
 
 ### 2. Zaimplementuj klasę dziedziczącą po `BaseDataConnector`
 Musisz nadpisać chronioną metodę `_download`. Klasa bazowa zajmie się za Ciebie cache'owaniem w plikach Parquet i czyszczeniem dat.
@@ -31,7 +31,7 @@ class BinanceConnector(BaseDataConnector):
 ```
 
 ### 3. Zarejestruj konektor w `Settings`
-Jeśli Twój konektor wymaga nowych kluczy API, dodaj je do `src/blockbt/config.py` w klasie `Settings`.
+Jeśli Twój konektor wymaga nowych kluczy API, dodaj je do `backend/app/core/config.py` w klasie `Settings`.
 
 ### 4. Dodaj opcję do interfejsu (Opcjonalnie)
 W pliku `pages/4_Market_Data.py` lub `pages/1_Wizard.py` dodaj nazwę swojego konektora do listy rozwijanej `st.selectbox`.
@@ -45,4 +45,4 @@ W pliku `pages/4_Market_Data.py` lub `pages/1_Wizard.py` dodaj nazwę swojego ko
 ---
 ### Zobacz też:
 - [class_reference.md](class_reference.md) — sekcja Connector Layer.
-- [YahooFinanceConnector](file:///home/przydan/my_project/src/blockbt/connectors/yahoo_finance.py) — kompletny przykład działającej implementacji.
+- `YahooFinanceConnector` — kompletny przykład działającej implementacji.
