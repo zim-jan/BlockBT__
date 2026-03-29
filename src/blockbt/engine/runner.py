@@ -160,7 +160,7 @@ def _execute_backtest(parameters: dict[str, Any]) -> dict[str, Any]:
             {"date": str(d.date()), "value": round(float(v), 2)}
             for d, v in zip(
                 equity.index[:: max(1, len(equity) // 200)],
-                equity.values[:: max(1, len(equity) // 200)],
+                equity.values[:: max(1, len(equity) // 200)], strict=False,
             )
         ],
     }

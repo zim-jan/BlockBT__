@@ -113,6 +113,34 @@ class BacktestJob(Base):
 
     # relationships
     strategy: Mapped[Strategy] = relationship("Strategy", back_populates="backtest_jobs")
+    chat_messages: Mapped[list[ChatMessage]] = relationship(
+        "ChatMessage", back_populates="job", cascade="all, delete-orphan"
+    )
 
     def __repr__(self) -> str:
         return f"<BacktestJob id={self.id} status={self.status!r}>"
+
+
+class ChatMessage(Base):
+    """Model reprezentujący pojedynczą wiadomość czatu dla zadania backtestu.
+
+    Służy do przechowywania historii konwersacji między użytkownikiem a asystentem AI
+    (LLM) po wygenerowaniu początkowego raportu analizy.
+    """
+
+    __tablename__ = "chat_messages"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    job_id: Mapped[int] = mapped_column(
+        ForeignKey("backtest_jobs.id", ondelete="CASCADE"), nullable=False
+    )
+    role: Mapped[str] = mapped_column(String(50), nullable=False)
+    content: Mapped[str] = mapped_column(Text, nullable=False)
+    created_at: Mapped[datetime.datetime] = mapped_column(
+        DateTime, nullable=False, default=_utcnow
+    )
+
+    job: Mapped[BacktestJob] = relationship("BacktestJob", back_populates="chat_messages")
+
+    def __repr__(self) -> str:
+        return f"<ChatMessage id={self.id} job_id={self.job_id} role={self.role!r}>"

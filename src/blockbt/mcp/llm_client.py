@@ -20,9 +20,12 @@ from blockbt.config import settings
 # ── Defaults ──────────────────────────────────────────────────────────────────
 
 _SYSTEM_PROMPT = (
-    "Jesteś głównym analitykiem finansowym (Quant). Twoim zadaniem jest ocena wyników strategii algorytmicznej. "
-    "Zignoruj techniczną strukturę pliku JSON i skup się wyłącznie na liczbach. Zinterpretuj wskaźnik Sharpe'a, "
-    "Max Drawdown oraz Win Rate. Napisz zwięzły, profesjonalny wniosek na temat ryzyka i stabilności tej strategii. "
+    "Jesteś głównym analitykiem finansowym (Quant). "
+    "Twoim zadaniem jest ocena wyników strategii algorytmicznej. "
+    "Zignoruj techniczną strukturę pliku JSON i skup się wyłącznie na liczbach. "
+    "Zinterpretuj wskaźnik Sharpe'a, "
+    "Max Drawdown oraz Win Rate. Napisz zwięzły, profesjonalny wniosek "
+    "na temat ryzyka i stabilności tej strategii. "
     "Kategorycznie zabrania się opisywania czym są poszczególne pola JSON."
 )
 
@@ -98,6 +101,52 @@ class OllamaClient:
                     return self._consume_stream(resp)
                 body = resp.read().decode("utf-8")
                 return json.loads(body).get("response", "")
+        except urllib.error.URLError as exc:
+            logger.error("OllamaClient: connection error — {}", exc)
+            return f"[ERROR] Nie można połączyć się z Ollama ({self.base_url}): {exc}"
+        except json.JSONDecodeError as exc:
+            logger.error("OllamaClient: JSON decode error — {}", exc)
+            return f"[ERROR] Nieprawidłowa odpowiedź z serwera Ollama: {exc}"
+        except Exception as exc:  # noqa: BLE001
+            logger.error("OllamaClient: unexpected error — {}", exc)
+            return f"[ERROR] Nieoczekiwany błąd: {exc}"
+
+
+    def chat(self, messages: list[dict[str, str]]) -> str:
+        """Wysyła historię czatu do punktu końcowego /api/chat serwera Ollama.
+
+        Służy do wieloturowej rozmowy po wygenerowaniu wstępnego raportu.
+
+        Parameters
+        ----------
+        messages:
+            Lista słowników zawierających klucze 'role' i 'content'.
+            Przykład: [{"role": "user", "content": "hello"}]
+
+        Returns
+        -------
+        str
+            Odpowiedź wygenerowana przez model jako tekst.
+        """
+        url = f"{self.base_url}/api/chat"
+        payload = {
+            "model": self.model,
+            "messages": messages,
+            "stream": False,
+        }
+        data = json.dumps(payload).encode("utf-8")
+        req = urllib.request.Request(
+            url,
+            data=data,
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        logger.info("OllamaClient: POST {} model={}", url, self.model)
+
+        try:
+            with urllib.request.urlopen(req, timeout=self.timeout) as resp:
+                body = resp.read().decode("utf-8")
+                return json.loads(body).get("message", {}).get("content", "")
         except urllib.error.URLError as exc:
             logger.error("OllamaClient: connection error — {}", exc)
             return f"[ERROR] Nie można połączyć się z Ollama ({self.base_url}): {exc}"

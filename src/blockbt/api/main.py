@@ -13,7 +13,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from loguru import logger
 
-from blockbt.api.routes import backtest, strategies, workflows, results
+from blockbt.api.routes import backtest, results, strategies, workflows
 from blockbt.models.session import init_db
 
 # ---------------------------------------------------------------------------
