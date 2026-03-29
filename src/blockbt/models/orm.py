@@ -2,8 +2,8 @@
 BlockBT Phase 2 ORM models — Strategy & BacktestJob.
 
 These are the lightweight models used by the REST API layer.
-They are intentionally decoupled from the legacy user-auth models
-in blockbt.db.models (which require SECRET_KEY for encryption).
+
+
 """
 
 from __future__ import annotations

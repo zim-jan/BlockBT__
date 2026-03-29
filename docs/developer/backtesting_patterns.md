@@ -1,31 +1,35 @@
-# Przewodnik: Wzorce Backtestingu (VectorBT + pandas-ta)
+# Przewodnik: Wzorce Backtestingu (VectorBT)
 
-Wersja OpenSource BlockBT opiera się na elastyczności `pandas-ta` do generowania sygnałów oraz na szybkości `vectorbt` do symulacji portfela. Ten dokument pokazuje, jak pisać strategię, która będzie działać z naszym silnikiem.
+Wersja OpenSource BlockBT opiera się na wydajności `vectorbt` do generowania sygnałów i symulacji portfela. Ten dokument pokazuje, jak pisać strategię, która będzie działać z naszym silnikiem.
 
 ## 🛠️ Cykl Życia Obliczeń
 
-Kiedy użytkownik klika "Run", `OpenSourceEngine` wykonuje następujące kroki:
-1. **Pobranie Danych**: Za pomocą konektora (np. Yahoo).
-2. **Generowanie Sygnałów**: Przekształcenie cen OHLCV na binary series (True/False).
+Kiedy użytkownik zleca "Run" (`OpenSourceEngine`), silnik wykonuje następujące kroki:
+1. **Pobranie Danych**: Za pomocą konektora (np. Yahoo Finance).
+2. **Generowanie Sygnałów**: Wykorzystanie metod wektorowych (np. `vbt.MA.run`).
 3. **Symulacja Portfolio**: Wywołanie `vbt.Portfolio.from_signals`.
 
-## 🧬 Przykład: Sygnał z pandas-ta
+## 🧬 Przykład: Sygnał przy użyciu vectorbt
 
-`pandas-ta` integruje się bezpośrednio z DataFrame. Wewnątrz silnika robimy tak:
+Aby stworzyć symulację dla np. MACD w `vectorbt`, tworzymy kalkulacje wektorowe bezpośrednio:
 
 ```python
-import pandas_ta as ta
+import vectorbt as vbt
 
-# Generowanie MACD
-macd = df.ta.macd(fast=12, slow=26, signal=9)
-# logiczne punkty wejścia (crossover)
-entries = (macd['MACD_12_26_9'] > macd['MACDS_12_26_9']) & \
-          (macd['MACD_12_26_9'].shift(1) <= macd['MACDS_12_26_9'].shift(1))
+# Generowanie MACD w jednym kroku z DataFrame
+macd = vbt.MACD.run(df['close'], fast_window=12, slow_window=26, signal_window=9)
+
+macd_line = macd.macd
+sig_line = macd.signal
+
+# Wyznaczenie punktów wejścia i wyjścia
+entries = macd_line.vbt.crossed_above(sig_line)
+exits = macd_line.vbt.crossed_below(sig_line)
 ```
 
 ## 🚀 Uruchomienie VectorBT
 
-Po wyznaczeniu serii `entries` (Kup) i `exits` (Sprzedaj), przekazujemy je do silnika:
+Po wyznaczeniu serii `entries` (Kup) i `exits` (Sprzedaj), przekazujemy je do silnika portfela:
 
 ```python
 import vectorbt as vbt
@@ -42,17 +46,11 @@ pf = vbt.Portfolio.from_signals(
 print(pf.total_return())
 ```
 
-## 🔀 Translacja z Grafu (AST)
-
-Wizualny Kreator przesyła nam listę połączeń. Nasz parser w `opensource_engine.py` musi "odwinąć" ten graf. 
-- Jeśli węzeł to `SMA`, silnik wywołuje `df.ta.sma`.
-- Jeśli węzeł to `CrossOver`, silnik porównuje dwie serie danych.
-- Wynik końcowy zawsze musi być serią Boole'owską (True/False) akceptowalną przez `vectorbt`.
-
 ## 📉 Porada Wydajnościowa
 
 - Unikaj pętli `for` po wierszach DataFrame. Zawsze używaj operacji wektorowych (Vectorization).
 - Dane wejściowe OHLCV są normalizowane do małych liter (`open`, `high`, `low`, `close`, `volume`) przez bazową klasę konektora.
+- Wykorzystuj metody `.vbt.crossed_above()` lub iteruj za pomocą `itertools.product` przy siatkach optymalizacyjnych.
 
 ---
 ### Zobacz też:

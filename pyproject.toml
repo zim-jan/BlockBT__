@@ -38,13 +38,10 @@ dependencies = [
     "scikit-learn>=1.2",
     # phase 5 advanced trading
     "optuna>=3.0",
-    "pandas-ta",
     # Phase 6: REST API
     "fastapi>=0.100",
     "uvicorn[standard]>=0.23",
     # Phase 7: Node-based Drag & Drop GUI
-    "streamlit-flow-component",
-    "streamlit-cookies-controller",
     # Alpaca (optional; install with extras)
     # "alpaca-py>=0.14",
     "pandas-stubs~=2.3.3",
@@ -62,7 +59,7 @@ dev = [
     "mypy>=1.10",
     "mkdocs-material>=9.5",
     "mkdocstrings[python]>=0.24",
-    "streamlit>=1.35",
+
 ]
 
 [project.scripts]

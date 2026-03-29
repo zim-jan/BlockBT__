@@ -144,7 +144,7 @@ class OpenSourceEngine(BaseStrategyEngine):
     ) -> tuple[pd.Series, pd.Series]:
         """Translate wizard_state parameters into boolean signal series.
         
-        Supports Phase 5: MACD strategy via pandas-ta.
+        Supports Phase 5: MACD strategy via vectorbt.
         Falls back to Phase 1 SMA Crossover via vectorbt.
         """
         strategy_type = params.get("strategy_type", "sma_crossover")

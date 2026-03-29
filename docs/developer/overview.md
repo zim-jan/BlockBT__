@@ -29,7 +29,7 @@ BlockBT opiera się na pięciu głównych warstwach, które są od siebie logicz
 - **UI**: React + Vite + Tailwind
 - **Database**: SQLite (SQLAlchemy)
 - **Analytics**: vectorbt (wskaźniki natywne), Optuna (Optymalizacja Bayesowska)
-- **LLM**: Ollama (Interfejs MCP)
+- **LLM**: Ollama (Interfejs MCP na localhoście)
 
 ## 📂 Główne Lokalizacje Kodowe
 

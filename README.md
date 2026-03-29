@@ -1,6 +1,6 @@
 # 📈 BlockBT — Algorithmic Backtesting Ecosystem
 
-BlockBT to zaawansowane środowisko do testowania strategii inwestycyjnych typu "Self-Hosted", zbudowane dla inżynierów i analityków Quant. System łączy potęgę biblioteki `vectorbt` z nowoczesnym interfejsem Streamlit oraz analityką AI.
+BlockBT to zaawansowane środowisko do testowania strategii inwestycyjnych typu "Self-Hosted", zbudowane dla inżynierów i analityków Quant. System łączy potęgę biblioteki `vectorbt` z nowoczesnym interfejsem React oraz analityką AI.
 
 ## 🚀 Szybki Start (Instalacja)
 

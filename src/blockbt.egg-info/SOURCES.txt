@@ -44,7 +44,6 @@ src/blockbt/models/orm.py
 src/blockbt/models/session.py
 src/blockbt/strategy/__init__.py
 src/blockbt/ui/__init__.py
-src/blockbt/ui/auth.py
 src/blockbt/utils/__init__.py
 src/blockbt/utils/logging.py
 src/blockbt/utils/parquet.py

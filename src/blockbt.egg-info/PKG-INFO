@@ -25,11 +25,8 @@ Requires-Dist: dateparser>=1.1
 Requires-Dist: scipy>=1.10
 Requires-Dist: scikit-learn>=1.2
 Requires-Dist: optuna>=3.0
-Requires-Dist: pandas-ta
 Requires-Dist: fastapi>=0.100
 Requires-Dist: uvicorn[standard]>=0.23
-Requires-Dist: streamlit-flow-component
-Requires-Dist: streamlit-cookies-controller
 Requires-Dist: pandas-stubs~=2.3.3
 Requires-Dist: dash-bootstrap-components>=2.0.4
 Provides-Extra: alpaca
@@ -43,11 +40,10 @@ Requires-Dist: ruff>=0.4; extra == "dev"
 Requires-Dist: mypy>=1.10; extra == "dev"
 Requires-Dist: mkdocs-material>=9.5; extra == "dev"
 Requires-Dist: mkdocstrings[python]>=0.24; extra == "dev"
-Requires-Dist: streamlit>=1.35; extra == "dev"
 
 # 📈 BlockBT — Algorithmic Backtesting Ecosystem
 
-BlockBT to zaawansowane środowisko do testowania strategii inwestycyjnych typu "Self-Hosted", zbudowane dla inżynierów i analityków Quant. System łączy potęgę biblioteki `vectorbt` z nowoczesnym interfejsem Streamlit oraz analityką AI.
+BlockBT to zaawansowane środowisko do testowania strategii inwestycyjnych typu "Self-Hosted", zbudowane dla inżynierów i analityków Quant. System łączy potęgę biblioteki `vectorbt` z nowoczesnym interfejsem React oraz analityką AI.
 
 ## 🚀 Szybki Start (Instalacja)
 

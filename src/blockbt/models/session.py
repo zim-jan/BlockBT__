@@ -2,7 +2,7 @@
 Database session for Phase 2 REST API models.
 
 Uses a separate SQLAlchemy engine/session to avoid dependency on
-the legacy user-auth models that require SECRET_KEY.
+
 
 Database path resolves in priority order:
   1. BLOCKBT_DB_PATH env var  (set in docker-compose volumes)

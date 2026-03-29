@@ -17,4 +17,4 @@
 - Linijki oczyszczono, zostawiając restrykcyjny wymóg ignorowania przez zewnętrzne pluginy folderu `vectorbt.pro-main/`.
 
 ## Wniosek
-Środowisko projektowe (kod, sieć i zasady integracji CI/CD) zostało w pełni zabezpieczone przed potencjalnymi wyciekami podczas integracji sieciowych. Silnik gotowy na przyjęcie komend REST API w Fazie 6.
+Środowisko projektowe (kod, sieć i zasady integracji CI/CD) zostało w pełni zabezpieczone przed potencjalnymi wyciekami. Architektura Air-Gapped/Self-Hosted jest w pełni zachowana. Silnik gotowy na obsługę ruchu REST API w trybie jedno-użytkownikowym bez logowania.

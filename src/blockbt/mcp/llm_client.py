@@ -70,7 +70,7 @@ class OllamaClient:
             Optional system instruction prepended before the user prompt.
         stream:
             If True, consume the Ollama streaming NDJSON response line-by-line.
-            Defaults to False (single JSON response) for simplicity under Streamlit.
+            Defaults to False (single JSON response).
 
         Returns
         -------

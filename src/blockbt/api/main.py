@@ -1,7 +1,7 @@
 """
 BlockBT FastAPI Entrypoint — Phase 2 MVP.
 
-Air-Gapped architecture: strictly local, no auth, no live trading.
+Air-Gapped architecture: strictly local, no authorization, local logic only.
 DB tables are created at startup via the lifespan context manager.
 """
 
