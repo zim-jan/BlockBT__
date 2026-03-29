@@ -1,6 +1,13 @@
 from __future__ import annotations
 
+from typing import Any
+
+from fastapi import APIRouter, BackgroundTasks, HTTPException
+
+from app.db.session import get_session
+from app.models.orm import BacktestJob, JobStatus, Strategy
 from app.schemas.backtest import BacktestRequest
+from app.services.engine.runner import run_vectorbt_backtest
 
 """
 Backtest routes — Phase 2: real BackgroundTask + SQLite job tracking.
@@ -10,17 +17,29 @@ Flow:
   GET  /api/backtest/{id}   → polls job status + metrics from SQLite
 """
 
-
-from typing import Any
-
-from fastapi import APIRouter, BackgroundTasks, HTTPException
-
-from app.db.session import get_session
-from app.models.orm import BacktestJob, JobStatus, Strategy
-from app.services.engine.runner import run_vectorbt_backtest
-
 router = APIRouter()
 
+
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
+
+def _job_to_dict(job: BacktestJob) -> dict[str, Any]:
+    """Convert BacktestJob ORM model to dictionary."""
+    return {
+        "id": str(job.id),
+        "strategy_id": str(job.strategy_id),
+        "status": job.status,
+        "symbol": job.parameters_snapshot.get("symbol", ""),
+        "timeframe": job.parameters_snapshot.get("timeframe", ""),
+        "start_date": job.parameters_snapshot.get("start_date", ""),
+        "end_date": job.parameters_snapshot.get("end_date", ""),
+        "initial_capital": job.parameters_snapshot.get("initial_capital", 10000.0),
+        "created_at": job.created_at,
+        "metrics": job.metrics,
+        "parameters": job.parameters_snapshot,
+        "error_message": job.error_message,
+    }
 
 # ---------------------------------------------------------------------------
 # Pydantic schemas
@@ -51,6 +70,14 @@ def trigger_backtest(
             params["sma_slow"] = payload.sma_slow
         if payload.initial_capital is not None:
             params["initial_capital"] = payload.initial_capital
+        if payload.timeframe is not None:
+            params["timeframe"] = payload.timeframe
+        if payload.start_date is not None:
+            params["start_date"] = payload.start_date
+        if payload.end_date is not None:
+            params["end_date"] = payload.end_date
+        if payload.parameters is not None:
+            params.update(payload.parameters)
 
         job = BacktestJob(
             strategy_id=strategy.id,
