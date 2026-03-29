@@ -13,7 +13,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from loguru import logger
 
-from blockbt.api.routes import backtest, strategies, workflows, results
+from blockbt.api.routes import backtest, strategies, workflows
 from blockbt.models.session import init_db
 
 # ---------------------------------------------------------------------------
@@ -59,7 +59,6 @@ app.add_middleware(
 app.include_router(strategies.router, prefix="/api/strategies", tags=["Strategies"])
 app.include_router(backtest.router, prefix="/api/backtest", tags=["Backtest"])
 app.include_router(workflows.router, prefix="/api/workflows", tags=["Workflows"])
-app.include_router(results.router, prefix="/api/results", tags=["Results"])
 
 
 # ---------------------------------------------------------------------------
