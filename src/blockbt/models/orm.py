@@ -102,6 +102,8 @@ class BacktestJob(Base):
     num_trades: Mapped[int | None] = mapped_column(Integer, nullable=True)
     final_capital: Mapped[float | None] = mapped_column(Float, nullable=True)
 
+    ai_analysis_report: Mapped[str | None] = mapped_column(Text, nullable=True)
+
     error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     created_at: Mapped[datetime.datetime] = mapped_column(
