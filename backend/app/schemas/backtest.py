@@ -17,6 +17,7 @@ class BacktestRequest(BaseModel):
 
 class BacktestJobResponse(BaseModel):
     id: str
+    job_id: str
     strategy_id: str
     status: str
     symbol: str

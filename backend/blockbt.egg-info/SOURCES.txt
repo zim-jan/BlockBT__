@@ -41,7 +41,9 @@ backend/blockbt.egg-info/entry_points.txt
 backend/blockbt.egg-info/requires.txt
 backend/blockbt.egg-info/top_level.txt
 backend/tests/conftest.py
+backend/tests/test_api/test_backtest.py
 backend/tests/test_api/test_routes.py
+backend/tests/test_api/test_strategies.py
 backend/tests/test_connectors/__init__.py
 backend/tests/test_connectors/test_yahoo_finance.py
 backend/tests/test_data/__init__.py

@@ -28,6 +28,7 @@ def _job_to_dict(job: BacktestJob) -> dict[str, Any]:
     """Convert BacktestJob ORM model to dictionary."""
     return {
         "id": str(job.id),
+        "job_id": str(job.id),
         "strategy_id": str(job.strategy_id),
         "status": job.status,
         "symbol": job.parameters_snapshot.get("symbol", ""),
