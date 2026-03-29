@@ -64,6 +64,10 @@ data/
 *.pycvectorbt/
 *.pyc
 vectorbtpro/
+vectorbt/
+*.pycvectorbt/
+*.pyc
+vectorbtpro/
 vectorbt.pro-main/
 #vectorbt/
 
