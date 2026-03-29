@@ -1,0 +1,31 @@
+from datetime import datetime
+from typing import Any
+
+from pydantic import BaseModel
+
+
+class BacktestRequest(BaseModel):
+    strategy_id: str
+    symbol: str
+    timeframe: str | None = None
+    start_date: str | None = None
+    end_date: str | None = None
+    initial_capital: float = 10000.0
+    sma_fast: int | None = None
+    sma_slow: int | None = None
+    parameters: dict[str, Any] | None = None
+
+class BacktestJobResponse(BaseModel):
+    id: str
+    job_id: str
+    strategy_id: str
+    status: str
+    symbol: str
+    timeframe: str | None = None
+    start_date: str | None = None
+    end_date: str | None = None
+    initial_capital: float
+    created_at: datetime
+    metrics: dict[str, Any] | None = None
+    parameters: dict[str, Any] | None = None
+    error_message: str | None = None

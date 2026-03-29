@@ -20,11 +20,8 @@ RUN uv sync --frozen
 # Copy the rest of the application code
 COPY . .
 
-# Expose Streamlit port
-EXPOSE 8501
-
-# Default to empty STREAMLIT_SERVER_ADDRESS if not provided to avoid conflicts
-# It can be overriden in docker-compose.yml
+# Expose FastAPI port
+EXPOSE 8000
 
 # Run the application
-CMD ["uv", "run", "streamlit", "run", "app.py", "--server.port=8501", "--server.address=0.0.0.0"]
+CMD ["uv", "run", "uvicorn", "blockbt.api.main:app", "--host", "0.0.0.0", "--port", "8000"]

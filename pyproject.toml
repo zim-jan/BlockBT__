@@ -38,17 +38,16 @@ dependencies = [
     "scikit-learn>=1.2",
     # phase 5 advanced trading
     "optuna>=3.0",
-    "pandas-ta",
     # Phase 6: REST API
     "fastapi>=0.100",
     "uvicorn[standard]>=0.23",
     # Phase 7: Node-based Drag & Drop GUI
-    "streamlit-flow-component",
-    "streamlit-cookies-controller",
     # Alpaca (optional; install with extras)
     # "alpaca-py>=0.14",
     "pandas-stubs~=2.3.3",
     "dash-bootstrap-components>=2.0.4",
+    "path>=17.1.1",
+    "vectorbt>=0.28.5",
 ]
 
 [project.optional-dependencies]
@@ -62,14 +61,14 @@ dev = [
     "mypy>=1.10",
     "mkdocs-material>=9.5",
     "mkdocstrings[python]>=0.24",
-    "streamlit>=1.35",
+
 ]
 
 [project.scripts]
-blockbt = "blockbt.cli:main"
+blockbt = "app.cli:main"
 
 [tool.setuptools.packages.find]
-where = ["src"]
+where = ["backend"]
 
 [tool.ruff]
 line-length = 100
@@ -81,7 +80,7 @@ select = ["E", "F", "I", "UP", "B"]
 ignore = ["B008"]
 
 [tool.ruff.lint.isort]
-known-first-party = ["blockbt"]
+known-first-party = ["app"]
 
 [tool.mypy]
 python_version = "3.10"
@@ -89,7 +88,7 @@ strict = false
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]
-testpaths = ["tests"]
+testpaths = ["backend/tests"]
 addopts = "-v --tb=short"
 asyncio_mode = "auto"
 filterwarnings = [
