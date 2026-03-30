@@ -9,6 +9,7 @@ class ChatRequest(BaseModel):
 
 class ChatMessageResponse(BaseModel):
     id: int
+    job_id: int
     role: str
     content: str
     created_at: datetime.datetime

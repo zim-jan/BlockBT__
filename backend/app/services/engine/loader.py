@@ -60,8 +60,8 @@ class EngineLoader:
         from app.services.engine.opensource_engine import OpenSourceEngine
         from app.services.engine.pro_engine import ProEngine
 
-        # Attempt PRO path if the user has indicated they want it.
-        if settings.PREFER_PRO_ENGINE or settings.effective_vbtpro_path():
+        # Attempt PRO path only if the user has explicitly opted in.
+        if settings.PREFER_PRO_ENGINE and settings.effective_vbtpro_path():
             engine = ProEngine()
             if engine.is_available() or settings.PREFER_PRO_ENGINE:
                 return engine

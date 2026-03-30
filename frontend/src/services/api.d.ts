@@ -227,7 +227,7 @@ export interface components {
         /** AIAnalysisResponse */
         AIAnalysisResponse: {
             /** Prompt */
-            prompt: string | null;
+            prompt?: string | null;
             /** Report */
             report: string;
         };
@@ -236,13 +236,47 @@ export interface components {
             /** Strategy Id */
             strategy_id: number;
             /** Symbol */
-            symbol?: string | null;
+            symbol: string;
+            /** Timeframe */
+            timeframe?: string | null;
+            /** Start Date */
+            start_date?: string | null;
+            /** End Date */
+            end_date?: string | null;
+            /**
+             * Initial Capital
+             * @default 10000
+             */
+            initial_capital: number;
             /** Sma Fast */
             sma_fast?: number | null;
             /** Sma Slow */
             sma_slow?: number | null;
-            /** Initial Capital */
-            initial_capital?: number | null;
+            /** Parameters */
+            parameters?: {
+                [key: string]: unknown;
+            } | null;
+        };
+        /** ChatMessageResponse */
+        ChatMessageResponse: {
+            /** Id */
+            id: number;
+            /** Job Id */
+            job_id: number;
+            /** Role */
+            role: string;
+            /** Content */
+            content: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+        };
+        /** ChatRequest */
+        ChatRequest: {
+            /** Content */
+            content: string;
         };
         /** ChatMessageResponse */
         ChatMessageResponse: {
@@ -272,18 +306,17 @@ export interface components {
         StrategyCreate: {
             /** Name */
             name: string;
+            /** Description */
+            description?: string | null;
+            /** Parameters */
+            parameters?: {
+                [key: string]: unknown;
+            } | null;
             /**
-             * Description
+             * Code Content
              * @default
              */
-            description: string;
-            /**
-             * Parameters
-             * @default {}
-             */
-            parameters: {
-                [key: string]: unknown;
-            };
+            code_content: string;
         };
         /** ValidationError */
         ValidationError: {
@@ -302,20 +335,11 @@ export interface components {
         WorkflowCreate: {
             /** Name */
             name: string;
-            /**
-             * Description
-             * @default
-             */
-            description: string;
-            /**
-             * Nodes
-             * @default []
-             */
+            /** Description */
+            description?: string | null;
+            /** Nodes */
             nodes: components["schemas"]["WorkflowNode"][];
-            /**
-             * Edges
-             * @default []
-             */
+            /** Edges */
             edges: components["schemas"]["WorkflowEdge"][];
         };
         /** WorkflowEdge */
@@ -326,11 +350,6 @@ export interface components {
             source: string;
             /** Target */
             target: string;
-            /**
-             * Type
-             * @default default
-             */
-            type: string;
         };
         /** WorkflowNode */
         WorkflowNode: {
@@ -342,10 +361,7 @@ export interface components {
             position: {
                 [key: string]: number;
             };
-            /**
-             * Data
-             * @default {}
-             */
+            /** Data */
             data: {
                 [key: string]: unknown;
             };
@@ -632,9 +648,7 @@ export interface operations {
     get_simulation_result_api_results__job_id__get: {
         parameters: {
             query?: never;
-            header?: {
-                "X-API-Key"?: string | null;
-            };
+            header?: never;
             path: {
                 job_id: number;
             };
@@ -667,9 +681,7 @@ export interface operations {
     analyze_simulation_result_api_results__job_id__analyze_post: {
         parameters: {
             query?: never;
-            header?: {
-                "X-API-Key"?: string | null;
-            };
+            header?: never;
             path: {
                 job_id: number;
             };
@@ -700,9 +712,7 @@ export interface operations {
     get_chat_history_api_results__job_id__chat_get: {
         parameters: {
             query?: never;
-            header?: {
-                "X-API-Key"?: string | null;
-            };
+            header?: never;
             path: {
                 job_id: number;
             };
@@ -733,9 +743,7 @@ export interface operations {
     add_chat_message_api_results__job_id__chat_post: {
         parameters: {
             query?: never;
-            header?: {
-                "X-API-Key"?: string | null;
-            };
+            header?: never;
             path: {
                 job_id: number;
             };

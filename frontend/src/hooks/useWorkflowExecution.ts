@@ -9,7 +9,7 @@
  *  5. Write results back to the PortfolioNode via updatePortfolioResult.
  */
 
-import { useCallback, useRef } from 'react'
+import { useCallback, useEffect, useRef } from 'react'
 import { useWorkflowStore } from '../store/workflowStore'
 import { api } from '../services/api'
 import type { BacktestMetrics, JobStatus } from '../types/types'
@@ -110,6 +110,9 @@ export function useWorkflowExecution() {
       updatePortfolioResult(null, 'FAILED', 0, msg)
     }
   }, [nodes, isRunning, setJobState, updatePortfolioResult, stopPolling])
+
+  // Cleanup polling timer on unmount to prevent memory leaks
+  useEffect(() => () => stopPolling(), [stopPolling])
 
   return { runBacktest, stopPolling: () => { stopPolling(); resetExecution() }, isRunning }
 }
