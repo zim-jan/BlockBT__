@@ -21,7 +21,7 @@ import type {
   PortfolioNodeData,
   JobStatus,
   BacktestMetrics,
-} from '../types'
+} from '../types/types'
 
 // ---------------------------------------------------------------------------
 // Initial canvas nodes — the four-step pipeline as a starting template
@@ -32,13 +32,13 @@ const initialNodes: Node[] = [
     id: 'data-1',
     type: 'dataNode',
     position: { x: 60, y: 200 },
-    data: { symbol: 'SYNTHETIC' } satisfies DataNodeData,
+    data: { symbol: 'AAPL', dataSource: 'yahoo', startDate: '2023-01-01', endDate: '2025-01-01', timeframe: '1d' } satisfies DataNodeData,
   },
   {
     id: 'indicator-1',
     type: 'indicatorNode',
     position: { x: 320, y: 160 },
-    data: { smaFast: 10, smaSlow: 30, initialCapital: 10000 } satisfies IndicatorNodeData,
+    data: { indicatorType: 'sma_crossover', smaFast: 10, smaSlow: 30, initialCapital: 10000 } satisfies IndicatorNodeData,
   },
   {
     id: 'signal-1',
@@ -119,8 +119,8 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
     const baseY = 100 + (Math.floor(get().nodes.length / 4) * 120)
 
     const defaultData: Record<string, unknown> = {
-      dataNode: { symbol: 'SYNTHETIC' },
-      indicatorNode: { smaFast: 10, smaSlow: 30, initialCapital: 10000 },
+      dataNode: { symbol: 'AAPL', dataSource: 'yahoo', startDate: '2023-01-01', endDate: '2025-01-01', timeframe: '1d' },
+      indicatorNode: { indicatorType: 'sma_crossover', smaFast: 10, smaSlow: 30, initialCapital: 10000 },
       signalNode: { signalType: 'sma_crossover' },
       portfolioNode: {},
     }

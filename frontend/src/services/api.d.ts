@@ -136,6 +136,70 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/results/{job_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Simulation Result
+         * @description Retrieve the status and metrics of a backtest run by its Simulation ID.
+         */
+        get: operations["get_simulation_result_api_results__job_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/results/{job_id}/analyze": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Analyze Simulation Result
+         * @description Generate an AI analysis report for a completed simulation.
+         */
+        post: operations["analyze_simulation_result_api_results__job_id__analyze_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/results/{job_id}/chat": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Chat History
+         * @description Retrieve the chat history for a specific backtest job.
+         */
+        get: operations["get_chat_history_api_results__job_id__chat_get"];
+        put?: never;
+        /**
+         * Add Chat Message
+         * @description Pobiera wiadomość użytkownika, przekazuje kontekst i zwraca odpowiedź LLM.
+         */
+        post: operations["add_chat_message_api_results__job_id__chat_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/health": {
         parameters: {
             query?: never;
@@ -160,18 +224,91 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** AIAnalysisResponse */
+        AIAnalysisResponse: {
+            /** Prompt */
+            prompt?: string | null;
+            /** Report */
+            report: string;
+        };
         /** BacktestRequest */
         BacktestRequest: {
             /** Strategy Id */
             strategy_id: number;
             /** Symbol */
-            symbol?: string | null;
+            symbol: string;
+            /**
+             * Data Source
+             * @default synthetic
+             */
+            data_source?: string;
+            /** Timeframe */
+            timeframe?: string | null;
+            /** Start Date */
+            start_date?: string | null;
+            /** End Date */
+            end_date?: string | null;
+            /**
+             * Initial Capital
+             * @default 10000
+             */
+            initial_capital: number;
             /** Sma Fast */
             sma_fast?: number | null;
             /** Sma Slow */
             sma_slow?: number | null;
-            /** Initial Capital */
-            initial_capital?: number | null;
+            /** Strategy Type */
+            strategy_type?: string | null;
+            /** Macd Fast */
+            macd_fast?: number | null;
+            /** Macd Slow */
+            macd_slow?: number | null;
+            /** Macd Signal */
+            macd_signal?: number | null;
+            /** Parameters */
+            parameters?: {
+                [key: string]: unknown;
+            } | null;
+        };
+        /** ChatMessageResponse */
+        ChatMessageResponse: {
+            /** Id */
+            id: number;
+            /** Job Id */
+            job_id: number;
+            /** Role */
+            role: string;
+            /** Content */
+            content: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+        };
+        /** ChatRequest */
+        ChatRequest: {
+            /** Content */
+            content: string;
+        };
+        /** ChatMessageResponse */
+        ChatMessageResponse: {
+            /** Id */
+            id: number;
+            /** Role */
+            role: string;
+            /** Content */
+            content: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+        };
+        /** ChatRequest */
+        ChatRequest: {
+            /** Content */
+            content: string;
         };
         /** HTTPValidationError */
         HTTPValidationError: {
@@ -182,18 +319,17 @@ export interface components {
         StrategyCreate: {
             /** Name */
             name: string;
+            /** Description */
+            description?: string | null;
+            /** Parameters */
+            parameters?: {
+                [key: string]: unknown;
+            } | null;
             /**
-             * Description
+             * Code Content
              * @default
              */
-            description: string;
-            /**
-             * Parameters
-             * @default {}
-             */
-            parameters: {
-                [key: string]: unknown;
-            };
+            code_content?: string;
         };
         /** ValidationError */
         ValidationError: {
@@ -212,20 +348,11 @@ export interface components {
         WorkflowCreate: {
             /** Name */
             name: string;
-            /**
-             * Description
-             * @default
-             */
-            description: string;
-            /**
-             * Nodes
-             * @default []
-             */
+            /** Description */
+            description?: string | null;
+            /** Nodes */
             nodes: components["schemas"]["WorkflowNode"][];
-            /**
-             * Edges
-             * @default []
-             */
+            /** Edges */
             edges: components["schemas"]["WorkflowEdge"][];
         };
         /** WorkflowEdge */
@@ -236,11 +363,6 @@ export interface components {
             source: string;
             /** Target */
             target: string;
-            /**
-             * Type
-             * @default default
-             */
-            type: string;
         };
         /** WorkflowNode */
         WorkflowNode: {
@@ -252,10 +374,7 @@ export interface components {
             position: {
                 [key: string]: number;
             };
-            /**
-             * Data
-             * @default {}
-             */
+            /** Data */
             data: {
                 [key: string]: unknown;
             };
@@ -526,6 +645,136 @@ export interface operations {
                     "application/json": {
                         [key: string]: unknown;
                     };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_simulation_result_api_results__job_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                job_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    analyze_simulation_result_api_results__job_id__analyze_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                job_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AIAnalysisResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_chat_history_api_results__job_id__chat_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                job_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChatMessageResponse"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    add_chat_message_api_results__job_id__chat_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                job_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ChatRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChatMessageResponse"];
                 };
             };
             /** @description Validation Error */

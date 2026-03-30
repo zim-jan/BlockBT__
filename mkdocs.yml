@@ -61,4 +61,6 @@ nav:
       - Ext data: developer/extending_data.md
       - Ext db: developer/extending_db.md
       - Ext gui: developer/extending_gui.md
-
+      - Data layer: data_layer.md
+      - Engine layer: engine_layer.md
+      - Optimization_layer: optimization_layer.md

@@ -2,7 +2,7 @@
 
 ## Cel Etapów 2–5
 
-Zasadniczym krokiem po implementacji warstwy dostępu do danych cyfrowych oraz abstrakcyjnego silnika wykonawczego, była budowa otwartego ekosystemu GUI i integracja kluczowych podzespołów badawczych dla środowiska Data Science i Quant Trading. Fazy projektowe podzielono na cztery zintegrowane gałęzie:
+Zasadniczym krokiem po implementacji warstwy dostępu do danych cyfrowych oraz abstrakcyjnego silnika wykonawczego, była budowa otwartego ekosystemu GUI i integracja kluczowych podzespołów badawczych dla środowiska Data Science i Quant Trading. Fazy projektowe podzielono na zintegrowane gałęzie:
 
 1. **Graficzny Interfejs Użytkownika (Streamlit)** — realizacja wzorca Multipage App.
 2. **Monitorowanie Stanu i Architektury (Diagnostyka)** — widoki pozwalające na audyt środowiska BYOL w czasie rzeczywistym.
@@ -11,22 +11,21 @@ Zasadniczym krokiem po implementacji warstwy dostępu do danych cyfrowych oraz a
 
 ---
 
-## 2.1 Architektura Interfejsu (Streamlit)
+## 2.1 Architektura Interfejsu (React)
 
-Aplikację oparto o framework **Streamlit**, stosując scentralizowany punkt wejścia (`app.py`), system nawigacji bocznej oraz wymuszaną autoryzację. Ze względu na charakter środowiska (ponowne wykonywanie całego pliku przy interakcji), stan w kreatorze strategii przechowywany jest asynchronicznie poprzez obiekty typu *Streamlit Session State* (`st.session_state`).
+Aplikację oparto na nowoczesnym stosie frontendowym **React** (Vite), oferując architekturę Single Page Application (SPA), która zastąpiła Streamlit. Ze względu na charakter MVP, wyeliminowano całkowicie systemy logowania i autoryzacji użytkowników na rzecz czystego środowiska uruchomieniowego typu "Self-Hosted".
 
-1. **Wizard (`1_Wizard.py`)**: Trzykrokowy formularz do konfiguracji założeń (dostawca, instrument, okno czasowe, kapitał początkowy i opis tekstowy). Jego wynikiem jest stan wstrzykiwany jako obiekt JSON (`wizard_state`) do encji ormowanej `StrategyTemplate`.
-2. **Dashboard (`2_Dashboard.py`)**: Panel egzekucji zdefiniowanych szablonów. Wywołuje abstrakcję z warstwy pierwszej (`ConnectorRegistry` i `EngineLoader`), wizualizując stopy zwrotu oraz nakładając interaktywną krzywą kapitału na dedykowanym komponencie Plotly. Wyliczone skalary są transponowane na nowy rekord `SimulationResult`.
+1. **Kreator Strategii**: Panel pozwalający na definiowanie założeń (dostawca, instrument, okno czasowe, kapitał początkowy i opis tekstowy).
+2. **Dashboard**: Panel egzekucji zdefiniowanych szablonów. Wywołuje abstrakcję z warstwy pierwszej, wizualizując stopy zwrotu oraz nakładając interaktywną krzywą kapitału. Zapisuje wyniki wykonania z powrotem do bazy danych.
 
 ---
 
 ## 2.2 System Diagnostyczny z Weryfikacją BYOL
 
-Istotną innowacją w inżynierskim podejściu do cyklu uruchomieniowego, jest **Eksplorator Stanu (`3_System_Status.py`)**. Ze względu na odcięte repozytorium VectorBT PRO ("Air-Gapped Logic"), zaszła potrzeba ciągłego inspekcjonowania wybranego trybu:
+Istotną innowacją w inżynierskim podejściu do cyklu uruchomieniowego jest ciągła diagnostyka środowiska. Ze względu na odcięte repozytorium VectorBT PRO ("Air-Gapped Logic"), zaimplementowano mechanizm dynamicznego ładowania:
 
-- Interfejs weryfikuje bez importowania modułów zastrzeżonych, rzutując tzw. *lazy evaluation*, czy ścieżka do wstrzykniętych pakietów PRO istnieje. Jeśli nie — awaryjnie przekierowuje zapytania do OpenSourceEngine.
-- Możliwość tzw. "Toggle" (Zablokowania), gdzie pomimo licencji na maszynie deweloperskiej, wymuszany jest tryb Open Source.
-- Zaimplementowano na tym samym ekranie rekursywny skaner lokalnych pre-kompilowanych magazynów Parquet połączony ze zbieraczem tzw. *garbage z danymi historycznymi*. Oszczędza to limit zapytań u brokerów bazowych (Rate Limiting).
+- Interfejs API weryfikuje bez importowania modułów zastrzeżonych, czy ścieżka do wstrzykniętych pakietów PRO istnieje (wzorzec BYOL). Jeśli nie — awaryjnie przekierowuje zapytania do OpenSourceEngine, który używa darmowej wersji.
+- Zarządzanie danymi historycznymi opiera się wyłącznie na zoptymalizowanych plikach Parquet, po jednym pliku per symbol, unikając defragmentacji bazy danych. Zmniejsza to obciążenie sieciowe u dostawców danych giełdowych.
 
 ---
 
@@ -34,22 +33,23 @@ Istotną innowacją w inżynierskim podejściu do cyklu uruchomieniowego, jest *
 
 Projekt wykorzystuje standard **MCP (Model Context Protocol)** przygotowując zestandaryzowany, odtwarzalny protokół do integracji modułu wykonawczego ze sztuczną inteligencją.
 
-1. Wzór `ReportBuilder` przetwarza skomplikowaną architekturę krzywych kapitałowych `pandas.Series` dornsamplując jej próbki na precyzyjniej kontrolowany wektor o uciętej gęstości próbkowania w JSON (zabezpieczenie przed overflowing context window w LLM).
-2. Wynik transponowany na *User Prompt* trafia poprzez synchronicznego klienta `OllamaClient` realizującego wyłącznie standardową bibliotekę natywną `urllib`. Weryfikacja serwera dokonuje się poprzez endpoint `/api/tags` serwera lokalnego.
-
-Integracja pozwala wprost ze strony Dashboardu jednym kliknięciem uzyskać profesjonalną recenzję, wskazującą na luki w stopach zwrotu (np. błędy nadmiarowego win rate, bez wygenerowanego rzeczywistego profitu wskutek zjawisk drawdowns).
+1. Wzór `ReportBuilder` przetwarza wynikowe struktury `dict` z metrykami z engine'u na czytelny wektor w formacie JSON (zabezpieczenie przed overflowing context window w LLM).
+2. Transponowany kontekst trafia do synchronicznego klienta LLM operującego na warstwie lokalnej. Proces nie komunikuje się z chmurą, a zapytania kierowane są wyłącznie do `localhost:11434`.
 
 ---
 
 ## 2.4 Eksploracja Danych Market Data i Nakładanie Algorytmów
 
-Do podglądu zjawisk analitycznych zaimplementowano tzw. Eksplorator Rynku. Jest on samodzielnym oknem wizualizacyjnym renderującym diagramy świecowe (Plotly Candlesticks), rozbudowując aplikację o możliwość natychmiastowego nakładania metryk wskaźników m.in prostych i wykładniczych średnich kroczących jako podgląd przed uruchomieniem masowego backtestingu.
+Do podglądu zjawisk analitycznych zaimplementowano mechanizm weryfikacji metryk. Interfejs renderuje wykresy krzywych i dostarcza wskaźniki przed uruchomieniem masowego backtestingu, operując w stu procentach na zestawie narzędzi z otwartego źródła.
 
 ---
 
-## 2.5 Obliczeniowa Skala Inżynierska: Optuna & pandas-ta
+## 2.5 Obliczeniowa Skala Inżynierska: VectorBT Grid Search
+## 2.5 Obliczeniowa Skala Inżynierska: Optuna & Wskaźniki Natywne
 
-Do warstwy analitycznej (silnik OpenSource) wstrzyknięto wsparcie dla bibliotek optymalizacji hiperparametrycznej stosowanej w Data Science / Quant Trading:
+Do warstwy analitycznej wstrzyknięto wsparcie dla natywnej optymalizacji (bez obcych, spowalniających bilbiotek wskaźnikowych):
 
-1. **pandas-ta**: Architektura została zrefaktoryzowana w klasie open-source'owego wektorowego silnika tak, by reagowała na wprowadzony klucz (`strategy_type`). Kiedy zadany jest `macd`, następuje wymuszone wywołanie `df.ta.macd()`, wprowadzając pełny system krzyżowania wykładniczych linii MACD ze wstęgami sygnałowymi wektoryzowanymi obok vectorbt w pamięci.
+1. **Wskaźniki**: Zaimplementowano generator wskaźników bezpośrednio przy użyciu obiektów vectorbt (np. `vbt.MACD.run`). Pozwala to na pełną wektoryzację podczas testów.
+2. **Optymalizacja (Grid Search)**: Wdrożono mechanizm przeszukiwania siatki oparty na `itertools.product`. Algorytm generuje płaskie kombinacje parametrów, co pozwala na masowe przetwarzanie testów unikając problemów z rzutowaniem wielowymiarowych indeksów w otwartej wersji biblioteki. Wyniki poszczególnych przebiegów są rejestrowane jako rekordy, a użytkownik może wyselekcjonować konfigurację o najlepszych proporcjach zysku do ryzyka.
+1. **Wskaźniki Natywne**: Architektura została zaprojektowana w oparciu o silnik open-source'owy wspierający podstawowe metody wektoryzacji. System pozwala na szybkie ewaluacje np. metody przecinania prostych średnich kroczących w pamięci.
 2. **Optymalizator Parametrów (Optuna)**: Wdrożono osobną sekcję optymalizacyjną `5_Optimizer.py` która wykorzystuje estymatory _Tree-structured Parzen Estimator (TPE)_. Algorytm definiuje przedziały okien (np `sma_fast` 2-50, `sma_slow` 50-300). Każdy *trial* Optuny zamyka zapytanie na ułamek sekundy korzystając z cache wczytanego OHLCV, logując historię z punktem krytycznym dążącym do maksymalizacji Sharpe Ratio z jednoczesną penalizacją braku wejść w rynek (kara -99). Najlepszy parametr jest zwrotnie implementowany z automatycznym aliasem na nowej template'cie bazy danych. Została również naniesiona w pełni zintegrowana wizualizacja procesu z paczki `optuna.visualization`.

@@ -9,10 +9,11 @@
  *  5. Write results back to the PortfolioNode via updatePortfolioResult.
  */
 
-import { useCallback, useRef } from 'react'
+import { useCallback, useEffect, useRef } from 'react'
 import { useWorkflowStore } from '../store/workflowStore'
 import { api } from '../services/api'
-import type { BacktestMetrics, JobStatus } from '../types'
+import type { components } from '../services/api.d'
+import type { BacktestMetrics, JobStatus, DataNodeData, IndicatorNodeData } from '../types/types'
 
 const POLL_INTERVAL_MS = 2500
 const MAX_POLL_ATTEMPTS = 120 // 5 minutes hard cap
@@ -40,12 +41,22 @@ export function useWorkflowExecution() {
       return
     }
 
-    const symbol: string = dataNode.data?.symbol ?? 'SYNTHETIC'
-    const smaFast: number = Number(indicatorNode.data?.smaFast ?? 10)
-    const smaSlow: number = Number(indicatorNode.data?.smaSlow ?? 30)
-    const initialCapital: number = Number(indicatorNode.data?.initialCapital ?? 10000)
+    const dData = dataNode.data as DataNodeData
+    const iData = indicatorNode.data as IndicatorNodeData
 
-    if (smaFast >= smaSlow) {
+    const symbol: string = dData.symbol ?? 'AAPL'
+    const dataSource: string = dData.dataSource ?? 'yahoo'
+    const startDate: string = dData.startDate ?? '2023-01-01'
+    const endDate: string = dData.endDate ?? '2025-01-01'
+    const timeframe: string = dData.timeframe ?? '1d'
+
+    const indicatorType: string = iData.indicatorType ?? 'sma_crossover'
+    const smaFast: number = Number(iData.smaFast ?? 10)
+    const smaSlow: number = Number(iData.smaSlow ?? 30)
+    const initialCapital: number = Number(iData.initialCapital ?? 10000)
+
+    // SMA validation (only for SMA crossover)
+    if (indicatorType === 'sma_crossover' && smaFast >= smaSlow) {
       alert('Fast SMA must be smaller than Slow SMA.')
       return
     }
@@ -53,22 +64,46 @@ export function useWorkflowExecution() {
     setJobState(true, null, 'PENDING')
 
     try {
-      // 2. Create strategy record
+      // 2. Build strategy name based on indicator type
+      const stratName = indicatorType === 'macd'
+        ? `${symbol} MACD(${iData.macdFast ?? 12}/${iData.macdSlow ?? 26}/${iData.macdSignal ?? 9})`
+        : `${symbol} SMA(${smaFast}/${smaSlow})`
+
       const stratRes = await api.strategies.create({
-        name: `${symbol} SMA(${smaFast}/${smaSlow}) — ${new Date().toLocaleTimeString()}`,
-        description: 'Created from WorkflowEditor',
-        parameters: { symbol, sma_fast: smaFast, sma_slow: smaSlow, initial_capital: initialCapital },
+        name: `${stratName} — ${new Date().toLocaleTimeString()}`,
+        description: `Created from WorkflowEditor [${dataSource}]`,
+        parameters: {
+          symbol,
+          data_source: dataSource,
+          strategy_type: indicatorType,
+          sma_fast: smaFast,
+          sma_slow: smaSlow,
+          initial_capital: initialCapital,
+        },
       })
       const strategyId = (stratRes.data as { id: number }).id
 
-      // 3. Trigger backtest
-      const jobRes = await api.backtest.trigger({
+      // 3. Trigger backtest with all parameters
+      const triggerPayload: components['schemas']['BacktestRequest'] = {
         strategy_id: strategyId,
         symbol,
+        data_source: dataSource,
+        start_date: startDate,
+        end_date: endDate,
+        strategy_type: indicatorType,
         sma_fast: smaFast,
         sma_slow: smaSlow,
         initial_capital: initialCapital,
-      })
+      }
+
+      // Add MACD params if applicable
+      if (indicatorType === 'macd') {
+        triggerPayload.macd_fast = Number(iData.macdFast ?? 12)
+        triggerPayload.macd_slow = Number(iData.macdSlow ?? 26)
+        triggerPayload.macd_signal = Number(iData.macdSignal ?? 9)
+      }
+
+      const jobRes = await api.backtest.trigger(triggerPayload)
       const jobId = jobRes.data.job_id
       setJobState(true, jobId, 'PENDING')
 
@@ -110,6 +145,9 @@ export function useWorkflowExecution() {
       updatePortfolioResult(null, 'FAILED', 0, msg)
     }
   }, [nodes, isRunning, setJobState, updatePortfolioResult, stopPolling])
+
+  // Cleanup polling timer on unmount to prevent memory leaks
+  useEffect(() => () => stopPolling(), [stopPolling])
 
   return { runBacktest, stopPolling: () => { stopPolling(); resetExecution() }, isRunning }
 }
