@@ -291,6 +291,25 @@ export interface components {
             /** Content */
             content: string;
         };
+        /** ChatMessageResponse */
+        ChatMessageResponse: {
+            /** Id */
+            id: number;
+            /** Role */
+            role: string;
+            /** Content */
+            content: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+        };
+        /** ChatRequest */
+        ChatRequest: {
+            /** Content */
+            content: string;
+        };
         /** HTTPValidationError */
         HTTPValidationError: {
             /** Detail */

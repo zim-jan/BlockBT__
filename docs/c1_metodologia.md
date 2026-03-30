@@ -22,7 +22,7 @@ Jest to binarny nakierowany kolumnowo (columnar storage) format składowania dan
 
 ### Integracja z LLM via Model Context Protocol (MCP)
 
-W obszarze analityki po-transakcyjnej platformę wyposażono w wsparcie nowej generacji integracji protokołu MCP. Opracowano ustandaryzowaną reprezentację danych wejściowych z obiektu powrotnego symulatora do tzw. `MCPPayload`. Pakiet ten serwuje pełne metryki finansowe jak współczynnik kształtu Sharpe’a, wskaźniki osunięć kapitału (Max Drawdown) oraz zredukowaną do optymalnych wymiarów próbkę rzędu n-punktów ewolucji kapitałowej do dalszych ewaluacji na agentach AI korzystając z bezkolizyjnych standardów JSON bez sprzęgania implementacji w zamkniętym kodzie chmurowym.
+W obszarze analityki po-transakcyjnej platformę wyposażono w wsparcie nowej generacji integracji protokołu MCP. Opracowano ustandaryzowaną reprezentację danych wejściowych z obiektu powrotnego symulatora do tzw. `MCPPayload`. Pakiet ten serwuje pełne metryki finansowe jak współczynnik kształtu Sharpe’a, wskaźniki osunięć kapitału (Max Drawdown) oraz zredukowaną do optymalnych wymiarów próbkę rzędu n-punktów ewolucji kapitałowej do dalszych ewaluacji na agentach AI korzystając z bezkolizyjnych standardów JSON bez sprzęgania implementacji w kodzie zamkniętym zewnętrznych dostawców. Oprogramowanie działa jako w pełni odizolowane środowisko (Air-Gapped).
 
 ## Wzorzec Architektoniczny Dual-Engine i Komponentizacja BYOL
 
