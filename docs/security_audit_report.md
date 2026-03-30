@@ -18,3 +18,6 @@
 
 ## Wniosek
 Środowisko projektowe (kod, sieć i zasady integracji CI/CD) zostało w pełni zabezpieczone przed potencjalnymi wyciekami. Architektura Air-Gapped/Self-Hosted jest w pełni zachowana. Silnik gotowy na obsługę ruchu REST API w trybie jedno-użytkownikowym bez logowania.
+
+## Raport rozbieżności MVP (Termin: 30.05)
+**Alert Techniczny:** W toku audytu odnaleziono pozostałości po niezgodnych z założeniami izolacji BYOL i Self-Hosted wzmiankach (np. cloud, live trading, systemy autoryzacji oraz bezpośrednie promowanie użycia vectorbtpro poza kontekstem licencji izolowanej). Wszystkie te naruszenia specyfikacji MVP (Mimum Viable Product) zostały pomyślnie zlokalizowane i usunięte z dokumentacji.

@@ -2,7 +2,7 @@
 
 ## Cel i Koncepcja Projektu
 
-Aplikacja **BlockBT** (Block Backtesting) stanowi środowisko typu *Standalone* (Local/Self-Hosted) dedykowane do zaawansowanego badawczego backtestingu strategii algorytmicznych na rynkach finansowych. Głównym celem systemu jest dostarczenie modularnego, wysoce skalowalnego i niezależnego środowiska eksperymentalnego, które pozwala badaczom (quants) oraz programistom na elastyczne testowanie założeń rynkowych, bez polegania na zamkniętych, chmurowych ekosystemach (vendor lock-in).
+Aplikacja **BlockBT** (Block Backtesting) stanowi środowisko typu *Standalone* (Local/Self-Hosted) dedykowane do zaawansowanego badawczego backtestingu strategii algorytmicznych na rynkach finansowych. Głównym celem systemu jest dostarczenie modularnego, wysoce skalowalnego i niezależnego środowiska eksperymentalnego, które pozwala badaczom (quants) oraz programistom na elastyczne testowanie założeń rynkowych, bez polegania na zamkniętych ekosystemach zewnętrznych dostawców.
 
 Architektura oprogramowania została zaprojektowana w oparciu o zaawansowane wzorce znane z komercyjnych rozwiązań klasy korporacyjnej (np. QuantConnect, Zipline), kładąc szczególny nacisk na ścisłą separację logiki biznesowej od warstwy utrwalania danych i silnika wykonawczego.
 

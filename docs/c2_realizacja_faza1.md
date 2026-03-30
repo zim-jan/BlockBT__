@@ -6,28 +6,44 @@ Prace architektoniczne rozpoczęły się od utworzenia kompleksowej struktury mo
 
 ### Modelowanie ORM w SQLAlchemy 2.x
 
-Obiektowo-relacyjne odwzorowanie wprowadzono tworząc jednolitą i spójną bazę deklaratywną. Struktura bazy realizowana jest na bazie klasycznych relacji encji. Przykładowo kluczową tabelą aplikacji stanowiącą wynik testowania danej strategii jest model `SimulationResult`, który obsługuje bezpośrednio pola wektorowe typu JSON dla wielowymiarowych ujęć ewidencji kapitału. Zastosowanie dedykowania obiektowego mapowania za pomocą `@mapped_column` gwarantuje integralność relacyjną bazy danych i podnosi deterministyczny odczyt logów testów.
+Obiektowo-relacyjne odwzorowanie wprowadzono tworząc jednolitą i spójną bazę deklaratywną. Struktura bazy realizowana jest na bazie klasycznych relacji encji. Przykładowo kluczową tabelą aplikacji stanowiącą wynik testowania danej strategii jest model `BacktestJob`, który obsługuje bezpośrednio pola wektorowe typu JSON dla wielowymiarowych ujęć ewidencji kapitału. Zastosowanie dedykowania obiektowego mapowania za pomocą `@mapped_column` gwarantuje integralność relacyjną bazy danych i podnosi deterministyczny odczyt logów testów. Model ten nie posiada logowania użytkowników na rzecz wsparcia trybu stand-alone (zgodność z MVP).
 
-Oto wycinek dokumentujący implementację tabel danych z modułu `/db/models.py`.
+Oto wycinek dokumentujący implementację tabel danych z modułu `backend/app/models/orm.py`.
 
 ```python
-class SimulationResult(Base):
-    """Encja przechowuje wykonane historyczne backtesty na silnikach."""
-    __tablename__ = "simulation_results"
+class BacktestJob(Base):
+    """A single backtest execution record.
 
-    id: Mapped[int] = mapped_column(primary_key=True)
-    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
-    template_id: Mapped[int | None] = mapped_column(ForeignKey("strategy_templates.id"))
+    Lifecycle: PENDING → RUNNING → COMPLETED | FAILED
+    Metrics (Sharpe, MaxDD, TotalReturn …) are stored in `metrics` JSON
+    for maximum flexibility. Headline scalars are also broken out as
+    individual Float columns for fast SQL queries.
+    """
 
-    strategy_name: Mapped[str] = mapped_column(String(100), index=True)
-    symbol: Mapped[str] = mapped_column(String(50))
-    timeframe: Mapped[str] = mapped_column(String(20))
-    
-    # Przewidziane relacyjne metadane JSON w formacie SQLAlchemy
-    metrics_json: Mapped[dict[str, Any]] = mapped_column(JSON)
-    equity_curve_json: Mapped[dict[str, Any]] = mapped_column(JSON)
+    __tablename__ = "backtest_jobs"
 
-    created_at: Mapped[datetime.datetime] = mapped_column(default=func.now())
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    strategy_id: Mapped[int] = mapped_column(
+        ForeignKey("strategies.id", ondelete="CASCADE"), nullable=False
+    )
+
+    # Execution state
+    status: Mapped[str] = mapped_column(
+        String(16), nullable=False, default=JobStatus.PENDING
+    )  # PENDING | RUNNING | COMPLETED | FAILED
+
+    # Payload passed to the engine (snapshot of strategy params at job start)
+    parameters_snapshot: Mapped[dict[str, Any]] = mapped_column(
+        JSON, nullable=False, default=dict
+    )
+
+    # Results
+    metrics: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
+    total_return_pct: Mapped[float | None] = mapped_column(Float, nullable=True)
+    sharpe_ratio: Mapped[float | None] = mapped_column(Float, nullable=True)
+    max_drawdown_pct: Mapped[float | None] = mapped_column(Float, nullable=True)
+    num_trades: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    final_capital: Mapped[float | None] = mapped_column(Float, nullable=True)
 ```
 
 ## Loader Wzorca Dual-Engine
@@ -36,7 +52,7 @@ Zrealizowano postulat technologii **Bring Your Own License (BYOL)** dostarczają
 
 W przypadku znalezienia, instalator wykorzystuje zamkniętą do ścisłego bloku `try-except` warstwę pozyskiwania importów. W przypadku rzucenia błędów deklasacji (ModuleNotFoundError) maszyna wirtualna bezpiecznie adaptuje dostępną logikę referencyjną warstwy *OpenSource Engine*, unikając rzucenia głównego paniku procedury wejściowej środowiska. Taki wzorzec architektoniczny można opisać mianem wzorca *Graceful Fallback*.
 
-Zaprojektowano również abstrakcyjny model podstawowy wiążący (kontrakt systemowy) polegający na egzekwowaniu u każdego powiązanego z systemem silnika transakcyjnego metody `run_backtest`, której wymaganą odpowiedzą wstrzykniętych danych jest strukturalny obiekt obudowany klasą `BacktestResult` (tzw. DTO - Data Transfer Object).
+Zaprojektowano również abstrakcyjny model podstawowy wiążący (kontrakt systemowy) polegający na egzekwowaniu u każdego powiązanego z systemem silnika transakcyjnego metody `run_backtest`, której wymaganą odpowiedzą wstrzykniętych danych jest znormalizowany słownik `dict` z metrykami.
 
 ## Architektura Pluggowalnych Konektorów Danych
 
