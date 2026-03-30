@@ -46,7 +46,7 @@ export function useChat(jobId: number | null) {
       role: 'user',
       content: content.trim(),
       created_at: new Date().toISOString(),
-    } as ChatMessage;
+    };
 
     setMessages((prev) => [...prev, tempUserMessage]);
     setIsSending(true);

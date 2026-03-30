@@ -3,17 +3,16 @@ from __future__ import annotations
 """
 BlockBT MCP — OllamaClient.
 
-Synchronous HTTP client for a local Ollama server.
+Asynchronous HTTP client for a local Ollama server.
 Handles prompt assembly, request, and streaming response accumulation.
-Uses only the standard-library ``urllib`` so no additional dependency is
-needed beyond what blockbt already ships.
+Uses ``httpx.AsyncClient`` for non-blocking I/O so that FastAPI ``async def``
+route handlers do not block the event loop.
 """
 
 
 import json
-import urllib.error
-import urllib.request
 
+import httpx
 from loguru import logger
 
 from app.core.config import settings
@@ -32,7 +31,7 @@ _SYSTEM_PROMPT = (
 
 
 class OllamaClient:
-    """Synchronous client for the Ollama /api/generate endpoint.
+    """Async client for the Ollama /api/generate and /api/chat endpoints.
 
     Parameters
     ----------
@@ -58,7 +57,7 @@ class OllamaClient:
 
     # ── Public API ────────────────────────────────────────────────────────────
 
-    def generate_report(
+    async def generate_report(
         self,
         prompt: str,
         system: str = _SYSTEM_PROMPT,
@@ -87,33 +86,35 @@ class OllamaClient:
             "prompt": f"{system}\n\n{prompt}",
             "stream": stream,
         }
-        data = json.dumps(payload).encode("utf-8")
-        req = urllib.request.Request(
-            url,
-            data=data,
-            headers={"Content-Type": "application/json"},
-            method="POST",
-        )
         logger.info("OllamaClient: POST {} model={}", url, self.model)
 
         try:
-            with urllib.request.urlopen(req, timeout=self.timeout) as resp:
+            async with httpx.AsyncClient(timeout=self.timeout) as client:
+                response = await client.post(
+                    url,
+                    json=payload,
+                    headers={"Content-Type": "application/json"},
+                )
+                response.raise_for_status()
+
                 if stream:
-                    return self._consume_stream(resp)
-                body = resp.read().decode("utf-8")
-                return json.loads(body).get("response", "")
-        except urllib.error.URLError as exc:
+                    return self._consume_stream_sync(response.text)
+
+                return response.json().get("response", "")
+        except httpx.ConnectError as exc:
             logger.error("OllamaClient: connection error — {}", exc)
             return f"[ERROR] Nie można połączyć się z Ollama ({self.base_url}): {exc}"
         except json.JSONDecodeError as exc:
             logger.error("OllamaClient: JSON decode error — {}", exc)
             return f"[ERROR] Nieprawidłowa odpowiedź z serwera Ollama: {exc}"
+        except httpx.HTTPStatusError as exc:
+            logger.error("OllamaClient: HTTP error — {}", exc)
+            return f"[ERROR] Błąd HTTP z serwera Ollama: {exc}"
         except Exception as exc:  # noqa: BLE001
             logger.error("OllamaClient: unexpected error — {}", exc)
             return f"[ERROR] Nieoczekiwany błąd: {exc}"
 
-
-    def chat(self, messages: list[dict[str, str]]) -> str:
+    async def chat(self, messages: list[dict[str, str]]) -> str:
         """Wysyła historię czatu do punktu końcowego /api/chat serwera Ollama.
 
         Służy do wieloturowej rozmowy po wygenerowaniu wstępnego raportu.
@@ -135,45 +136,46 @@ class OllamaClient:
             "messages": messages,
             "stream": False,
         }
-        data = json.dumps(payload).encode("utf-8")
-        req = urllib.request.Request(
-            url,
-            data=data,
-            headers={"Content-Type": "application/json"},
-            method="POST",
-        )
         logger.info("OllamaClient: POST {} model={}", url, self.model)
 
         try:
-            with urllib.request.urlopen(req, timeout=self.timeout) as resp:
-                body = resp.read().decode("utf-8")
-                return json.loads(body).get("message", {}).get("content", "")
-        except urllib.error.URLError as exc:
+            async with httpx.AsyncClient(timeout=self.timeout) as client:
+                response = await client.post(
+                    url,
+                    json=payload,
+                    headers={"Content-Type": "application/json"},
+                )
+                response.raise_for_status()
+                return response.json().get("message", {}).get("content", "")
+        except httpx.ConnectError as exc:
             logger.error("OllamaClient: connection error — {}", exc)
             return f"[ERROR] Nie można połączyć się z Ollama ({self.base_url}): {exc}"
         except json.JSONDecodeError as exc:
             logger.error("OllamaClient: JSON decode error — {}", exc)
             return f"[ERROR] Nieprawidłowa odpowiedź z serwera Ollama: {exc}"
+        except httpx.HTTPStatusError as exc:
+            logger.error("OllamaClient: HTTP error — {}", exc)
+            return f"[ERROR] Błąd HTTP z serwera Ollama: {exc}"
         except Exception as exc:  # noqa: BLE001
             logger.error("OllamaClient: unexpected error — {}", exc)
             return f"[ERROR] Nieoczekiwany błąd: {exc}"
 
-    def health_check(self) -> bool:
+    async def health_check(self) -> bool:
         """Return True if the Ollama server responds to GET /api/tags."""
         try:
-            url = f"{self.base_url}/api/tags"
-            with urllib.request.urlopen(url, timeout=5):
-                return True
+            async with httpx.AsyncClient(timeout=5) as client:
+                response = await client.get(f"{self.base_url}/api/tags")
+                return response.status_code == 200
         except Exception:  # noqa: BLE001
             return False
 
     # ── Internals ─────────────────────────────────────────────────────────────
 
-    def _consume_stream(self, resp) -> str:  # type: ignore[type-arg]
-        """Accumulate NDJSON stream lines into a single string."""
+    def _consume_stream_sync(self, text: str) -> str:
+        """Parse NDJSON stream text into a single string."""
         parts: list[str] = []
-        for raw_line in resp:
-            line = raw_line.decode("utf-8").strip()
+        for line in text.splitlines():
+            line = line.strip()
             if not line:
                 continue
             try:

@@ -1,0 +1,40 @@
+# ──────────────────────────────────────────────────────────────
+# BlockBT — Makefile
+# ──────────────────────────────────────────────────────────────
+
+.PHONY: help dev api frontend generate-api lint test
+
+help: ## Show this help
+	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | \
+		awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-18s\033[0m %s\n", $$1, $$2}'
+
+# ── Development ───────────────────────────────────────────────
+
+dev: api frontend ## Start both backend and frontend (requires two terminals)
+
+api: ## Start FastAPI backend (dev mode)
+	cd backend && uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
+
+frontend: ## Start Vite frontend (dev mode)
+	cd frontend && npm run dev
+
+# ── Code Generation ───────────────────────────────────────────
+
+generate-api: ## Regenerate TypeScript API types from backend OpenAPI schema
+	@echo "→ Fetching openapi.json from running backend..."
+	curl -sf http://127.0.0.1:8000/openapi.json -o frontend/openapi.json
+	@echo "→ Generating api.d.ts..."
+	cd frontend && npx openapi-typescript ./openapi.json -o ./src/services/api.d.ts
+	@echo "✓ api.d.ts regenerated — commit the result."
+
+# ── Quality ───────────────────────────────────────────────────
+
+lint: ## Run linters (ruff for Python, tsc for TypeScript)
+	ruff check backend/
+	cd frontend && npx tsc --noEmit
+
+test: ## Run Python test suite
+	python -m pytest backend/tests/ -v --tb=short
+
+build-frontend: ## Build frontend for production
+	cd frontend && npm run build

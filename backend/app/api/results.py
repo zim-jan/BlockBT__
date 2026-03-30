@@ -41,7 +41,7 @@ def get_simulation_result(job_id: int) -> dict[str, Any]:
         }
 
 @router.post("/{job_id}/analyze", response_model=AIAnalysisResponse)
-def analyze_simulation_result(job_id: int) -> AIAnalysisResponse:
+async def analyze_simulation_result(job_id: int) -> AIAnalysisResponse:
     """Generate an AI analysis report for a completed simulation."""
     with get_session() as db:
         job = db.get(BacktestJob, job_id)
@@ -85,7 +85,7 @@ def analyze_simulation_result(job_id: int) -> AIAnalysisResponse:
             raw_params=raw_params
         )
         prompt = payload.to_prompt()
-        report = OllamaClient().generate_report(prompt)
+        report = await OllamaClient().generate_report(prompt)
         job.ai_analysis_report = report
 
         # Zapisanie promptu (user) i raportu (assistant) do tabeli ChatMessage
@@ -106,13 +106,13 @@ def get_chat_history(job_id: int) -> list[ChatMessageResponse]:
         messages = sorted(job.chat_messages, key=lambda m: m.created_at)
         return [
             ChatMessageResponse(
-                id=m.id, role=m.role, content=m.content, created_at=m.created_at
+                id=m.id, job_id=m.job_id, role=m.role, content=m.content, created_at=m.created_at
             )
             for m in messages
         ]
 
 @router.post("/{job_id}/chat", response_model=ChatMessageResponse)
-def add_chat_message(job_id: int, request: ChatRequest) -> ChatMessageResponse:
+async def add_chat_message(job_id: int, request: ChatRequest) -> ChatMessageResponse:
     """Pobiera wiadomość użytkownika, przekazuje kontekst i zwraca odpowiedź LLM."""
     with get_session() as db:
         job = db.get(BacktestJob, job_id)
@@ -134,9 +134,9 @@ def add_chat_message(job_id: int, request: ChatRequest) -> ChatMessageResponse:
         history = sorted(job.chat_messages, key=lambda m: m.created_at)
         llm_messages = [{"role": m.role, "content": m.content} for m in history]
 
-        # Wywołanie Ollamy
+        # Wywołanie Ollamy (async)
         client = OllamaClient()
-        response_content = client.chat(llm_messages)
+        response_content = await client.chat(llm_messages)
 
         if response_content.startswith("[ERROR]"):
             db.rollback()
@@ -150,6 +150,7 @@ def add_chat_message(job_id: int, request: ChatRequest) -> ChatMessageResponse:
 
         return ChatMessageResponse(
             id=assistant_message.id,
+            job_id=assistant_message.job_id,
             role=assistant_message.role,
             content=assistant_message.content,
             created_at=assistant_message.created_at

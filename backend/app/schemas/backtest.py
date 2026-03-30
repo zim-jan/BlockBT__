@@ -5,7 +5,7 @@ from pydantic import BaseModel
 
 
 class BacktestRequest(BaseModel):
-    strategy_id: str
+    strategy_id: int
     symbol: str
     timeframe: str | None = None
     start_date: str | None = None
@@ -16,9 +16,9 @@ class BacktestRequest(BaseModel):
     parameters: dict[str, Any] | None = None
 
 class BacktestJobResponse(BaseModel):
-    id: str
-    job_id: str
-    strategy_id: str
+    id: int
+    job_id: int
+    strategy_id: int
     status: str
     symbol: str
     timeframe: str | None = None
