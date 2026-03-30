@@ -8,7 +8,7 @@ Implementacja platformy **BlockBT** bazuje na rygorystycznym doborze współczes
 
 Całość systemu została zrealizowana w oparciu o język **Python (wersja $\ge$ 3.10)**, korzystając w pełni z jego natywnego systemu statycznego typowania (Type Hints). Zwiększa to nie tylko czytelność kodu dla innych inżynierów, ale również pozwala na stosowanie rygorystycznej analizy statycznej za pomocą narzędzi takich jak `mypy` czy `ruff`. Python stanowi globalny standard w dziedzinie analizy ilościowej (Quantitative Finance), gwarantując swobodny dostęp do zoptymalizowanych (najczęściej w `C` bądź `C++`) bibliotek matematycznych typu `numpy` oraz `pandas`.
 
-### Warstwa Trwałośści i ORM (SQLite + SQLAlchemy 2.x)
+### Warstwa Trwałości i ORM (SQLite + SQLAlchemy 2.x)
 
 Dla implementacji warstwy trwałości (Persistence Layer) zdecydowano się na użycie bezserwerowego silnika bazodanowego **SQLite**, działającego z włączonym trybem WAL (Write-Ahead Logging). Zapewnia to kompromis pomiędzy asynchroniczną i szybszą obsługą zapytań a zachowaniem formy pojedynczego, samo-zawierającego się pliku bazodanowego na dysku maszyny badawczej – co jest idealną specyfiką aplikacji *self-hosted*.
 
@@ -22,7 +22,7 @@ Jest to binarny nakierowany kolumnowo (columnar storage) format składowania dan
 
 ### Integracja z LLM via Model Context Protocol (MCP)
 
-W obszarze analityki po-transakcyjnej platformę wyposażono w wsparcie nowej generacji integracji protokołu MCP. Opracowano ustandaryzowaną reprezentację danych wejściowych z obiektu powrotnego symulatora do tzw. `MCPPayload`. Pakiet ten serwuje pełne metryki finansowe jak współczynnik kształtu Sharpe’a, wskaźniki osunięć kapitału (Max Drawdown) oraz zredukowaną do optymalnych wymiarów próbkę rzędu n-punktów ewolucji kapitałowej do dalszych ewaluacji na agentach AI korzystając z bezkolizyjnych standardów JSON bez sprzęgania implementacji w zamkniętym kodzie chmurowym.
+W obszarze analityki po-transakcyjnej platformę wyposażono w wsparcie nowej generacji integracji protokołu MCP. Opracowano ustandaryzowaną reprezentację danych wejściowych z obiektu powrotnego symulatora do tzw. `MCPPayload`. Pakiet ten serwuje pełne metryki finansowe jak współczynnik kształtu Sharpe’a, wskaźniki osunięć kapitału (Max Drawdown) oraz zredukowaną do optymalnych wymiarów próbkę rzędu n-punktów ewolucji kapitałowej do dalszych ewaluacji na agentach AI korzystając z bezkolizyjnych standardów JSON bez sprzęgania implementacji w kodzie zamkniętym zewnętrznych dostawców. Oprogramowanie działa jako w pełni odizolowane środowisko (Air-Gapped).
 
 ## Wzorzec Architektoniczny Dual-Engine i Komponentizacja BYOL
 

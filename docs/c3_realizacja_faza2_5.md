@@ -13,7 +13,7 @@ Zasadniczym krokiem po implementacji warstwy dostępu do danych cyfrowych oraz a
 
 ## 2.1 Architektura Interfejsu (React)
 
-Aplikację oparto o framework **Streamlit**, stosując scentralizowany punkt wejścia (`app.py`), system nawigacji bocznej oraz wymuszaną autoryzację. Ze względu na charakter środowiska (ponowne wykonywanie całego pliku przy interakcji), stan w kreatorze strategii przechowywany jest asynchronicznie poprzez obiekty typu *Streamlit Session State* (`st.session_state`).
+Aplikację oparto na nowoczesnym stosie frontendowym **React** (Vite), oferując architekturę Single Page Application (SPA), która zastąpiła Streamlit. Ze względu na charakter MVP, wyeliminowano całkowicie systemy logowania i autoryzacji użytkowników na rzecz czystego środowiska uruchomieniowego typu "Self-Hosted".
 
 1. **Kreator Strategii**: Panel pozwalający na definiowanie założeń (dostawca, instrument, okno czasowe, kapitał początkowy i opis tekstowy).
 2. **Dashboard**: Panel egzekucji zdefiniowanych szablonów. Wywołuje abstrakcję z warstwy pierwszej, wizualizując stopy zwrotu oraz nakładając interaktywną krzywą kapitału. Zapisuje wyniki wykonania z powrotem do bazy danych.

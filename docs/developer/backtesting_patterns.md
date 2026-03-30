@@ -54,4 +54,4 @@ print(pf.total_return())
 
 ---
 ### Zobacz też:
-- [opensource_engine.py](file:///home/przydan/my_project/src/blockbt/engine/opensource_engine.py) — serce logiki obliczeniowej.
+- `opensource_engine.py` — serce logiki obliczeniowej.

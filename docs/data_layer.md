@@ -4,22 +4,28 @@ Moduł pozyskiwania i cache'owania historycznych danych giełdowych / krypto dla
 
 ## Klasa Bazowa `BaseDataConnector`
 
-Główny interfejs zdefiniowany w `src/blockbt/data/base.py` określa, że każdy nowy konektor danych w BlockBT musi dziedziczyć z `BaseDataConnector` i implementować metodę `fetch_data`.
+Główny interfejs zdefiniowany w `backend/app/services/connectors/base.py` określa, że każdy nowy konektor danych w BlockBT musi dziedziczyć z `BaseDataConnector` i implementować metodę sieciową `_download()`. Interfejs API to metoda główna `fetch()`.
 
 ### Przykład Interfejsu
 ```python
-import abc
+from abc import ABC, abstractmethod
 import pandas as pd
 
-class BaseDataConnector(abc.ABC):
-    @abc.abstractmethod
-    def fetch_data(self, symbol: str, start_date: str, end_date: str) -> pd.DataFrame:
+class BaseDataConnector(ABC):
+    @abstractmethod
+    def _download(
+        self,
+        symbol: str,
+        start: str,
+        end: str,
+        timeframe: str,
+    ) -> pd.DataFrame:
         pass
 ```
 
 ## Yahoo Finance Connector (`YFDataConnector`)
 
-Klasa odpowiedzialna za pobieranie danych za pomocą darmowego API Yahoo Finance (przy użyciu biblioteki `yfinance`), zlokalizowana w `src/blockbt/data/yahoo.py`.
+Klasa odpowiedzialna za pobieranie danych za pomocą darmowego API Yahoo Finance (przy użyciu biblioteki `yfinance`), zlokalizowana w `backend/app/services/connectors/yahoo.py`.
 
 ### Główne Cechy:
 - **Inteligentne Cache'owanie w formacie Parquet:** Dane są zapisywane lokalnie (np. w `data/cache/AAPL.parquet`).
@@ -43,9 +49,9 @@ connector = YFDataConnector()
 # connector = YFDataConnector(cache_dir="/custom/cache/path")
 
 # Pierwsze pobranie (dane zostaną zassane z Yahoo Finance i zapisane do AAPL.parquet)
-df = connector.fetch_data("AAPL", "2023-01-01", "2023-12-31")
+df = connector.fetch("AAPL", "2023-01-01", "2023-12-31")
 print(df.head())
 
 # Kolejne pobranie z tego samego lub węższego zakresu dat zadziała natychmiastowo z dysku
-df_cached = connector.fetch_data("AAPL", "2023-06-01", "2023-06-30")
+df_cached = connector.fetch("AAPL", "2023-06-01", "2023-06-30")
 ```

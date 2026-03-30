@@ -1,0 +1,148 @@
+Metadata-Version: 2.4
+Name: blockbt
+Version: 0.1.0
+Summary: BlockBT — Self-hosted algorithmic backtesting environment (Dual-Engine, BYOL)
+Requires-Python: >=3.12
+Description-Content-Type: text/markdown
+Requires-Dist: pandas~=2.2
+Requires-Dist: pyarrow<19,>=17.0
+Requires-Dist: yfinance~=0.2.40
+Requires-Dist: sqlalchemy~=2.0
+Requires-Dist: alembic~=1.13
+Requires-Dist: pydantic~=2.5
+Requires-Dist: pydantic-settings~=2.2
+Requires-Dist: python-dotenv~=1.0
+Requires-Dist: loguru~=0.7
+Requires-Dist: bcrypt~=4.1
+Requires-Dist: cryptography~=43.0.1
+Requires-Dist: numba>=0.60
+Requires-Dist: dill~=0.3
+Requires-Dist: plotly~=5.0
+Requires-Dist: imageio~=2.0
+Requires-Dist: tqdm~=4.0
+Requires-Dist: schedule~=1.0
+Requires-Dist: dateparser~=1.1
+Requires-Dist: scipy>=1.14
+Requires-Dist: scikit-learn>=1.5
+Requires-Dist: optuna<4.0,~=3.0
+Requires-Dist: fastapi~=0.100
+Requires-Dist: uvicorn[standard]~=0.23
+Requires-Dist: httpx~=0.27
+Requires-Dist: pandas-stubs~=2.3.3
+Requires-Dist: mypy_extensions
+Provides-Extra: alpaca
+Requires-Dist: alpaca-py>=0.14; extra == "alpaca"
+Provides-Extra: dev
+Requires-Dist: pytest>=8.0; extra == "dev"
+Requires-Dist: pytest-cov>=5.0; extra == "dev"
+Requires-Dist: pytest-asyncio>=0.23; extra == "dev"
+Requires-Dist: httpx>=0.27; extra == "dev"
+Requires-Dist: ruff>=0.4; extra == "dev"
+Requires-Dist: mypy>=1.10; extra == "dev"
+Requires-Dist: mkdocs-material>=9.5; extra == "dev"
+Requires-Dist: mkdocstrings[python]>=0.24; extra == "dev"
+
+# 📈 BlockBT — Algorithmic Backtesting Ecosystem
+
+BlockBT to zaawansowane środowisko do testowania strategii inwestycyjnych typu "Self-Hosted", zbudowane dla inżynierów i analityków Quant. System łączy potęgę biblioteki `vectorbt` z nowoczesnym interfejsem React oraz analityką AI.
+
+## 🚀 Szybki Start (Instalacja)
+
+Aby uruchomić projekt lokalnie **bez użycia Dockera**, wykonaj poniższe kroki. Projekt składa się z dwóch części: backendu w FastAPI (Python) oraz frontendu w React (Vite).
+
+### 1. Przygotowanie Backendu (Python/FastAPI)
+
+Najlepiej użyć narzędzia [uv](https://github.com/astral-sh/uv):
+
+```bash
+# Pobierz konkretną wersję Pythona (jeśli jej nie masz):
+uv python install 3.12
+
+# Utwórz środowisko przypisane do Pythona 3.12
+uv venv --python 3.12
+
+# Aktywuj środowisko (Linux/macOS)
+source .venv/bin/activate
+
+# Instalacja zależności
+uv pip install -e .
+```
+
+**Konfiguracja zmiennych środowiskowych**
+Backend wymaga zmiennej `SECRET_KEY` (oraz innych ew. zmiennych) w pliku `.env`. Możesz wygenerować go poleceniem:
+```bash
+echo "SECRET_KEY=$(dd if=/dev/urandom bs=32 count=1 2>/dev/null | openssl base64)" > .env
+```
+
+Baza danych SQLite oraz cache Parquet domyślnie zapiszą się w lokalnych katalogach `local_data/db/` i `local_data/cache/` (w głównym folderze projektu).
+
+**Uruchomienie Backendu**
+W osobnej karcie terminala uruchom serwer deweloperski FastAPI na porcie 8000:
+```bash
+# Upewnij się, że .venv jest aktywowane!
+uvicorn blockbt.api.main:app --reload --host 127.0.0.1 --port 8000
+```
+API będzie dostępne pod [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs).
+
+### 2. Przygotowanie Frontendu (Node.js/React)
+
+Wymagany jest zainstalowany [Node.js](https://nodejs.org/) (najlepiej w wersji 18+).
+
+```bash
+# Przejdź do folderu frontendu
+cd frontend
+
+# Zainstaluj pakiety
+npm install
+
+# Uruchom serwer deweloperski Vite na porcie 3000
+npm run dev
+```
+Aplikacja Frontendowa będzie dostępna pod adresem: [http://localhost:3000](http://localhost:3000). Serwer automatycznie kieruje zapytania API (proxy) do lokalnego backendu na porcie 8000.
+
+### ⚡ Sposób Alternatywny: Skrypt All-in-One (`run_local.sh`)
+
+Zamiast uruchamiać wszystko osobno, możesz użyć wbudowanego skryptu (wymaga powłoki Bash):
+
+```bash
+chmod +x run_local.sh
+./run_local.sh
+```
+Skrypt ten automatycznie wygeneruje `.env` z `SECRET_KEY` (jeśli go nie ma), upewni się, że masz pobrane zależności Node.js (`npm install`), a następnie wystartuje równocześnie backend (FastAPI) w tle oraz frontend na pierwszym planie. Zakończenie skryptu `Ctrl+C` poprawnie zatrzyma oba procesy.
+
+### 4. vectorbt
+```bash
+# VectorBT OpenSource
+git clone https://github.com/polakowo/vectorbt.git
+```
+
+## 🏗️ Kluczowe Funkcje
+
+- **Dual-Engine Architecture**: Obsługa `vectorbt` (Open Source) oraz dynamiczne ładowanie ProEngine (BYOL).
+- **Visual Builder**: Kreator strategii typu Drag & Drop oparty na React Flow.
+- **AI Analyst**: Automatyczna interpretacja wyników backtestu przez lokalne modele LLM (Llama/Qwen via Ollama).
+- **Market Connectors**: Zintegrowane pobieranie danych z Yahoo Finance i Alpaca z cache'owaniem Parquet.
+- **Optimizer**: Poszukiwanie parametrów optymalnych metodą Bayesowską (Optuna).
+
+## 📚 Dokumentacja dla Deweloperów
+
+Jeśli chcesz rozszerzyć możliwości BlockBT, zajrzyj do dedykowanych przewodników w folderze `docs/developer/`:
+
+- [Mata Architektury](docs/developer/overview.md)
+- [Dodawanie Nowych API](docs/developer/extending_data.md)
+- [Rozszerzanie GUI i Węzłów](docs/developer/extending_gui.md)
+- [Zarządzanie Bazą Danych](docs/developer/extending_db.md)
+
+## 📚 Uruchomienie mkdocs
+```bash
+uv sync --extra dev
+uv run mkdocs serve
+```
+
+```bash
+dd if=/dev/urandom bs=32 count=1 2>/dev/null | openssl base64
+```
+
+## 👤 Autor & Licencja
+Stworzone przez: **przydan**
+Licencja: MIT / Proprietary (dla modułów PRO)
