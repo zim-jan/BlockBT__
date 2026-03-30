@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 """
-run_vectorbt_backtest — Phase 2 background task entry-point.
+run_vectorbt_backtest — Phase 3 background task entry-point.
 
 Wraps OpenSourceEngine with:
   - Synthetic OHLCV data generation (random-walk, no network required).
+  - Real market data via ConnectorRegistry (Yahoo Finance, Alpaca, etc.).
   - DB persistence: updates BacktestJob status + metrics.
   - Full error capture with FAILED status on any exception.
 
@@ -15,6 +16,7 @@ This function is designed to be called via FastAPI BackgroundTasks:
 
 
 import sys
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
@@ -22,17 +24,19 @@ import numpy as np
 import pandas as pd
 from loguru import logger
 
-# Ensure the vendored vectorbt directory is importable when not pip-installed.
+# Ensure the vendored vectorbt directory is importable.
+# We must insert it into sys.path before any import attempt to prevent Python 
+# from mistakenly turning the repo's vectorbt folder into a namespace package 
+# if the backend is launched from the project root.
 _VENDORED_VBT = Path(__file__).resolve().parents[4] / "vectorbt"
-try:
-    import vectorbt  # noqa: F401 — check if already installed
-except ImportError:
-    if _VENDORED_VBT.exists() and str(_VENDORED_VBT) not in sys.path:
-        sys.path.insert(0, str(_VENDORED_VBT))
+if _VENDORED_VBT.exists() and str(_VENDORED_VBT) not in sys.path:
+    sys.path.insert(0, str(_VENDORED_VBT))
+
+import vectorbt  # noqa: F401 — ensure it loads the real __init__.py
 
 
 # ---------------------------------------------------------------------------
-# Data generation
+# Data generation / acquisition
 # ---------------------------------------------------------------------------
 
 
@@ -72,13 +76,56 @@ def _generate_ohlcv(
     )
 
 
+def _fetch_market_data(
+    data_source: str,
+    symbol: str,
+    start_date: str | None,
+    end_date: str | None,
+    timeframe: str,
+) -> pd.DataFrame:
+    """Fetch real market data via ConnectorRegistry.
+
+    Falls back to synthetic generation if the connector returns empty data.
+    """
+    from app.services.connectors.registry import ConnectorRegistry
+
+    # Default date range: 2 years back from today
+    if not end_date:
+        end_date = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    if not start_date:
+        start_dt = datetime.now(timezone.utc) - timedelta(days=730)
+        start_date = start_dt.strftime("%Y-%m-%d")
+
+    logger.info(
+        "BacktestRunner: fetching data | source={} symbol={} {} → {} {}",
+        data_source, symbol, start_date, end_date, timeframe,
+    )
+
+    try:
+        connector = ConnectorRegistry.get(data_source)
+        df = connector.fetch(symbol, start_date, end_date, timeframe)
+        if df.empty:
+            logger.warning(
+                "BacktestRunner: connector returned empty data for {}, falling back to synthetic",
+                symbol,
+            )
+            return _generate_ohlcv()
+        logger.info("BacktestRunner: fetched {} rows from {}", len(df), data_source)
+        return df
+    except Exception as exc:
+        logger.error("BacktestRunner: connector error — {}", exc)
+        raise RuntimeError(
+            f"Failed to fetch data from '{data_source}' for {symbol}: {exc}"
+        ) from exc
+
+
 # ---------------------------------------------------------------------------
 # Core backtest runner
 # ---------------------------------------------------------------------------
 
 
 def _execute_backtest(parameters: dict[str, Any]) -> dict[str, Any]:
-    """Run a vectorbt SMA-crossover backtest on synthetic data.
+    """Run a vectorbt backtest with configurable data source and strategy.
 
     Returns a metrics dict on success.
     Raises on failure (caller handles DB persistence of the error).
@@ -92,30 +139,55 @@ def _execute_backtest(parameters: dict[str, Any]) -> dict[str, Any]:
         ) from exc
 
     symbol = parameters.get("symbol", "SYNTHETIC")
+    data_source = parameters.get("data_source", "synthetic")
     initial_capital = float(parameters.get("initial_capital", 10_000.0))
     sma_fast = int(parameters.get("sma_fast", 10))
     sma_slow = int(parameters.get("sma_slow", 30))
     fees = float(parameters.get("fees", 0.001))
     n_days = int(parameters.get("n_days", 504))
+    timeframe = parameters.get("timeframe", "1d")
+    start_date = parameters.get("start_date")
+    end_date = parameters.get("end_date")
+    strategy_type = parameters.get("strategy_type", "sma_crossover")
 
     logger.info(
-        "BacktestRunner: starting | symbol={} sma=({}/{}) capital={}",
-        symbol, sma_fast, sma_slow, initial_capital,
+        "BacktestRunner: starting | source={} symbol={} strategy={} sma=({}/{}) capital={}",
+        data_source, symbol, strategy_type, sma_fast, sma_slow, initial_capital,
     )
 
-    # 1. OHLCV data — synthetic unless a real connector is wired in Phase 3
-    data = _generate_ohlcv(n_days=n_days)
+    # 1. OHLCV data — synthetic or real
+    if data_source == "synthetic":
+        data = _generate_ohlcv(n_days=n_days)
+    else:
+        data = _fetch_market_data(data_source, symbol, start_date, end_date, timeframe)
+
     close = data["close"]
 
-    # 2. SMA indicators (open-source vectorbt only)
-    fast_ma = vbt.MA.run(close, window=sma_fast).ma
-    slow_ma = vbt.MA.run(close, window=sma_slow).ma
+    # 2. Generate entry/exit signals based on strategy type
+    if strategy_type == "macd":
+        macd_fast = int(parameters.get("macd_fast", 12))
+        macd_slow_w = int(parameters.get("macd_slow", 26))
+        macd_signal = int(parameters.get("macd_signal", 9))
 
-    # 3. Crossover signals (pure pandas arithmetic — no .vbt accessor dependency)
-    entries = (fast_ma > slow_ma) & (fast_ma.shift(fill_value=False) <= slow_ma.shift(fill_value=False))
-    exits   = (fast_ma < slow_ma) & (fast_ma.shift(fill_value=False) >= slow_ma.shift(fill_value=False))
+        macd = vbt.MACD.run(close, fast_window=macd_fast, slow_window=macd_slow_w, signal_window=macd_signal)
+        macd_line = macd.macd
+        sig_line = macd.signal
 
-    # 4. Portfolio simulation
+        # Crossover signals (pure pandas — no .vbt accessor dependency)
+        entries = (macd_line > sig_line) & (macd_line.shift(fill_value=0.0) <= sig_line.shift(fill_value=0.0))
+        exits = (macd_line < sig_line) & (macd_line.shift(fill_value=0.0) >= sig_line.shift(fill_value=0.0))
+
+        logger.info("BacktestRunner: MACD({}/{}/{}) signals generated", macd_fast, macd_slow_w, macd_signal)
+    else:
+        # Default: SMA Crossover
+        fast_ma = vbt.MA.run(close, window=sma_fast).ma
+        slow_ma = vbt.MA.run(close, window=sma_slow).ma
+
+        # Crossover signals (pure pandas arithmetic — no .vbt accessor dependency)
+        entries = (fast_ma > slow_ma) & (fast_ma.shift(fill_value=False) <= slow_ma.shift(fill_value=False))
+        exits   = (fast_ma < slow_ma) & (fast_ma.shift(fill_value=False) >= slow_ma.shift(fill_value=False))
+
+    # 3. Portfolio simulation
     portfolio = vbt.Portfolio.from_signals(
         close,
         entries=entries,
@@ -146,9 +218,11 @@ def _execute_backtest(parameters: dict[str, Any]) -> dict[str, Any]:
     metrics: dict[str, Any] = {
         "engine": "vectorbt-opensource",
         "symbol": symbol,
+        "data_source": data_source,
+        "strategy_type": strategy_type,
         "sma_fast": sma_fast,
         "sma_slow": sma_slow,
-        "n_days": n_days,
+        "n_days": len(data),
         "total_return_pct": _sf(stats.get("Total Return [%]")),
         "sharpe_ratio": _sf(stats.get("Sharpe Ratio")),
         "max_drawdown_pct": _sf(stats.get("Max Drawdown [%]")),
@@ -167,7 +241,8 @@ def _execute_backtest(parameters: dict[str, Any]) -> dict[str, Any]:
     }
 
     logger.info(
-        "BacktestRunner: completed | return={:.2f}% sharpe={} trades={}",
+        "BacktestRunner: completed | source={} return={:.2f}% sharpe={} trades={}",
+        data_source,
         metrics["total_return_pct"] or 0,
         metrics["sharpe_ratio"],
         metrics["num_trades"],

@@ -5,6 +5,16 @@ Air-Gapped architecture: strictly local, no authorization, local logic only.
 DB tables are created at startup via the lifespan context manager.
 """
 
+import sys
+from pathlib import Path
+
+# Prepend the vendored vectorbt path before importing local modules that might import vectorbt.
+# This prevents vectorbt from being mistakenly loaded as a namespace package 
+# if the process is launched from the repository root.
+_vbt_path = Path(__file__).resolve().parents[3] / "vectorbt"
+if _vbt_path.exists() and str(_vbt_path) not in sys.path:
+    sys.path.insert(0, str(_vbt_path))
+
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
@@ -13,8 +23,10 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from loguru import logger
 
-from app.api import backtest, results, strategies, workflows
-from app.db.session import init_db
+from app.api import backtest, results, settings, strategies, workflows
+from app.db.session import get_session, init_db
+from app.models.orm import SystemPrompt
+from app.services.mcp.llm_client import _SYSTEM_PROMPT
 
 # ---------------------------------------------------------------------------
 # Lifespan — runs init_db() once at startup
@@ -25,6 +37,19 @@ from app.db.session import init_db
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     logger.info("BlockBT API starting — initialising database…")
     init_db()
+    
+    # Seed default system prompt if empty
+    with get_session() as db:
+        if db.query(SystemPrompt).count() == 0:
+            logger.info("Seeding default system prompt...")
+            default_prompt = SystemPrompt(
+                name="Default Quant Analyst",
+                content=_SYSTEM_PROMPT,
+                is_default=True
+            )
+            db.add(default_prompt)
+            db.commit()
+            
     logger.info("Database ready.")
     yield
     logger.info("BlockBT API shutting down.")
@@ -60,6 +85,7 @@ app.include_router(strategies.router, prefix="/api/strategies", tags=["Strategie
 app.include_router(backtest.router, prefix="/api/backtest", tags=["Backtest"])
 app.include_router(workflows.router, prefix="/api/workflows", tags=["Workflows"])
 app.include_router(results.router, prefix="/api/results", tags=["Results"])
+app.include_router(settings.router, prefix="/api/settings", tags=["Settings"])
 
 
 # ---------------------------------------------------------------------------

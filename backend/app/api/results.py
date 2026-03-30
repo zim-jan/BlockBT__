@@ -85,7 +85,18 @@ async def analyze_simulation_result(job_id: int) -> AIAnalysisResponse:
             raw_params=raw_params
         )
         prompt = payload.to_prompt()
-        report = await OllamaClient().generate_report(prompt)
+        
+        # Fetch the default system prompt, or fallback to the hardcoded default
+        from app.models.orm import SystemPrompt
+        from sqlalchemy import select
+        from app.services.mcp.llm_client import _SYSTEM_PROMPT
+        
+        system_prompt = db.execute(
+            select(SystemPrompt).where(SystemPrompt.is_default == True) # noqa: E712
+        ).scalar_one_or_none()
+        system_content = system_prompt.content if system_prompt else _SYSTEM_PROMPT
+        
+        report = await OllamaClient().generate_report(prompt, system=system_content)
         job.ai_analysis_report = report
 
         # Zapisanie promptu (user) i raportu (assistant) do tabeli ChatMessage

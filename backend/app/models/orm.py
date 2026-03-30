@@ -145,3 +145,57 @@ class ChatMessage(Base):
 
     def __repr__(self) -> str:
         return f"<ChatMessage id={self.id} job_id={self.job_id} role={self.role!r}>"
+
+
+# ---------------------------------------------------------------------------
+# System Prompt (global — no per-user scoping)
+# ---------------------------------------------------------------------------
+
+
+class SystemPrompt(Base):
+    """A reusable system prompt for AI analysis.
+
+    One prompt may be marked as ``is_default=True`` — the engine will use
+    it automatically when generating analysis reports.
+    """
+
+    __tablename__ = "system_prompts"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    name: Mapped[str] = mapped_column(String(128), nullable=False)
+    content: Mapped[str] = mapped_column(Text, nullable=False)
+    is_default: Mapped[bool] = mapped_column(default=False)
+    created_at: Mapped[datetime.datetime] = mapped_column(
+        DateTime, nullable=False, default=_utcnow
+    )
+    updated_at: Mapped[datetime.datetime] = mapped_column(
+        DateTime, nullable=False, default=_utcnow, onupdate=_utcnow
+    )
+
+    def __repr__(self) -> str:
+        return f"<SystemPrompt id={self.id} name={self.name!r} default={self.is_default}>"
+
+
+# ---------------------------------------------------------------------------
+# App Settings (key-value store for runtime config)
+# ---------------------------------------------------------------------------
+
+
+class AppSetting(Base):
+    """Key-value store for application-wide configuration.
+
+    Known keys: data_connector, vbtpro_path, prefer_pro_engine,
+    ollama_base_url, ollama_model, parquet_cache_ttl_hours.
+    """
+
+    __tablename__ = "app_settings"
+
+    key: Mapped[str] = mapped_column(String(128), primary_key=True)
+    value: Mapped[str] = mapped_column(Text, nullable=False)
+    updated_at: Mapped[datetime.datetime] = mapped_column(
+        DateTime, nullable=False, default=_utcnow, onupdate=_utcnow
+    )
+
+    def __repr__(self) -> str:
+        return f"<AppSetting key={self.key!r}>"
+

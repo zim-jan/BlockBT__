@@ -66,7 +66,7 @@ def _set_sqlite_pragmas(dbapi_connection, connection_record):  # type: ignore[no
         cursor.close()
 
 
-_SessionLocal = sessionmaker(bind=_engine, autoflush=False, autocommit=False, future=True)
+_SessionLocal = sessionmaker(bind=_engine, autoflush=False, autocommit=False, future=True, expire_on_commit=False)
 
 
 def init_db() -> None:

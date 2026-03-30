@@ -5,9 +5,15 @@
 
 export type JobStatus = 'PENDING' | 'RUNNING' | 'COMPLETED' | 'FAILED'
 
+export type DataSourceType = 'yahoo' | 'alpaca' | 'synthetic'
+
+export type IndicatorType = 'sma_crossover' | 'macd'
+
 export interface BacktestMetrics {
   engine: string
   symbol: string
+  data_source?: string
+  strategy_type?: string
   sma_fast: number
   sma_slow: number
   n_days: number
@@ -47,12 +53,20 @@ export interface StrategyData {
 // Custom node data shapes used by React Flow nodes
 export interface DataNodeData {
   symbol: string
+  dataSource: DataSourceType
+  startDate: string
+  endDate: string
+  timeframe: string
 }
 
 export interface IndicatorNodeData {
+  indicatorType: IndicatorType
   smaFast: number
   smaSlow: number
   initialCapital: number
+  macdFast?: number
+  macdSlow?: number
+  macdSignal?: number
 }
 
 export interface SignalNodeData {

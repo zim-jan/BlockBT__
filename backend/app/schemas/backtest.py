@@ -7,12 +7,17 @@ from pydantic import BaseModel
 class BacktestRequest(BaseModel):
     strategy_id: int
     symbol: str
+    data_source: str = "synthetic"
     timeframe: str | None = None
     start_date: str | None = None
     end_date: str | None = None
     initial_capital: float = 10000.0
     sma_fast: int | None = None
     sma_slow: int | None = None
+    strategy_type: str | None = None
+    macd_fast: int | None = None
+    macd_slow: int | None = None
+    macd_signal: int | None = None
     parameters: dict[str, Any] | None = None
 
 class BacktestJobResponse(BaseModel):

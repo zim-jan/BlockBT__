@@ -65,6 +65,8 @@ def trigger_backtest(
         params: dict[str, Any] = dict(strategy.parameters)
         if payload.symbol is not None:
             params["symbol"] = payload.symbol
+        if payload.data_source is not None:
+            params["data_source"] = payload.data_source
         if payload.sma_fast is not None:
             params["sma_fast"] = payload.sma_fast
         if payload.sma_slow is not None:
@@ -77,6 +79,14 @@ def trigger_backtest(
             params["start_date"] = payload.start_date
         if payload.end_date is not None:
             params["end_date"] = payload.end_date
+        if payload.strategy_type is not None:
+            params["strategy_type"] = payload.strategy_type
+        if payload.macd_fast is not None:
+            params["macd_fast"] = payload.macd_fast
+        if payload.macd_slow is not None:
+            params["macd_slow"] = payload.macd_slow
+        if payload.macd_signal is not None:
+            params["macd_signal"] = payload.macd_signal
         if payload.parameters is not None:
             params.update(payload.parameters)
 

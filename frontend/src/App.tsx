@@ -1,9 +1,16 @@
+import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import './assets/App.css'
 import { BuilderPage } from './pages/BuilderPage'
+import { SettingsPage } from './pages/SettingsPage'
 
 function App() {
   return (
-    <BuilderPage />
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<BuilderPage />} />
+        <Route path="/settings" element={<SettingsPage />} />
+      </Routes>
+    </BrowserRouter>
   )
 }
 
