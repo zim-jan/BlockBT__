@@ -6,8 +6,8 @@ import ReactFlow, {
   Panel,
 } from 'reactflow'
 import 'reactflow/dist/style.css'
-import { useWorkflowStore } from '../store/workflowStore'
-import { useWorkflowExecution } from '../hooks/useWorkflowExecution'
+import { useWorkflowStore } from '../../store/workflowStore'
+import { useWorkflowExecution } from '../../hooks/useWorkflowExecution'
 
 import { DataNode } from './nodes/DataNode'
 import { IndicatorNode } from './nodes/IndicatorNode'

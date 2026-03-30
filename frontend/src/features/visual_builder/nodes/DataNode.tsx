@@ -1,6 +1,6 @@
 import { Handle, Position } from 'reactflow'
-import { useWorkflowStore } from '../../store/workflowStore'
-import type { DataNodeData } from '../../types'
+import { useWorkflowStore } from '../../../store/workflowStore'
+import type { DataNodeData } from '../../../types/types'
 
 interface Props {
   id: string

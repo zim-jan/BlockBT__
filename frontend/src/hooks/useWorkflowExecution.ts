@@ -12,7 +12,7 @@
 import { useCallback, useRef } from 'react'
 import { useWorkflowStore } from '../store/workflowStore'
 import { api } from '../services/api'
-import type { BacktestMetrics, JobStatus } from '../types'
+import type { BacktestMetrics, JobStatus } from '../types/types'
 
 const POLL_INTERVAL_MS = 2500
 const MAX_POLL_ATTEMPTS = 120 // 5 minutes hard cap
