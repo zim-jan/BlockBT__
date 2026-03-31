@@ -125,7 +125,7 @@ class BacktestJob(Base):
 class ChatMessage(Base):
     """Model reprezentujący pojedynczą wiadomość czatu dla zadania backtestu.
 
-    Służy do przechowywania historii konwersacji między użytkownikiem a asystentem AI
+    Służy do przechowywania historii konwersacji między systemem a asystentem AI
     (LLM) po wygenerowaniu początkowego raportu analizy.
     """
 

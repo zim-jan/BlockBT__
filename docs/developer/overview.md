@@ -17,7 +17,7 @@ BlockBT opiera się na pięciu głównych warstwach, które są od siebie logicz
    - Rola: Łączenie się z API zewnętrznymi (Yahoo, Alpaca) i cache'owanie danych w formacie Parquet dla maksymalnej wydajności.
 4. **Data Persistence Layer (Database)**:
    - Lokalizacja: `src/blockbt/db/`.
-   - Rola: SQLAlchemy ORM. Przechowywanie użytkowników, szablonów strategii (`StrategyTemplate`) oraz wyników symulacji.
+   - Rola: SQLAlchemy ORM. Przechowywanie szablonów strategii (`StrategyTemplate`) oraz wyników symulacji.
 5. **API Layer (REST)**:
    - Lokalizacja: `src/blockbt/api/`.
    - Rola: Wystawianie funkcjonalności systemu na zewnątrz (FastAPI).

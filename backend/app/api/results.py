@@ -113,7 +113,7 @@ def get_chat_history(job_id: int) -> list[ChatMessageResponse]:
 
 @router.post("/{job_id}/chat", response_model=ChatMessageResponse)
 async def add_chat_message(job_id: int, request: ChatRequest) -> ChatMessageResponse:
-    """Pobiera wiadomość użytkownika, przekazuje kontekst i zwraca odpowiedź LLM."""
+    """Pobiera wiadomość analityka, przekazuje kontekst i zwraca odpowiedź LLM."""
     with get_session() as db:
         job = db.get(BacktestJob, job_id)
         if not job:
@@ -125,7 +125,7 @@ async def add_chat_message(job_id: int, request: ChatRequest) -> ChatMessageResp
                 detail="Cannot start chat without initial AI analysis report."
             )
 
-        # Zapisz wiadomość użytkownika, ale nie commituj
+        # Zapisz wiadomość analityka, ale nie commituj
         user_message = ChatMessage(job_id=job.id, role="user", content=request.content)
         db.add(user_message)
         db.flush() # pobranie ID i uwzględnienie w sesji bez zatwierdzania transakcji

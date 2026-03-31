@@ -13,7 +13,7 @@ Zasadniczym krokiem po implementacji warstwy dostępu do danych cyfrowych oraz a
 
 ## 2.1 Architektura Interfejsu (React)
 
-Aplikację oparto na nowoczesnym stosie frontendowym **React** (Vite), oferując architekturę Single Page Application (SPA), która zastąpiła Streamlit. Ze względu na charakter MVP, wyeliminowano całkowicie systemy logowania i autoryzacji użytkowników na rzecz czystego środowiska uruchomieniowego typu "Self-Hosted".
+Aplikację oparto na nowoczesnym stosie frontendowym **React** (Vite), oferując architekturę Single Page Application (SPA), która zastąpiła Streamlit. Ze względu na charakter MVP, dostarczono czyste środowisko uruchomieniowe typu "Self-Hosted".
 
 1. **Kreator Strategii**: Panel pozwalający na definiowanie założeń (dostawca, instrument, okno czasowe, kapitał początkowy i opis tekstowy).
 2. **Dashboard**: Panel egzekucji zdefiniowanych szablonów. Wywołuje abstrakcję z warstwy pierwszej, wizualizując stopy zwrotu oraz nakładając interaktywną krzywą kapitału. Zapisuje wyniki wykonania z powrotem do bazy danych.
@@ -22,9 +22,9 @@ Aplikację oparto na nowoczesnym stosie frontendowym **React** (Vite), oferując
 
 ## 2.2 System Diagnostyczny z Weryfikacją BYOL
 
-Istotną innowacją w inżynierskim podejściu do cyklu uruchomieniowego jest ciągła diagnostyka środowiska. Ze względu na odcięte repozytorium VectorBT PRO ("Air-Gapped Logic"), zaimplementowano mechanizm dynamicznego ładowania:
+Istotną innowacją w inżynierskim podejściu do cyklu uruchomieniowego jest ciągła diagnostyka środowiska. Ze względu na odcięte repozytorium komercyjne ("Air-Gapped Logic"), zaimplementowano mechanizm dynamicznego ładowania:
 
-- Interfejs API weryfikuje bez importowania modułów zastrzeżonych, czy ścieżka do wstrzykniętych pakietów PRO istnieje (wzorzec BYOL). Jeśli nie — awaryjnie przekierowuje zapytania do OpenSourceEngine, który używa darmowej wersji.
+- Interfejs API weryfikuje bez importowania modułów zastrzeżonych, czy ścieżka do wstrzykniętych pakietów objętych licencją BYOL istnieje. Jeśli nie — awaryjnie przekierowuje zapytania do OpenSourceEngine, który używa darmowej wersji.
 - Zarządzanie danymi historycznymi opiera się wyłącznie na zoptymalizowanych plikach Parquet, po jednym pliku per symbol, unikając defragmentacji bazy danych. Zmniejsza to obciążenie sieciowe u dostawców danych giełdowych.
 
 ---
@@ -34,7 +34,7 @@ Istotną innowacją w inżynierskim podejściu do cyklu uruchomieniowego jest ci
 Projekt wykorzystuje standard **MCP (Model Context Protocol)** przygotowując zestandaryzowany, odtwarzalny protokół do integracji modułu wykonawczego ze sztuczną inteligencją.
 
 1. Wzór `ReportBuilder` przetwarza wynikowe struktury `dict` z metrykami z engine'u na czytelny wektor w formacie JSON (zabezpieczenie przed overflowing context window w LLM).
-2. Transponowany kontekst trafia do synchronicznego klienta LLM operującego na warstwie lokalnej. Proces nie komunikuje się z chmurą, a zapytania kierowane są wyłącznie do `localhost:11434`.
+2. Transponowany kontekst trafia do synchronicznego klienta LLM operującego na warstwie lokalnej. Zapytania kierowane są wyłącznie do `localhost:11434`.
 
 ---
 

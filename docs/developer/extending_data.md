@@ -17,7 +17,6 @@ import pandas as pd
 
 class BinanceConnector(BaseDataConnector):
     CONNECTOR_KEY = "binance"
-    REQUIRES_AUTH = True  # Jeśli wymaga API Key
 
     def _download(self, symbol: str, start: str, end: str, timeframe: str) -> pd.DataFrame:
         # 1. Tu wywołaj API zewnętrznego serwisu
