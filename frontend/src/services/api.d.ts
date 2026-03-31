@@ -237,11 +237,6 @@ export interface components {
             strategy_id: number;
             /** Symbol */
             symbol: string;
-            /**
-             * Data Source
-             * @default synthetic
-             */
-            data_source?: string;
             /** Timeframe */
             timeframe?: string | null;
             /** Start Date */
@@ -257,14 +252,6 @@ export interface components {
             sma_fast?: number | null;
             /** Sma Slow */
             sma_slow?: number | null;
-            /** Strategy Type */
-            strategy_type?: string | null;
-            /** Macd Fast */
-            macd_fast?: number | null;
-            /** Macd Slow */
-            macd_slow?: number | null;
-            /** Macd Signal */
-            macd_signal?: number | null;
             /** Parameters */
             parameters?: {
                 [key: string]: unknown;
@@ -329,7 +316,7 @@ export interface components {
              * Code Content
              * @default
              */
-            code_content?: string;
+            code_content: string;
         };
         /** ValidationError */
         ValidationError: {

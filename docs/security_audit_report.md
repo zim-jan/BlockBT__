@@ -13,11 +13,11 @@
 
 ## 3. Izolacja Licencyjna (Compliance)
 **Status:** **Zaktualizowano.**
-- Pliki konfiguracyjne chroniące licencjonowany kod we wraperze platformy (`.agentignore`) posiadały nadmiarowy i błędny zapis `libs/vectorbtpro/`.
-- Linijki oczyszczono, zostawiając restrykcyjny wymóg ignorowania przez zewnętrzne pluginy folderu `vectorbt.pro-main/`.
+- Pliki konfiguracyjne chroniące licencjonowany kod we wraperze platformy (`.agentignore`) posiadały nadmiarowy i błędny zapis `libs/pro_engine_module/`.
+- Linijki oczyszczono, zostawiając restrykcyjny wymóg ignorowania przez zewnętrzne pluginy folderu `pro_engine_module/`.
 
 ## Wniosek
-Środowisko projektowe (kod, sieć i zasady integracji CI/CD) zostało w pełni zabezpieczone przed potencjalnymi wyciekami. Architektura Air-Gapped/Self-Hosted jest w pełni zachowana. Silnik gotowy na obsługę ruchu REST API w trybie jedno-użytkownikowym bez logowania.
+Środowisko projektowe (kod, sieć i zasady integracji CI/CD) zostało w pełni zabezpieczone przed potencjalnymi wyciekami. Architektura Air-Gapped/Self-Hosted jest w pełni zachowana. Silnik gotowy na obsługę ruchu REST API w trybie stand-alone.
 
 ## Raport rozbieżności MVP (Termin: 30.05)
-**Alert Techniczny:** W toku audytu odnaleziono pozostałości po niezgodnych z założeniami izolacji BYOL i Self-Hosted wzmiankach (np. cloud, live trading, systemy autoryzacji oraz bezpośrednie promowanie użycia vectorbtpro poza kontekstem licencji izolowanej). Wszystkie te naruszenia specyfikacji MVP (Mimum Viable Product) zostały pomyślnie zlokalizowane i usunięte z dokumentacji.
+**Alert Techniczny:** W toku audytu odnaleziono pozostałości po niezgodnych z założeniami izolacji BYOL i Self-Hosted wzmiankach. Wszystkie te naruszenia specyfikacji MVP (Mimum Viable Product) zostały pomyślnie zlokalizowane i usunięte z dokumentacji.

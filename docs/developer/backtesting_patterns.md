@@ -4,7 +4,7 @@ Wersja OpenSource BlockBT opiera się na wydajności `vectorbt` do generowania s
 
 ## 🛠️ Cykl Życia Obliczeń
 
-Kiedy użytkownik zleca "Run" (`OpenSourceEngine`), silnik wykonuje następujące kroki:
+Kiedy proces zleca "Run" (`OpenSourceEngine`), silnik wykonuje następujące kroki:
 1. **Pobranie Danych**: Za pomocą konektora (np. Yahoo Finance).
 2. **Generowanie Sygnałów**: Wykorzystanie metod wektorowych (np. `vbt.MA.run`).
 3. **Symulacja Portfolio**: Wywołanie `vbt.Portfolio.from_signals`.

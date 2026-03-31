@@ -6,7 +6,7 @@ Prace architektoniczne rozpoczęły się od utworzenia kompleksowej struktury mo
 
 ### Modelowanie ORM w SQLAlchemy 2.x
 
-Obiektowo-relacyjne odwzorowanie wprowadzono tworząc jednolitą i spójną bazę deklaratywną. Struktura bazy realizowana jest na bazie klasycznych relacji encji. Przykładowo kluczową tabelą aplikacji stanowiącą wynik testowania danej strategii jest model `BacktestJob`, który obsługuje bezpośrednio pola wektorowe typu JSON dla wielowymiarowych ujęć ewidencji kapitału. Zastosowanie dedykowania obiektowego mapowania za pomocą `@mapped_column` gwarantuje integralność relacyjną bazy danych i podnosi deterministyczny odczyt logów testów. Model ten nie posiada logowania użytkowników na rzecz wsparcia trybu stand-alone (zgodność z MVP).
+Obiektowo-relacyjne odwzorowanie wprowadzono tworząc jednolitą i spójną bazę deklaratywną. Struktura bazy realizowana jest na bazie klasycznych relacji encji. Przykładowo kluczową tabelą aplikacji stanowiącą wynik testowania danej strategii jest model `BacktestJob`, który obsługuje bezpośrednio pola wektorowe typu JSON dla wielowymiarowych ujęć ewidencji kapitału. Zastosowanie dedykowania obiektowego mapowania za pomocą `@mapped_column` gwarantuje integralność relacyjną bazy danych i podnosi deterministyczny odczyt logów testów. Model ten wspiera wyłącznie tryb stand-alone (zgodność z MVP).
 
 Oto wycinek dokumentujący implementację tabel danych z modułu `backend/app/models/orm.py`.
 
@@ -48,7 +48,7 @@ class BacktestJob(Base):
 
 ## Loader Wzorca Dual-Engine
 
-Zrealizowano postulat technologii **Bring Your Own License (BYOL)** dostarczając kompleksowy układ adaptacyjnego doboru wejściowego modułu ładującego. W pliku `engine/loader.py` zastosowano dynamiczne rozpoznawanie otoczenia za pomocą funkcji ładującej poszukującej właściwej definicji `vectorbtpro`.
+Zrealizowano postulat technologii **Bring Your Own License (BYOL)** dostarczając kompleksowy układ adaptacyjnego doboru wejściowego modułu ładującego. W pliku `engine/loader.py` zastosowano dynamiczne rozpoznawanie otoczenia za pomocą funkcji ładującej poszukującej właściwej definicji modułu BYOL.
 
 W przypadku znalezienia, instalator wykorzystuje zamkniętą do ścisłego bloku `try-except` warstwę pozyskiwania importów. W przypadku rzucenia błędów deklasacji (ModuleNotFoundError) maszyna wirtualna bezpiecznie adaptuje dostępną logikę referencyjną warstwy *OpenSource Engine*, unikając rzucenia głównego paniku procedury wejściowej środowiska. Taki wzorzec architektoniczny można opisać mianem wzorca *Graceful Fallback*.
 

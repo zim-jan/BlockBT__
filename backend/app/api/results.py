@@ -85,18 +85,7 @@ async def analyze_simulation_result(job_id: int) -> AIAnalysisResponse:
             raw_params=raw_params
         )
         prompt = payload.to_prompt()
-        
-        # Fetch the default system prompt, or fallback to the hardcoded default
-        from app.models.orm import SystemPrompt
-        from sqlalchemy import select
-        from app.services.mcp.llm_client import _SYSTEM_PROMPT
-        
-        system_prompt = db.execute(
-            select(SystemPrompt).where(SystemPrompt.is_default == True) # noqa: E712
-        ).scalar_one_or_none()
-        system_content = system_prompt.content if system_prompt else _SYSTEM_PROMPT
-        
-        report = await OllamaClient().generate_report(prompt, system=system_content)
+        report = await OllamaClient().generate_report(prompt)
         job.ai_analysis_report = report
 
         # Zapisanie promptu (user) i raportu (assistant) do tabeli ChatMessage
@@ -124,7 +113,7 @@ def get_chat_history(job_id: int) -> list[ChatMessageResponse]:
 
 @router.post("/{job_id}/chat", response_model=ChatMessageResponse)
 async def add_chat_message(job_id: int, request: ChatRequest) -> ChatMessageResponse:
-    """Pobiera wiadomość użytkownika, przekazuje kontekst i zwraca odpowiedź LLM."""
+    """Pobiera wiadomość analityka, przekazuje kontekst i zwraca odpowiedź LLM."""
     with get_session() as db:
         job = db.get(BacktestJob, job_id)
         if not job:
@@ -136,7 +125,7 @@ async def add_chat_message(job_id: int, request: ChatRequest) -> ChatMessageResp
                 detail="Cannot start chat without initial AI analysis report."
             )
 
-        # Zapisz wiadomość użytkownika, ale nie commituj
+        # Zapisz wiadomość analityka, ale nie commituj
         user_message = ChatMessage(job_id=job.id, role="user", content=request.content)
         db.add(user_message)
         db.flush() # pobranie ID i uwzględnienie w sesji bez zatwierdzania transakcji

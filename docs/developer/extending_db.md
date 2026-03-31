@@ -18,7 +18,7 @@ class StrategyTemplate(Base):
 
 ## 🔄 Migracje (Alembic)
 
-Używamy Alembic, aby aktualizować strukturę bazy u użytkowników bez usuwania ich dotychczasowych danych.
+Używamy Alembic, aby aktualizować strukturę bazy bez usuwania dotychczasowych danych.
 
 ### 1. Wygeneruj skrypt migracji
 Gdy zmienisz coś w `models.py`, uruchom w terminalu:

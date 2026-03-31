@@ -28,11 +28,11 @@ W obszarze analityki po-transakcyjnej platformę wyposażono w wsparcie nowej ge
 
 Fundamentem inżynierskim całego systemu środowiska wykonawczego (Simulation Engine) była nieunikniona konieczność obniżenia tzw. długu licencyjnego z jednoczesnym udostępnieniem środowiska uniwersalnego. 
 
-Rozwiązaniem tego problemu stał się paradygmat **Dual-Engine** z implementacją wektora w modelu **Bring Your Own License (BYOL)**. Stanowi to odpowiedź na odizolowany, zastrzeżony kod dostawcy wektorowej biblioteki finansowej (`vectorbtpro` traktowany jako tzw. *Black Box*).
+Rozwiązaniem tego problemu stał się paradygmat **Dual-Engine** z implementacją wektora w modelu **Bring Your Own License (BYOL)**. Stanowi to odpowiedź na odizolowany, zastrzeżony kod dostawcy wektorowej biblioteki finansowej (`silnik komercyjny` traktowany jako tzw. *Black Box*).
 
 System zachowuje się elastycznie na podstawie zasady ukrytej fabryki abstrakcyjnej (Abstract Factory Loader). Z użyciem ujednoliconego interfejsu `StrategyEngine`, definiującego jedyną i wspólną referencję wejścia testowego po przekazaniu uformowanego zbioru danych DataFrame, moduł wykonuje:
 
 1. Jeśli silnik wykryje (dynamicznie w czasie importu `__import__`) odpowiednie prawa dostępu w pliku instalacyjnym komercyjnym dla *ProEngine* – korzysta z silnie zaawansowanej optymalizacji. 
-2. W wypadku wystąpienia braku biblioteki licencjonowanej w podanym drzewie zasobów – w sposób transparentny dla instrukcji użytkownika (User Graceful Degradation) uruchamiany jest mechanizm implementacji `OpenSourceEngine` bazowany o wolnodostępne rozwiązanie, stanowiący stabilniejszą chociaż uboższą logicznie funkcjonalność.
+2. W wypadku wystąpienia braku biblioteki licencjonowanej w podanym drzewie zasobów – w sposób transparentny dla instrukcji sterujących (User Graceful Degradation) uruchamiany jest mechanizm implementacji `OpenSourceEngine` bazowany o wolnodostępne rozwiązanie, stanowiący stabilniejszą chociaż uboższą logicznie funkcjonalność.
 
 Tak potężny mechanizm obniża niepewność i pozwala projektowi rosnąc w uniwersalności dostępu jako darmowe rozwiązanie samodzielnie obsługujące zintegrowane wektoryzowane symulacje, umożliwiając skokowe przechodzenie w stronę komercyjnych zastosowań badawczych minimalnym kosztem i zerowym wchodzeniem w ingerencję architektury korowej aplikacji BlockBT.
