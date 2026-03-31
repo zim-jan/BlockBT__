@@ -36,7 +36,7 @@ Baza danych SQLite oraz cache Parquet domyślnie zapiszą się w lokalnych katal
 W osobnej karcie terminala uruchom serwer deweloperski FastAPI na porcie 8000:
 ```bash
 # Upewnij się, że .venv jest aktywowane!
-uvicorn blockbt.api.main:app --reload --host 127.0.0.1 --port 8000
+uv run uvicorn app.main:app  --reload --host 127.0.0.1 --port 8000
 ```
 API będzie dostępne pod [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs).
 

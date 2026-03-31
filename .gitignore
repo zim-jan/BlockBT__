@@ -59,17 +59,12 @@ vectorbt.pro-main.zip
 vectorbt.pro-main/*
 vectorbtpro/*
 .openclaw/*
-.env
 data/
 **/__pycache__/
 *.pycvectorbt/
 *.pyc
 vectorbtpro/
 vectorbt/
-*.pycvectorbt/
-*.pyc
-vectorbtpro/
 vectorbt.pro-main/
-vectorbt/
 vectorbt_src/
 

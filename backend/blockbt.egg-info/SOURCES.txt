@@ -4,6 +4,7 @@ backend/app/main.py
 backend/app/api/__init__.py
 backend/app/api/backtest.py
 backend/app/api/results.py
+backend/app/api/settings.py
 backend/app/api/strategies.py
 backend/app/api/workflows.py
 backend/app/core/config.py
@@ -14,6 +15,7 @@ backend/app/db/session.py
 backend/app/models/orm.py
 backend/app/schemas/backtest.py
 backend/app/schemas/results.py
+backend/app/schemas/settings.py
 backend/app/schemas/strategies.py
 backend/app/schemas/workflows.py
 backend/app/services/connectors/__init__.py
