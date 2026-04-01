@@ -144,7 +144,7 @@ class OpenSourceEngine(BaseStrategyEngine):
         vbt: Any,
     ) -> tuple[pd.Series, pd.Series]:
         """Translate wizard_state parameters into boolean signal series.
-        
+
         Supports Phase 5: MACD strategy via vectorbt.
         Falls back to Phase 1 SMA Crossover via vectorbt.
         """
@@ -153,13 +153,13 @@ class OpenSourceEngine(BaseStrategyEngine):
         if strategy_type == "visual_ast":
             ast = params.get("ast", {})
             nodes = {n.get("id"): n for n in ast.get("nodes", [])}
-            # Przykładowy parser prototypowy szukający bloków domyślnego przykładu 
+            # Przykładowy parser prototypowy szukający bloków domyślnego przykładu
             # w pełnej wersji wykorzystywalibyśmy dynamiczne węzły i parser grafowy
-            
+
             fast_ma = vbt.MA.run(close, window=10).ma
             slow_ma = vbt.MA.run(close, window=50).ma
             logger.info("OpenSourceEngine: parsed Graph AST with nodes: {}", list(nodes.keys()))
-            
+
             entries = fast_ma.vbt.crossed_above(slow_ma)
             exits = fast_ma.vbt.crossed_below(slow_ma)
             return entries, exits
@@ -171,16 +171,16 @@ class OpenSourceEngine(BaseStrategyEngine):
 
             # Calculate MACD directly on the Series using vectorbt
             macd = vbt.MACD.run(close, fast_window=fast, slow_window=slow, signal_window=signal)
-            
+
             macd_line = macd.macd
             sig_line = macd.signal
-            
+
             # Crossover logic:
             # Entry: MACD crosses ABOVE Signal
             entries = macd_line.vbt.crossed_above(sig_line)
             # Exit: MACD crosses BELOW Signal
             exits = macd_line.vbt.crossed_below(sig_line)
-            
+
             return entries, exits
 
         # -------------------------------------------------------------

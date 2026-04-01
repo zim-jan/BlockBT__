@@ -4,12 +4,13 @@ from app.main import app
 
 client = TestClient(app)
 
+
 def test_create_strategy_success(db_session):
     payload = {
         "name": "Test Strategy",
         "description": "Desc",
         "parameters": {"symbol": "BTC", "sma_fast": 10},
-        "code_content": ""
+        "code_content": "",
     }
 
     response = client.post("/api/strategies/", json=payload)
@@ -34,6 +35,7 @@ def test_create_strategy_success(db_session):
     assert get_data["data"]["id"] == strategy_id
     assert get_data["data"]["name"] == "Test Strategy"
     assert get_data["data"]["parameters"] == {"symbol": "BTC", "sma_fast": 10}
+
 
 def test_get_all_strategies(db_session):
     response = client.get("/api/strategies/")

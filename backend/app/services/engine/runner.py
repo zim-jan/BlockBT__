@@ -87,8 +87,7 @@ def _execute_backtest(parameters: dict[str, Any]) -> dict[str, Any]:
         import vectorbt as vbt  # type: ignore[import]
     except ImportError as exc:
         raise RuntimeError(
-            "vectorbt is not importable. "
-            f"Checked vendored path: {_VENDORED_VBT}"
+            f"vectorbt is not importable. Checked vendored path: {_VENDORED_VBT}"
         ) from exc
 
     symbol = parameters.get("symbol", "SYNTHETIC")
@@ -100,7 +99,10 @@ def _execute_backtest(parameters: dict[str, Any]) -> dict[str, Any]:
 
     logger.info(
         "BacktestRunner: starting | symbol={} sma=({}/{}) capital={}",
-        symbol, sma_fast, sma_slow, initial_capital,
+        symbol,
+        sma_fast,
+        sma_slow,
+        initial_capital,
     )
 
     # 1. OHLCV data — synthetic unless a real connector is wired in Phase 3
@@ -112,8 +114,12 @@ def _execute_backtest(parameters: dict[str, Any]) -> dict[str, Any]:
     slow_ma = vbt.MA.run(close, window=sma_slow).ma
 
     # 3. Crossover signals (pure pandas arithmetic — no .vbt accessor dependency)
-    entries = (fast_ma > slow_ma) & (fast_ma.shift(fill_value=False) <= slow_ma.shift(fill_value=False))
-    exits   = (fast_ma < slow_ma) & (fast_ma.shift(fill_value=False) >= slow_ma.shift(fill_value=False))
+    entries = (fast_ma > slow_ma) & (
+        fast_ma.shift(fill_value=False) <= slow_ma.shift(fill_value=False)
+    )
+    exits = (fast_ma < slow_ma) & (
+        fast_ma.shift(fill_value=False) >= slow_ma.shift(fill_value=False)
+    )
 
     # 4. Portfolio simulation
     portfolio = vbt.Portfolio.from_signals(
@@ -161,7 +167,8 @@ def _execute_backtest(parameters: dict[str, Any]) -> dict[str, Any]:
             {"date": str(d.date()), "value": round(float(v), 2)}
             for d, v in zip(
                 equity.index[:: max(1, len(equity) // 200)],
-                equity.values[:: max(1, len(equity) // 200)], strict=False,
+                equity.values[:: max(1, len(equity) // 200)],
+                strict=False,
             )
         ],
     }

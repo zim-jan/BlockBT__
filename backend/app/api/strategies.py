@@ -19,6 +19,7 @@ router = APIRouter()
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def _strategy_to_dict(strategy: Strategy) -> dict[str, Any]:
     """Convert Strategy ORM model to dictionary."""
     return {
@@ -28,6 +29,7 @@ def _strategy_to_dict(strategy: Strategy) -> dict[str, Any]:
         "parameters": strategy.parameters,
         "created_at": strategy.created_at,
     }
+
 
 # ---------------------------------------------------------------------------
 # Pydantic schemas

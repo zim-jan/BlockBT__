@@ -1,17 +1,30 @@
-# Wstęp
+# Wprowadzenie (Getting Started)
 
-## Cel i Koncepcja Projektu
+Witaj w dokumentacji technicznej **BlockBT** – lokalnego, wyizolowanego środowiska (air-gapped) do przeprowadzania backtestingu strategii algorytmicznych.
 
-Aplikacja **BlockBT** (Block Backtesting) stanowi środowisko typu *Standalone* (Local/Self-Hosted) dedykowane do zaawansowanego badawczego backtestingu strategii algorytmicznych na rynkach finansowych. Głównym celem systemu jest dostarczenie modularnego, wysoce skalowalnego i niezależnego środowiska eksperymentalnego, które pozwala badaczom (quants) oraz programistom na elastyczne testowanie założeń rynkowych, bez polegania na zamkniętych ekosystemach zewnętrznych dostawców.
+## O systemie
+BlockBT to aplikacja zaprojektowana do szybkiej weryfikacji pomysłów inwestycyjnych z wykorzystaniem biblioteki w Pythonie. Jej głównym założeniem jest praca wyłącznie w środowisku lokalnym (lub w izolowanym kontenerze).
 
-Architektura oprogramowania została zaprojektowana w oparciu o zaawansowane wzorce znane z komercyjnych rozwiązań klasy korporacyjnej (np. QuantConnect, Zipline), kładąc szczególny nacisk na ścisłą separację logiki biznesowej od warstwy utrwalania danych i silnika wykonawczego.
+### Główne cechy
+*   **Brak logowania i autoryzacji:** Aplikacja jest przeznaczona dla jednego, lokalnego użytkownika. Nie wdrażamy żadnych systemów logowania.
+*   **Izolacja (Air-gapped):** Wszystkie dane historyczne zapisywane są lokalnie w formacie Parquet. Backend nie wysyła żadnych danych analitycznych ani telemetrii. Komunikacja (np. z LLM) odbywa się wyłącznie na żądanie użytkownika i jest w pełni opcjonalna, z wykorzystaniem lokalnych (Ollama) lub zewnętrznych usług (według jawnie podanego klucza API).
+*   **Lokalne wykonanie:** Nie obsługujemy live tradingu, webhooków od brokerów, ani nie wspieramy infrastruktury chmurowej typu Kubernetes czy klastrów. Całość uruchamiana jest za pomocą Docker Compose.
 
-## Główne Założenia Architektoniczne
+## Stos technologiczny
+*   **Frontend:** React, TypeScript, Vite. Architektura Single-Page Application z podziałem na moduły domenowe (Feature-Driven).
+*   **Backend:** Python (FastAPI), Pydantic dla silnego typowania, SQLAlchemy (SQLite).
+*   **Dane i wydajność:** Format Parquet do przechowywania danych historycznych giełdowych, `uv` do zarządzania pakietami w Pythonie. W fazie MVP wszystkie migracje bazy danych polegają na "skasowaniu pliku SQLite i utworzeniu na nowo", bez uciążliwych migracji (Alembic).
+*   **Silnik obliczeniowy:** Oparty na open-source.
 
-Podstawą budowy systemu jest zachowanie rygorystycznych ograniczeń architektonicznych typu **Air-Gapped Logic**. Oznacza to, że poszczególne domeny systemu komunikują się pomiędzy sobą wyłącznie za pośrednictwem ustalonych interfejsów (Abstrakcji), a wewnętrzna implementacja poszczególnych modułów (silników, konektorów danych) jest ukryta.
+## Uruchomienie deweloperskie
 
-Takie podejście umożliwia:
-
-1.  **Łatwą wymianę modułów (Pluggability)** – możliwość zastąpienia jednego dostawcy danych finansowych innym, bez najmniejszej modyfikacji w kodzie odpowiadającym za silnik zasymulowanych transakcji.
-2.  **Architekturę Dual-Engine (BYOL)** – zdolność aplikacji do pracy przy użyciu darmowych, otwartoźródłowych bibliotek w trybie domyślnym, przy równoczesnym wsparciu dla zaawansowanych, płatnych narzędzi (technika Bring Your Own License), wprowadzanych do środowiska w czasie rzeczywistym.
-3.  **Integrację Algorytmów Sztucznej Inteligencji** – agregację wyjścia z testowanej strategii i automatyczną ekspozycję do nowoczesnych Dużych Modeli Językowych (LLM) za pomocą ustandaryzowanych wektorów wiedzy (Model Context Protocol).
+Aplikacja może zostać uruchomiona w dwóch trybach:
+1.  **Pełny stack z Docker Compose:**
+    Wystarczy uruchomić `docker-compose up --build`. Architektura zakłada bindowanie wszystkich usług pod adresem `127.0.0.1` w celu zapewnienia maksymalnego bezpieczeństwa lokalnego.
+2.  **Środowisko skryptowe lokalne (bez kontenerów):**
+    Wykorzystaj narzędzie `uv` do zarządzania zależnościami:
+    ```bash
+    uv sync --extra dev
+    uv run uvicorn backend.app.main:app --reload
+    ```
+    Frontend React wymaga standardowych komend `npm install` oraz `npm run dev`. Serwer deweloperski Vite proxykuje żądania `/api` do backendu na `http://127.0.0.1:8000`.

@@ -37,9 +37,7 @@ class GridSearchOptimizer:
     def __init__(
         self,
         engine: BaseStrategyEngine,
-        indicator_layer: Callable[
-            ..., tuple[pd.Series | pd.DataFrame, pd.Series | pd.DataFrame]
-        ],
+        indicator_layer: Callable[..., tuple[pd.Series | pd.DataFrame, pd.Series | pd.DataFrame]],
     ):
         """
         Initialize the optimizer.

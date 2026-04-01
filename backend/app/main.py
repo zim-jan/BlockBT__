@@ -1,8 +1,8 @@
-"""
-BlockBT FastAPI Entrypoint — Phase 2 MVP.
+"""Główny punkt wejścia aplikacji FastAPI BlockBT — MVP Fazy 2.
 
-Air-Gapped architecture: strictly local, no authorization, local logic only.
-DB tables are created at startup via the lifespan context manager.
+Architektura typu Air-Gapped: ścisłe środowisko lokalne, brak systemu autoryzacji,
+wyłącznie lokalna logika wykonawcza. Tabele bazy danych tworzone są automatycznie
+podczas startu przy pomocy menedżera kontekstu (lifespan).
 """
 
 from collections.abc import AsyncIterator
@@ -23,11 +23,12 @@ from app.db.session import init_db
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
-    logger.info("BlockBT API starting — initialising database…")
+    """Zarządza cyklem życia aplikacji (startup/shutdown), w tym bazą danych."""
+    logger.info("Start API BlockBT — inicjalizacja bazy danych…")
     init_db()
-    logger.info("Database ready.")
+    logger.info("Baza danych gotowa.")
     yield
-    logger.info("BlockBT API shutting down.")
+    logger.info("Zamykanie API BlockBT.")
 
 
 # ---------------------------------------------------------------------------
@@ -44,7 +45,7 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# CORS — strictly allow only the local frontend dev server
+# CORS — ścisłe zezwolenie tylko na dostęp dla lokalnego serwera dev Vite/React
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://127.0.0.1:3000", "http://localhost:3000"],
@@ -69,7 +70,7 @@ app.include_router(results.router, prefix="/api/results", tags=["Results"])
 
 @app.get("/api/health", tags=["Health"])
 def health_check() -> dict:
-    """Liveness probe."""
+    """Sonda sprawdzająca stan życia usługi (Liveness probe)."""
     return {"status": "ok", "version": "2.0.0"}
 
 

@@ -40,6 +40,7 @@ class EngineLoader:
             # Do not cache a forced-OSS engine so the normal engine is still
             # available on the next call without force_opensource.
             from app.services.engine.opensource_engine import OpenSourceEngine
+
             oss = OpenSourceEngine()
             logger.debug("EngineLoader: force_opensource=True → OpenSourceEngine")
             return oss

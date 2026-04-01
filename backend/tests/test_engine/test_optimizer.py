@@ -22,6 +22,7 @@ def indicator_layer(data, **kwargs):
 
     return entries, exits
 
+
 @pytest.fixture
 def dummy_data():
     np.random.seed(42)
@@ -30,6 +31,7 @@ def dummy_data():
     dates = pd.date_range("2020-01-01", periods=100, freq="D")
     df = pd.DataFrame({"close": prices}, index=dates)
     return df
+
 
 def test_grid_search_optimizer_basic(dummy_data):
     """
@@ -58,6 +60,7 @@ def test_grid_search_optimizer_basic(dummy_data):
     # 4 combinations should have been tested
     assert best_params["sma_fast"] in [5, 10]
     assert best_params["sma_slow"] in [20, 50]
+
 
 def test_grid_search_optimizer_empty_grid(dummy_data):
     """

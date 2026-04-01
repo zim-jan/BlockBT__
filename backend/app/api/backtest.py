@@ -9,12 +9,11 @@ from app.models.orm import BacktestJob, JobStatus, Strategy
 from app.schemas.backtest import BacktestRequest
 from app.services.engine.runner import run_vectorbt_backtest
 
-"""
-Backtest routes — Phase 2: real BackgroundTask + SQLite job tracking.
+"""Trasy obsługujące backtestowanie — Faza 2.
 
 Flow:
-  POST /api/backtest/       → creates BacktestJob (PENDING), returns job_id
-  GET  /api/backtest/{id}   → polls job status + metrics from SQLite
+  POST /api/backtest/       → tworzy obiekt BacktestJob (PENDING), zwraca natychmiast job_id
+  GET  /api/backtest/{id}   → służy do odpytywania statusu i metryk pracy zapisanej w SQLite.
 """
 
 router = APIRouter()
@@ -24,8 +23,9 @@ router = APIRouter()
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def _job_to_dict(job: BacktestJob) -> dict[str, Any]:
-    """Convert BacktestJob ORM model to dictionary."""
+    """Konwertuje model ORM BacktestJob na standardowy słownik Pythona."""
     return {
         "id": str(job.id),
         "job_id": str(job.id),
@@ -42,17 +42,18 @@ def _job_to_dict(job: BacktestJob) -> dict[str, Any]:
         "error_message": job.error_message,
     }
 
+
 # ---------------------------------------------------------------------------
 # Pydantic schemas
 # ---------------------------------------------------------------------------
 
 
-@router.post("/", summary="Trigger a backtest", status_code=202)
+@router.post("/", summary="Wyzwalanie backtestu", status_code=202)
 def trigger_backtest(
     payload: BacktestRequest,
     background_tasks: BackgroundTasks,
 ) -> dict[str, Any]:
-    """Create a BacktestJob (PENDING), enqueue engine execution, return job_id immediately."""
+    """Tworzy rekord BacktestJob o statusie PENDING, planuje wykonanie w tle i natychmiastowo zwraca jego identyfikator."""
     with get_session() as db:
         strategy = db.get(Strategy, payload.strategy_id)
         if not strategy:
@@ -96,9 +97,9 @@ def trigger_backtest(
     return {"success": True, "data": result, "error": None}
 
 
-@router.get("/{job_id}", summary="Poll backtest job status")
+@router.get("/{job_id}", summary="Pobieranie statusu pojedynczego zadania")
 def get_backtest_status(job_id: int) -> dict[str, Any]:
-    """Return the current status and metrics of a backtest job."""
+    """Zwraca aktualny status i wyniki wyliczonych metryk określonego zadania."""
     with get_session() as db:
         job = db.get(BacktestJob, job_id)
         if not job:
@@ -106,9 +107,9 @@ def get_backtest_status(job_id: int) -> dict[str, Any]:
         return {"success": True, "data": _job_to_dict(job), "error": None}
 
 
-@router.get("/", summary="List all backtest jobs")
+@router.get("/", summary="Listowanie wszystkich zadań backtestów")
 def list_jobs() -> dict[str, Any]:
-    """Return all backtest jobs ordered by creation time, newest first."""
+    """Zwraca listę wszystkich zadań backtestowania posortowanych od najnowszych."""
     with get_session() as db:
         jobs = db.query(BacktestJob).order_by(BacktestJob.created_at.desc()).all()
         return {
