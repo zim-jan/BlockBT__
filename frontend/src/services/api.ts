@@ -4,8 +4,8 @@
  * Typed against the generated api.d.ts schemas.
  */
 
-import type { components } from './api.d'
-import type { BacktestJobData, StrategyData } from '../types/types'
+import type {components} from './api.d'
+import type {BacktestJobData, StrategyData} from '../types/types'
 
 const BASE_URL = import.meta.env.VITE_API_URL ?? ''
 

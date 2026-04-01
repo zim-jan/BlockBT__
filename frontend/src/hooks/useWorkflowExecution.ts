@@ -9,14 +9,14 @@
  *  5. Write results back to the PortfolioNode via updatePortfolioResult.
  */
 
-import { useCallback, useEffect, useRef } from 'react'
-import { useWorkflowStore } from '../store/workflowStore'
-import { api } from '../services/api'
-import type { components } from '../services/api.d'
-import type { BacktestMetrics, JobStatus, DataNodeData, IndicatorNodeData } from '../types/types'
+import {useCallback, useEffect, useRef} from 'react'
+import {useWorkflowStore} from '../store/workflowStore'
+import {api} from '../services/api'
+import type {components} from '../services/api.d'
+import type {BacktestMetrics, DataNodeData, IndicatorNodeData, JobStatus} from '../types/types'
 
 const POLL_INTERVAL_MS = 2500
-const MAX_POLL_ATTEMPTS = 120 // 5 minutes hard cap
+const MAX_POLL_ATTEMPTS = 120 // 5-minute hard cap
 
 export function useWorkflowExecution() {
   const { nodes, isRunning, setJobState, updatePortfolioResult, resetExecution } = useWorkflowStore()
@@ -32,6 +32,7 @@ export function useWorkflowExecution() {
   const runBacktest = useCallback(async () => {
     if (isRunning) return
 
+    //TODO: Wybiera node'y, co jak będzie kilka datasource, lub indicators
     // 1. Extract parameters from canvas nodes
     const dataNode = nodes.find((n) => n.type === 'dataNode')
     const indicatorNode = nodes.find((n) => n.type === 'indicatorNode')
@@ -65,12 +66,13 @@ export function useWorkflowExecution() {
 
     try {
       // 2. Build strategy name based on indicator type
-      const stratName = indicatorType === 'macd'
+      const strategyName = indicatorType === 'macd'
         ? `${symbol} MACD(${iData.macdFast ?? 12}/${iData.macdSlow ?? 26}/${iData.macdSignal ?? 9})`
         : `${symbol} SMA(${smaFast}/${smaSlow})`
 
       const stratRes = await api.strategies.create({
-        name: `${stratName} — ${new Date().toLocaleTimeString()}`,
+        code_content: "",
+        name: `${strategyName} — ${new Date().toLocaleTimeString()}`,
         description: `Created from WorkflowEditor [${dataSource}]`,
         parameters: {
           symbol,
@@ -79,7 +81,7 @@ export function useWorkflowExecution() {
           sma_fast: smaFast,
           sma_slow: smaSlow,
           initial_capital: initialCapital,
-        },
+        }
       })
       const strategyId = (stratRes.data as { id: number }).id
 
@@ -98,8 +100,8 @@ export function useWorkflowExecution() {
 
       // Add MACD params if applicable
       if (indicatorType === 'macd') {
-        triggerPayload.macd_fast = Number(iData.macdFast ?? 12)
-        triggerPayload.macd_slow = Number(iData.macdSlow ?? 26)
+        triggerPayload.sma_fast = Number(iData.macdFast ?? 12)
+        triggerPayload.sma_slow = Number(iData.macdSlow ?? 26)
         triggerPayload.macd_signal = Number(iData.macdSignal ?? 9)
       }
 

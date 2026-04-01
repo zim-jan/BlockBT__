@@ -6,9 +6,9 @@
  *   - MACD: Fast / Slow / Signal window periods
  */
 
-import { Handle, Position, type NodeProps } from 'reactflow'
-import { useWorkflowStore } from '../../../store/workflowStore'
-import type { IndicatorNodeData, IndicatorType } from '../../../types/types'
+import {Handle, type NodeProps, Position} from 'reactflow'
+import {useWorkflowStore} from '../../../store/workflowStore'
+import type {IndicatorNodeData, IndicatorType} from '../../../types/types'
 
 export function IndicatorNode({ id, data }: NodeProps<IndicatorNodeData>) {
   const updateNodeData = useWorkflowStore((s) => s.updateNodeData)

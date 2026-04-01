@@ -1,6 +1,6 @@
-import { Handle, Position } from 'reactflow'
-import type { PortfolioNodeData } from '../../types'
-import { useChatStore } from '../../store/chatStore'
+import {Handle, Position} from 'reactflow'
+import type {PortfolioNodeData} from '../../types'
+import {useChatStore} from '../../store/chatStore'
 
 interface Props {
   data: PortfolioNodeData

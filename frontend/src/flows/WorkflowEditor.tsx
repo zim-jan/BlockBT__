@@ -1,18 +1,13 @@
-import { useCallback } from 'react'
-import ReactFlow, {
-  Background,
-  Controls,
-  MiniMap,
-  Panel,
-} from 'reactflow'
+import {useCallback} from 'react'
+import ReactFlow, {Background, Controls, MiniMap, Panel,} from 'reactflow'
 import 'reactflow/dist/style.css'
-import { useWorkflowStore } from '../store/workflowStore'
-import { useWorkflowExecution } from '../hooks/useWorkflowExecution'
+import {useWorkflowStore} from '../store/workflowStore'
+import {useWorkflowExecution} from '../hooks/useWorkflowExecution'
 
-import { DataNode } from './nodes/DataNode'
-import { IndicatorNode } from './nodes/IndicatorNode'
-import { SignalNode } from './nodes/SignalNode'
-import { PortfolioNode } from './nodes/PortfolioNode'
+import {DataNode} from './nodes/DataNode'
+import {IndicatorNode} from './nodes/IndicatorNode'
+import {SignalNode} from './nodes/SignalNode'
+import {PortfolioNode} from './nodes/PortfolioNode'
 
 const nodeTypes = {
   dataNode: DataNode,

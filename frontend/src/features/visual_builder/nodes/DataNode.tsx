@@ -7,9 +7,9 @@
  *   - Synthetic (random-walk OHLCV — no network needed)
  */
 
-import { Handle, Position, type NodeProps } from 'reactflow'
-import { useWorkflowStore } from '../../../store/workflowStore'
-import type { DataNodeData, DataSourceType } from '../../../types/types'
+import {Handle, type NodeProps, Position} from 'reactflow'
+import {useWorkflowStore} from '../../../store/workflowStore'
+import type {DataNodeData, DataSourceType} from '../../../types/types'
 
 const TIMEFRAMES = ['1d', '1h', '5m', '15m', '30m', '1w'] as const
 

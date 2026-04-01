@@ -1,10 +1,10 @@
-import { ReactNode } from 'react'
-import { Sidebar } from './Sidebar'
-import { MetricCard } from '../ui/MetricCard'
-import { TrendingUp, TrendingDown, Activity, Minus } from 'lucide-react'
-import { useWorkflowStore } from '../../store/workflowStore'
-import { PortfolioNodeData } from '../../types/types'
-import { useQuery } from '@tanstack/react-query'
+import {ReactNode} from 'react'
+import {Sidebar} from './Sidebar'
+import {MetricCard} from '../ui/MetricCard'
+import {Activity, Minus, TrendingDown, TrendingUp} from 'lucide-react'
+import {useWorkflowStore} from '../../store/workflowStore'
+import {PortfolioNodeData} from '../../types/types'
+import {useQuery} from '@tanstack/react-query'
 
 interface HealthResponse {
   status: string

@@ -1,5 +1,5 @@
-import { NavLink } from 'react-router-dom'
-import { LayoutDashboard, Workflow, Settings } from 'lucide-react'
+import {NavLink} from 'react-router-dom'
+import {LayoutDashboard, Settings, Workflow} from 'lucide-react'
 
 export function Sidebar() {
   return (

@@ -1,5 +1,5 @@
-import { Handle, Position } from 'reactflow'
-import type { SignalNodeData } from '../../../types/types'
+import {Handle, Position} from 'reactflow'
+import type {SignalNodeData} from '../../../types/types'
 
 interface Props {
   data: SignalNodeData

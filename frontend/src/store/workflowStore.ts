@@ -3,24 +3,24 @@
  * Manages nodes, edges, execution status.
  */
 
-import { create } from 'zustand'
+import {create} from 'zustand'
 import {
-  applyNodeChanges,
-  applyEdgeChanges,
-  addEdge,
-  type Node,
-  type Edge,
-  type OnNodesChange,
-  type OnEdgesChange,
-  type OnConnect,
+    addEdge,
+    applyEdgeChanges,
+    applyNodeChanges,
+    type Edge,
+    type Node,
+    type OnConnect,
+    type OnEdgesChange,
+    type OnNodesChange,
 } from 'reactflow'
 import type {
-  DataNodeData,
-  IndicatorNodeData,
-  SignalNodeData,
-  PortfolioNodeData,
-  JobStatus,
-  BacktestMetrics,
+    BacktestMetrics,
+    DataNodeData,
+    IndicatorNodeData,
+    JobStatus,
+    PortfolioNodeData,
+    SignalNodeData,
 } from '../types/types'
 
 // ---------------------------------------------------------------------------

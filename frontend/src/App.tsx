@@ -1,7 +1,7 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import {BrowserRouter, Route, Routes} from 'react-router-dom'
 import './assets/App.css'
-import { BuilderPage } from './pages/BuilderPage'
-import { SettingsPage } from './pages/SettingsPage'
+import {BuilderPage} from './pages/BuilderPage'
+import {SettingsPage} from './pages/SettingsPage'
 
 function App() {
   return (
