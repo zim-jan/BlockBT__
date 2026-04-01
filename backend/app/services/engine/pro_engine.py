@@ -97,7 +97,9 @@ class ProEngine(BaseStrategyEngine):
             "name": self.ENGINE_NAME,
             "version": self.ENGINE_VERSION,
             "mode": "mock" if self._mock_mode else "live",
-            "library": "vectorbtpro (BYOL)" if not self._mock_mode else "vectorbtpro (BYOL — not loaded)",
+            "library": "vectorbtpro (BYOL)"
+            if not self._mock_mode
+            else "vectorbtpro (BYOL — not loaded)",
             "vbtpro_path": str(settings.effective_vbtpro_path() or "not-configured"),
         }
 

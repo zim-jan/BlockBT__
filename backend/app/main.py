@@ -1,15 +1,15 @@
-"""
-BlockBT FastAPI Entrypoint — Phase 2 MVP.
+"""Główny punkt wejścia aplikacji FastAPI BlockBT — MVP Fazy 2.
 
-Air-Gapped architecture: strictly local, no authorization, local logic only.
-DB tables are created at startup via the lifespan context manager.
+Architektura typu Air-Gapped: ścisłe środowisko lokalne, brak systemu autoryzacji,
+wyłącznie lokalna logika wykonawcza. Tabele bazy danych tworzone są automatycznie
+podczas startu przy pomocy menedżera kontekstu (lifespan).
 """
 
 import sys
 from pathlib import Path
 
 # Prepend the vendored vectorbt path before importing local modules that might import vectorbt.
-# This prevents vectorbt from being mistakenly loaded as a namespace package 
+# This prevents vectorbt from being mistakenly loaded as a namespace package
 # if the process is launched from the repository root.
 _vbt_path = Path(__file__).resolve().parents[3] / "vectorbt"
 if _vbt_path.exists() and str(_vbt_path) not in sys.path:
@@ -35,9 +35,11 @@ from app.services.mcp.llm_client import _SYSTEM_PROMPT
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
-    logger.info("BlockBT API starting — initialising database…")
+    """Zarządza cyklem życia aplikacji (startup/shutdown), w tym bazą danych."""
+    logger.info("Start API BlockBT — inicjalizacja bazy danych…")
     init_db()
-    
+    logger.info("Baza danych gotowa.")
+
     # Seed default system prompt if empty
     with get_session() as db:
         if db.query(SystemPrompt).count() == 0:
@@ -49,10 +51,10 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
             )
             db.add(default_prompt)
             db.commit()
-            
+
     logger.info("Database ready.")
     yield
-    logger.info("BlockBT API shutting down.")
+    logger.info("Zamykanie API BlockBT.")
 
 
 # ---------------------------------------------------------------------------
@@ -69,7 +71,7 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# CORS — strictly allow only the local frontend dev server
+# CORS — ścisłe zezwolenie tylko na dostęp dla lokalnego serwera dev Vite/React
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://127.0.0.1:3000", "http://localhost:3000"],
@@ -95,7 +97,7 @@ app.include_router(settings.router, prefix="/api/settings", tags=["Settings"])
 
 @app.get("/api/health", tags=["Health"])
 def health_check() -> dict:
-    """Liveness probe."""
+    """Sonda sprawdzająca stan życia usługi (Liveness probe)."""
     return {"status": "ok", "version": "2.0.0"}
 
 

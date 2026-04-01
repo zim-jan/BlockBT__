@@ -50,9 +50,7 @@ def list_cached_symbols(cache_dir: Path) -> list[str]:
     """Return a list of symbols that have at least one cached Parquet file."""
     if not cache_dir.exists():
         return []
-    return sorted(
-        d.name for d in cache_dir.iterdir() if d.is_dir() and any(d.glob("*.parquet"))
-    )
+    return sorted(d.name for d in cache_dir.iterdir() if d.is_dir() and any(d.glob("*.parquet")))
 
 
 def purge_cache(cache_dir: Path, symbol: str | None = None) -> int:

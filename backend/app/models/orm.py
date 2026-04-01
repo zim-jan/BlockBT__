@@ -23,6 +23,7 @@ def _utcnow() -> datetime.datetime:
 
 class Base(DeclarativeBase):
     """Dedicated base for Phase 2 REST API models."""
+
     pass
 
 
@@ -45,9 +46,7 @@ class Strategy(Base):
     name: Mapped[str] = mapped_column(String(128), nullable=False)
     description: Mapped[str] = mapped_column(Text, nullable=False, default="")
     parameters: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False, default=dict)
-    created_at: Mapped[datetime.datetime] = mapped_column(
-        DateTime, nullable=False, default=_utcnow
-    )
+    created_at: Mapped[datetime.datetime] = mapped_column(DateTime, nullable=False, default=_utcnow)
 
     # relationships
     backtest_jobs: Mapped[list[BacktestJob]] = relationship(
@@ -61,6 +60,7 @@ class Strategy(Base):
 # ---------------------------------------------------------------------------
 # BacktestJob
 # ---------------------------------------------------------------------------
+
 
 class JobStatus:
     PENDING = "PENDING"
@@ -91,9 +91,7 @@ class BacktestJob(Base):
     )  # PENDING | RUNNING | COMPLETED | FAILED
 
     # Payload passed to the engine (snapshot of strategy params at job start)
-    parameters_snapshot: Mapped[dict[str, Any]] = mapped_column(
-        JSON, nullable=False, default=dict
-    )
+    parameters_snapshot: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False, default=dict)
 
     # Results
     metrics: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
@@ -107,9 +105,7 @@ class BacktestJob(Base):
 
     error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
 
-    created_at: Mapped[datetime.datetime] = mapped_column(
-        DateTime, nullable=False, default=_utcnow
-    )
+    created_at: Mapped[datetime.datetime] = mapped_column(DateTime, nullable=False, default=_utcnow)
     completed_at: Mapped[datetime.datetime | None] = mapped_column(DateTime, nullable=True)
 
     # relationships
@@ -137,9 +133,7 @@ class ChatMessage(Base):
     )
     role: Mapped[str] = mapped_column(String(50), nullable=False)
     content: Mapped[str] = mapped_column(Text, nullable=False)
-    created_at: Mapped[datetime.datetime] = mapped_column(
-        DateTime, nullable=False, default=_utcnow
-    )
+    created_at: Mapped[datetime.datetime] = mapped_column(DateTime, nullable=False, default=_utcnow)
 
     job: Mapped[BacktestJob] = relationship("BacktestJob", back_populates="chat_messages")
 

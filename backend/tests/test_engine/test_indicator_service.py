@@ -15,6 +15,7 @@ def sample_close():
     prices = 100 + np.cumsum(np.random.randn(100))
     return pd.Series(prices, index=dates, name="close")
 
+
 @pytest.fixture
 def sample_ohlcv(sample_close):
     df = pd.DataFrame(index=sample_close.index)
@@ -25,8 +26,10 @@ def sample_ohlcv(sample_close):
     df["volume"] = 1000
     return df
 
+
 def test_indicator_service_sma_fallback(sample_close):
     import vectorbt as vbt
+
     service = IndicatorService()
     params = {"sma_fast": 5, "sma_slow": 10}
 
@@ -37,6 +40,7 @@ def test_indicator_service_sma_fallback(sample_close):
     assert entries.dtype == bool
     assert exits.dtype == bool
     assert len(entries) == len(sample_close)
+
 
 def test_opensource_engine_run_backtest(sample_ohlcv):
     engine = OpenSourceEngine()

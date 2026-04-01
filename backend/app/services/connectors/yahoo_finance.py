@@ -18,8 +18,19 @@ from app.services.connectors.base import BaseDataConnector
 #   "1m","2m","5m","15m","30m","60m","90m","1h"
 #   "1d","5d","1wk","1mo","3mo"
 _VALID_INTERVALS = {
-    "1m", "2m", "5m", "15m", "30m", "60m", "90m", "1h",
-    "1d", "5d", "1wk", "1mo", "3mo",
+    "1m",
+    "2m",
+    "5m",
+    "15m",
+    "30m",
+    "60m",
+    "90m",
+    "1h",
+    "1d",
+    "5d",
+    "1wk",
+    "1mo",
+    "3mo",
 }
 
 
@@ -50,9 +61,7 @@ class YahooFinanceConnector(BaseDataConnector):
         try:
             import yfinance as yf  # type: ignore[import]
         except ImportError as exc:
-            raise RuntimeError(
-                "yfinance is not installed. Run: pip install yfinance"
-            ) from exc
+            raise RuntimeError("yfinance is not installed. Run: pip install yfinance") from exc
 
         interval = self._map_timeframe(timeframe)
         logger.debug("yfinance.download({}, {}, {}, {})", symbol, start, end, interval)
@@ -62,7 +71,7 @@ class YahooFinanceConnector(BaseDataConnector):
             start=start,
             end=end,
             interval=interval,
-            auto_adjust=True,    # adjust for splits/dividends
+            auto_adjust=True,  # adjust for splits/dividends
             progress=False,
             threads=False,
         )
@@ -108,14 +117,18 @@ class YahooFinanceConnector(BaseDataConnector):
     def _map_timeframe(timeframe: str) -> str:
         """Map generic BlockBT timeframe strings to yfinance ``interval`` codes."""
         mapping = {
-            "1m": "1m", "5m": "5m", "15m": "15m", "30m": "30m",
-            "1h": "60m", "4h": "60m",   # yfinance has no 4h; use 60m + resample
-            "1d": "1d", "1w": "1wk", "1M": "1mo",
+            "1m": "1m",
+            "5m": "5m",
+            "15m": "15m",
+            "30m": "30m",
+            "1h": "60m",
+            "4h": "60m",  # yfinance has no 4h; use 60m + resample
+            "1d": "1d",
+            "1w": "1wk",
+            "1M": "1mo",
         }
         result = mapping.get(timeframe, timeframe)
         if result not in _VALID_INTERVALS:
-            logger.warning(
-                "YahooFinanceConnector: unknown timeframe {!r}, using '1d'", timeframe
-            )
+            logger.warning("YahooFinanceConnector: unknown timeframe {!r}, using '1d'", timeframe)
             return "1d"
         return result

@@ -12,10 +12,6 @@ from app.services.mcp.report_builder import ReportBuilder
 router = APIRouter()
 
 
-
-
-
-
 @router.get("/{job_id}")
 def get_simulation_result(job_id: int) -> dict[str, Any]:
     """Retrieve the status and metrics of a backtest run by its Simulation ID."""
@@ -23,7 +19,7 @@ def get_simulation_result(job_id: int) -> dict[str, Any]:
         job = db.get(BacktestJob, job_id)
         if not job:
             raise HTTPException(status_code=404, detail="Simulation Result not found")
-            
+
         return {
             "id": job.id,
             "strategy_id": job.strategy_id,
@@ -39,6 +35,7 @@ def get_simulation_result(job_id: int) -> dict[str, Any]:
             "ai_analysis_report": job.ai_analysis_report,
             "error_log": job.error_message,
         }
+
 
 @router.post("/{job_id}/analyze", response_model=AIAnalysisResponse)
 async def analyze_simulation_result(job_id: int) -> AIAnalysisResponse:
@@ -80,9 +77,7 @@ async def analyze_simulation_result(job_id: int) -> AIAnalysisResponse:
         raw_params = job.parameters_snapshot
 
         payload = ReportBuilder.build(
-            result=result,
-            strategy_name=strategy_name,
-            raw_params=raw_params
+            result=result, strategy_name=strategy_name, raw_params=raw_params
         )
         prompt = payload.to_prompt()
         report = await OllamaClient().generate_report(prompt)
@@ -94,6 +89,7 @@ async def analyze_simulation_result(job_id: int) -> AIAnalysisResponse:
 
         db.commit()
         return AIAnalysisResponse(prompt=prompt, report=job.ai_analysis_report)
+
 
 @router.get("/{job_id}/chat", response_model=list[ChatMessageResponse])
 def get_chat_history(job_id: int) -> list[ChatMessageResponse]:
@@ -111,6 +107,7 @@ def get_chat_history(job_id: int) -> list[ChatMessageResponse]:
             for m in messages
         ]
 
+
 @router.post("/{job_id}/chat", response_model=ChatMessageResponse)
 async def add_chat_message(job_id: int, request: ChatRequest) -> ChatMessageResponse:
     """Pobiera wiadomość analityka, przekazuje kontekst i zwraca odpowiedź LLM."""
@@ -121,14 +118,13 @@ async def add_chat_message(job_id: int, request: ChatRequest) -> ChatMessageResp
 
         if not job.ai_analysis_report:
             raise HTTPException(
-                status_code=400,
-                detail="Cannot start chat without initial AI analysis report."
+                status_code=400, detail="Cannot start chat without initial AI analysis report."
             )
 
         # Zapisz wiadomość analityka, ale nie commituj
         user_message = ChatMessage(job_id=job.id, role="user", content=request.content)
         db.add(user_message)
-        db.flush() # pobranie ID i uwzględnienie w sesji bez zatwierdzania transakcji
+        db.flush()  # pobranie ID i uwzględnienie w sesji bez zatwierdzania transakcji
 
         # Przygotuj historię czatu dla Ollamy
         history = sorted(job.chat_messages, key=lambda m: m.created_at)
@@ -153,5 +149,5 @@ async def add_chat_message(job_id: int, request: ChatRequest) -> ChatMessageResp
             job_id=assistant_message.job_id,
             role=assistant_message.role,
             content=assistant_message.content,
-            created_at=assistant_message.created_at
+            created_at=assistant_message.created_at,
         )

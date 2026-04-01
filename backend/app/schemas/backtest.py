@@ -20,6 +20,7 @@ class BacktestRequest(BaseModel):
     macd_signal: int | None = None
     parameters: dict[str, Any] | None = None
 
+
 class BacktestJobResponse(BaseModel):
     id: int
     job_id: int

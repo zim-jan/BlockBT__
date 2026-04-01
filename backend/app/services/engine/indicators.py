@@ -15,10 +15,7 @@ class IndicatorService:
     """
 
     def generate_signals(
-        self,
-        close: pd.Series,
-        params: dict[str, Any],
-        vbt: Any
+        self, close: pd.Series, params: dict[str, Any], vbt: Any
     ) -> tuple[pd.Series, pd.Series]:
         """
         Generuje sygnały transakcyjne na podstawie strategii zdefiniowanej w `params`.

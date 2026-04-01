@@ -10,6 +10,7 @@ class StrategyCreate(BaseModel):
     parameters: dict[str, Any] | None = None
     code_content: str = ""
 
+
 class StrategyResponse(BaseModel):
     id: str
     name: str

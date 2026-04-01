@@ -43,9 +43,7 @@ class ConnectorRegistry:
         resolved = (key or settings.DATA_CONNECTOR).lower()
         if resolved not in cls._registry:
             available = list(cls._registry.keys())
-            raise KeyError(
-                f"Unknown connector {resolved!r}. Available: {available}"
-            )
+            raise KeyError(f"Unknown connector {resolved!r}. Available: {available}")
         return cls._registry[resolved]()
 
     @classmethod

@@ -87,6 +87,7 @@ def get_session() -> Generator[Session, None, None]:
     finally:
         session.close()
 
+
 def drop_db() -> None:
     """Drop all Phase 2 tables."""
     Base.metadata.drop_all(bind=_engine)

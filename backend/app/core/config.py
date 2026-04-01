@@ -16,6 +16,7 @@ _PROJECT_ROOT = Path(__file__).resolve().parents[3]
 
 # print('path' + _PROJECT_ROOT)
 
+
 class Settings(BaseSettings):
     """Central configuration object. Override any value via environment variable."""
 
@@ -35,7 +36,7 @@ class Settings(BaseSettings):
 
     # Security
     SECRET_KEY: str = Field(
-        description="A URL-safe base64-encoded 32-byte key for Fernet encryption. Generate with: python -c \"from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())\""
+        description='A URL-safe base64-encoded 32-byte key for Fernet encryption. Generate with: python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"'
     )
 
     # ------------------------------------------------------------------
@@ -50,7 +51,9 @@ class Settings(BaseSettings):
     # Database
     # ------------------------------------------------------------------
     DATABASE_URL: str = Field(
-        default_factory=lambda: f"sqlite:///{_PROJECT_ROOT / "backend" / "data" / 'db' / 'blockbt.db'}",
+        default_factory=lambda: (
+            f"sqlite:///{_PROJECT_ROOT / 'backend' / 'data' / 'db' / 'blockbt.db'}"
+        ),
         description="SQLAlchemy connection string. Defaults to local SQLite.",
     )
 
@@ -58,7 +61,9 @@ class Settings(BaseSettings):
     # Engine
     # ------------------------------------------------------------------
     # If vectorbtpro directory exists in the project root, mark as BYOL-available.
-    VBTPRO_PATH: Path | None = None  # explicit override via env; otherwise discovered by effective_vbtpro_path()
+    VBTPRO_PATH: Path | None = (
+        None  # explicit override via env; otherwise discovered by effective_vbtpro_path()
+    )
     PREFER_PRO_ENGINE: bool = False  # set True to force ProEngine even without full vbtpro
 
     # ------------------------------------------------------------------

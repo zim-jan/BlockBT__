@@ -25,8 +25,8 @@ import pandas as pd
 from loguru import logger
 
 # Ensure the vendored vectorbt directory is importable.
-# We must insert it into sys.path before any import attempt to prevent Python 
-# from mistakenly turning the repo's vectorbt folder into a namespace package 
+# We must insert it into sys.path before any import attempt to prevent Python
+# from mistakenly turning the repo's vectorbt folder into a namespace package
 # if the backend is launched from the project root.
 _VENDORED_VBT = Path(__file__).resolve().parents[4] / "vectorbt"
 if _VENDORED_VBT.exists() and str(_VENDORED_VBT) not in sys.path:
@@ -134,8 +134,7 @@ def _execute_backtest(parameters: dict[str, Any]) -> dict[str, Any]:
         import vectorbt as vbt  # type: ignore[import]
     except ImportError as exc:
         raise RuntimeError(
-            "vectorbt is not importable. "
-            f"Checked vendored path: {_VENDORED_VBT}"
+            f"vectorbt is not importable. Checked vendored path: {_VENDORED_VBT}"
         ) from exc
 
     symbol = parameters.get("symbol", "SYNTHETIC")
@@ -152,7 +151,9 @@ def _execute_backtest(parameters: dict[str, Any]) -> dict[str, Any]:
 
     logger.info(
         "BacktestRunner: starting | source={} symbol={} strategy={} sma=({}/{}) capital={}",
-        data_source, symbol, strategy_type, sma_fast, sma_slow, initial_capital,
+        data_source, symbol, strategy_type, sma_fast,
+        sma_slow,
+        initial_capital,
     )
 
     # 1. OHLCV data — synthetic or real
@@ -184,8 +185,12 @@ def _execute_backtest(parameters: dict[str, Any]) -> dict[str, Any]:
         slow_ma = vbt.MA.run(close, window=sma_slow).ma
 
         # Crossover signals (pure pandas arithmetic — no .vbt accessor dependency)
-        entries = (fast_ma > slow_ma) & (fast_ma.shift(fill_value=False) <= slow_ma.shift(fill_value=False))
-        exits   = (fast_ma < slow_ma) & (fast_ma.shift(fill_value=False) >= slow_ma.shift(fill_value=False))
+        entries = (fast_ma > slow_ma) & (
+        fast_ma.shift(fill_value=False) <= slow_ma.shift(fill_value=False)
+    )
+        exits = (fast_ma < slow_ma) & (
+        fast_ma.shift(fill_value=False) >= slow_ma.shift(fill_value=False)
+    )
 
     # 3. Portfolio simulation
     portfolio = vbt.Portfolio.from_signals(

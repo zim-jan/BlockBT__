@@ -79,10 +79,10 @@ def sample_ohlcv() -> pd.DataFrame:
     close = 100.0 * (1 + rng.normal(0, 0.01, n)).cumprod()
     return pd.DataFrame(
         {
-            "open":   close * (1 + rng.uniform(-0.005, 0.005, n)),
-            "high":   close * (1 + rng.uniform(0, 0.01, n)),
-            "low":    close * (1 - rng.uniform(0, 0.01, n)),
-            "close":  close,
+            "open": close * (1 + rng.uniform(-0.005, 0.005, n)),
+            "high": close * (1 + rng.uniform(0, 0.01, n)),
+            "low": close * (1 - rng.uniform(0, 0.01, n)),
+            "close": close,
             "volume": rng.integers(1_000_000, 10_000_000, n).astype(float),
         },
         index=dates,
