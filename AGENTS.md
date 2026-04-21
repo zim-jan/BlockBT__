@@ -1,4 +1,4 @@
-# BlockBT - Agent Collaboration Guidelines (AGENTS.md)
+# BlockBT - Agent Collaboration Guidelines
 
 ## 1. Project Context & Goals
 BlockBT is a standalone (Local/Self-Hosted) application for algorithmic strategy backtesting. The system strictly adheres to the "Air-Gapped Logic" and "Dual-Engine (BYOL)" architectural models. The primary goal is to deliver a stable MVP for local backtesting using historical data, with a modern React-based frontend and interactive workflow visualization via React Flow.
@@ -125,7 +125,7 @@ As an AI coding agent working on this repository, you must strictly obey the fol
 # Setup with uv (fast Python package manager)
 uv venv --python 3.12
 source .venv/bin/activate
-uv pip install -e .  # or: uv sync
+uv pip install -e .  # or: uv sync --extra dev
 
 # Start development server (auto-reload)
 make api
@@ -139,7 +139,7 @@ uv run uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
 ```bash
 cd frontend
 npm install
-make frontend
+make frontend # nie działa TODO
 # or manually:
 npm run dev  # Vite dev server with HMR on 127.0.0.1:3000
 ```

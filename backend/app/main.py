@@ -17,9 +17,11 @@ if _vbt_path.exists() and str(_vbt_path) not in sys.path:
 
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
+import time
+import json
 
 import uvicorn
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from loguru import logger
 
@@ -79,6 +81,42 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    """Middleware do logowania zapytań HTTP oraz ich struktury (body/query)."""
+    start_time = time.time()
+    
+    # Przechwytywanie body requestu
+    body = await request.body()
+    try:
+        body_json = json.loads(body) if body else None
+    except json.JSONDecodeError:
+        body_json = body.decode("utf-8") if body else None
+    
+    # Odtworzenie strumienia body, aby mogło zostać przetworzone przez endpoint
+    async def receive():
+        return {"type": "http.request", "body": body}
+    request._receive = receive
+
+    response = await call_next(request)
+    process_time = time.time() - start_time
+    
+    # Pomiń logowanie dla /api/health żeby nie śmiecić logów
+    if request.url.path != "/api/health":
+        log_data = {
+            "method": request.method,
+            "url": str(request.url),
+            "client_ip": request.client.host if request.client else None,
+            "status_code": response.status_code,
+            "process_time_ms": round(process_time * 1000, 2),
+            "query_params": dict(request.query_params),
+            "body": body_json
+        }
+        logger.info(f"API Request: {request.method} {request.url.path} - {response.status_code}\nData: {json.dumps(log_data, indent=2, ensure_ascii=False)}")
+        
+    return response
 
 # ---------------------------------------------------------------------------
 # Routers

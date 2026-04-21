@@ -10,15 +10,52 @@ import type {BacktestJobData, StrategyData} from '../types/types'
 const BASE_URL = import.meta.env.VITE_API_URL ?? ''
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
-  const res = await fetch(`${BASE_URL}${path}`, {
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
-    ...options,
-  })
-  if (!res.ok) {
-    const text = await res.text()
-    throw new Error(`API ${res.status}: ${text}`)
+  const method = options?.method || 'GET';
+  const requestBody = options?.body ? JSON.parse(options.body as string) : undefined;
+  
+  // Log request structure (skip health check to avoid spam)
+  if (path !== '/api/health') {
+    console.group(`🚀 API Request: ${method} ${path}`);
+    console.log('URL:', `${BASE_URL}${path}`);
+    if (requestBody) {
+      console.log('Body:', requestBody);
+    }
+    if (options?.headers) {
+      console.log('Headers:', options.headers);
+    }
+    console.groupEnd();
   }
-  return res.json() as Promise<T>
+
+  try {
+    const res = await fetch(`${BASE_URL}${path}`, {
+      headers: { 'Content-Type': 'application/json', ...options?.headers },
+      ...options,
+    })
+    
+    if (!res.ok) {
+      const text = await res.text()
+      if (path !== '/api/health') {
+        console.error(`❌ API Error ${res.status}: ${method} ${path}`, text);
+      }
+      throw new Error(`API ${res.status}: ${text}`)
+    }
+    
+    const data = await res.json() as Promise<T>;
+    
+    if (path !== '/api/health') {
+      console.group(`✅ API Response: ${method} ${path}`);
+      console.log('Status:', res.status);
+      console.log('Data:', data);
+      console.groupEnd();
+    }
+    
+    return data;
+  } catch (error) {
+    if (path !== '/api/health') {
+      console.error(`💥 API Request Failed: ${method} ${path}`, error);
+    }
+    throw error;
+  }
 }
 
 type ApiResponse<T> = { success: boolean; data: T; error: string | null }
