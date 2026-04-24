@@ -1,5 +1,18 @@
 from __future__ import annotations
 
+from datetime import UTC, datetime
+from typing import Any
+
+from app.core.config import settings
+
+# from app.services.engine.base import dict[str, Any]
+from app.services.mcp.protocol import (
+    MCPContext,
+    MCPMetrics,
+    MCPPayload,
+    MCPPeriod,
+)
+
 """
 ReportBuilder — converts a dict[str, Any] into a ready-to-send MCPPayload.
 
@@ -19,18 +32,6 @@ Usage:
 """
 
 
-from datetime import datetime, timezone
-from typing import Any
-
-from app.core.config import settings
-
-# from app.services.engine.base import dict[str, Any]
-from app.services.mcp.protocol import (
-    MCPContext,
-    MCPMetrics,
-    MCPPayload,
-    MCPPeriod,
-)
 
 
 class ReportBuilder:
@@ -81,7 +82,7 @@ class ReportBuilder:
 
         return MCPPayload(
             schema_version="1.0",
-            generated_at=datetime.now(timezone.utc).isoformat(),
+            generated_at=datetime.now(UTC).isoformat(),
             context=context,
             metrics=metrics,
             equity_curve_samples=equity_samples,

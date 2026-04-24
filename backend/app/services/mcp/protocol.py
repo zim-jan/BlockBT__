@@ -1,5 +1,9 @@
 from __future__ import annotations
 
+import json
+from dataclasses import asdict, dataclass, field
+from typing import Any
+
 """
 MCP Protocol — Model Context Protocol data structures for BlockBT.
 
@@ -9,9 +13,6 @@ JSON schema that any LLM adapter can consume without knowing BlockBT internals.
 """
 
 
-import json
-from dataclasses import asdict, dataclass, field
-from typing import Any
 
 
 @dataclass

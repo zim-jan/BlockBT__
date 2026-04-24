@@ -53,7 +53,8 @@ def trigger_backtest(
     payload: BacktestRequest,
     background_tasks: BackgroundTasks,
 ) -> dict[str, Any]:
-    """Tworzy rekord BacktestJob o statusie PENDING, planuje wykonanie w tle i natychmiastowo zwraca jego identyfikator."""
+    """Tworzy rekord BacktestJob o statusie PENDING, planuje wykonanie w tle i natychmiastowo
+    zwraca jego identyfikator."""
     with get_session() as db:
         strategy = db.get(Strategy, payload.strategy_id)
         if not strategy:

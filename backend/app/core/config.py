@@ -1,15 +1,16 @@
 from __future__ import annotations
 
+from pathlib import Path
+
+from pydantic import Field
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
 """
 BlockBT application configuration.
 Sources (in priority order): environment variables → .env file → defaults.
 """
 
 
-from pathlib import Path
-
-from pydantic import Field
-from pydantic_settings import BaseSettings, SettingsConfigDict
 
 # Project root is three levels up from this file: src/blockbt/config.py
 _PROJECT_ROOT = Path(__file__).resolve().parents[3]
@@ -36,7 +37,9 @@ class Settings(BaseSettings):
 
     # Security
     SECRET_KEY: str = Field(
-        description='A URL-safe base64-encoded 32-byte key for Fernet encryption. Generate with: python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"'
+        description='A URL-safe base64-encoded 32-byte key for Fernet encryption. '
+                    'Generate with: python -c "from cryptography.fernet import Fernet; '
+                    'print(Fernet.generate_key().decode())"'
     )
 
     # ------------------------------------------------------------------

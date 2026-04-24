@@ -1,19 +1,21 @@
 from __future__ import annotations
 
-"""
-Tests conftest — shared fixtures for the BlockBT test suite.
-"""
-
-
 import os
-
-# Set a dummy SECRET_KEY so imports won't fail globally during pytest collection
-os.environ["SECRET_KEY"] = "yNmj9oJp0YJXY7vWvJ0M2bI-W3k6U_X1qR5u7M_fA-Q="
 
 import pandas as pd
 import pytest
 
 from app.db.session import drop_db, init_db
+
+"""
+Tests conftest — shared fixtures for the BlockBT test suite.
+"""
+
+
+
+# Set a dummy SECRET_KEY so imports won't fail globally during pytest collection
+os.environ["SECRET_KEY"] = "yNmj9oJp0YJXY7vWvJ0M2bI-W3k6U_X1qR5u7M_fA-Q="
+
 
 # ---------------------------------------------------------------------------
 # Database fixtures

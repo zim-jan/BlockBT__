@@ -1,14 +1,14 @@
 from __future__ import annotations
 
+import pytest
+
 """
 Testy dla Loadera Dual-Engine oraz mocków ProEngine.
 """
 
 
-import pytest
 
 
-import pytest
 class TestEngineLoader:
     def test_returns_engine_instance(self):
         from app.services.engine.loader import EngineLoader

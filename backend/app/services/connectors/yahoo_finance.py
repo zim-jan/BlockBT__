@@ -1,5 +1,10 @@
 from __future__ import annotations
 
+import pandas as pd
+from loguru import logger
+
+from app.services.connectors.base import BaseDataConnector
+
 """
 YahooFinanceConnector — default / fallback data provider.
 
@@ -9,10 +14,6 @@ the connector will serve from cache if it's still fresh (< TTL).
 """
 
 
-import pandas as pd
-from loguru import logger
-
-from app.services.connectors.base import BaseDataConnector
 
 # yfinance timeframe codes → readable string mapping for reference:
 #   "1m","2m","5m","15m","30m","60m","90m","1h"

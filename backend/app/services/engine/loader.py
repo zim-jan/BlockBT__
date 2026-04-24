@@ -1,5 +1,10 @@
 from __future__ import annotations
 
+from loguru import logger
+
+from app.core.config import settings
+from app.services.engine.base import BaseStrategyEngine
+
 """
 EngineLoader — BYOL-aware engine selector.
 
@@ -12,10 +17,6 @@ Import once at startup; the result is cached.
 """
 
 
-from loguru import logger
-
-from app.core.config import settings
-from app.services.engine.base import BaseStrategyEngine
 
 
 class EngineLoader:

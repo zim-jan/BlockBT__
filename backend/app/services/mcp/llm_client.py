@@ -1,5 +1,12 @@
 from __future__ import annotations
 
+import json
+
+import httpx
+from loguru import logger
+
+from app.core.config import settings
+
 """
 BlockBT MCP — OllamaClient.
 
@@ -10,12 +17,6 @@ route handlers do not block the event loop.
 """
 
 
-import json
-
-import httpx
-from loguru import logger
-
-from app.core.config import settings
 
 # ── Defaults ──────────────────────────────────────────────────────────────────
 

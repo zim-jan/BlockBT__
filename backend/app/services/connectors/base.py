@@ -1,5 +1,14 @@
 from __future__ import annotations
 
+from abc import ABC, abstractmethod
+from pathlib import Path
+
+import pandas as pd
+from loguru import logger
+
+from app.core.config import settings
+from app.core.utils.parquet import load_parquet, save_parquet
+
 """
 BaseDataConnector — abstract interface for all market data providers.
 
@@ -10,14 +19,6 @@ Every connector must:
 """
 
 
-from abc import ABC, abstractmethod
-from pathlib import Path
-
-import pandas as pd
-from loguru import logger
-
-from app.core.config import settings
-from app.core.utils.parquet import load_parquet, save_parquet
 
 
 class BaseDataConnector(ABC):

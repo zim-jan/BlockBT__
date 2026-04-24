@@ -1,5 +1,10 @@
 from __future__ import annotations
 
+from pathlib import Path
+
+import pandas as pd
+from loguru import logger
+
 """
 Parquet I/O helpers used by data connectors.
 
@@ -8,10 +13,6 @@ format, compression, and schema enforcement are consistent across connectors.
 """
 
 
-from pathlib import Path
-
-import pandas as pd
-from loguru import logger
 
 
 def save_parquet(df: pd.DataFrame, path: Path, *, compression: str = "snappy") -> None:

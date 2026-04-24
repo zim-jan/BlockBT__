@@ -1,5 +1,10 @@
 from __future__ import annotations
 
+from loguru import logger
+
+from app.core.config import settings
+from app.services.connectors.base import BaseDataConnector
+
 """
 ConnectorRegistry — auto-discovery and lookup for data provider plugins.
 
@@ -11,10 +16,7 @@ Usage:
 """
 
 
-from loguru import logger
 
-from app.core.config import settings
-from app.services.connectors.base import BaseDataConnector
 
 
 class ConnectorRegistry:

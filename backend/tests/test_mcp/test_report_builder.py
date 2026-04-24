@@ -1,10 +1,5 @@
 from __future__ import annotations
 
-"""
-Tests for the MCP ReportBuilder and MCPPayload.
-"""
-
-
 import json
 from typing import Any
 
@@ -12,6 +7,14 @@ import pandas as pd
 
 from app.services.mcp.protocol import MCPPayload
 from app.services.mcp.report_builder import ReportBuilder
+
+"""
+Tests for the MCP ReportBuilder and MCPPayload.
+"""
+
+
+
+
 
 
 def _make_result(n: int = 100) -> dict[str, Any]:

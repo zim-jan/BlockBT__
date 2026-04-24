@@ -1,5 +1,13 @@
 from __future__ import annotations
 
+from pathlib import Path
+
+import pandas as pd
+from loguru import logger
+
+from app.core.config import settings
+from app.services.connectors.base import BaseDataConnector
+
 """
 AlpacaConnector — optional data provider using the Alpaca Markets API.
 
@@ -20,13 +28,6 @@ Install the optional extra to use:
 """
 
 
-from pathlib import Path
-
-import pandas as pd
-from loguru import logger
-
-from app.core.config import settings
-from app.services.connectors.base import BaseDataConnector
 
 
 class AuthenticationError(Exception):

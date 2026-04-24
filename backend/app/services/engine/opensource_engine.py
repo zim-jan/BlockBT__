@@ -1,13 +1,5 @@
 from __future__ import annotations
 
-"""
-OpenSourceEngine — BackBT engine backed by the public vectorbt library.
-
-The vendored ``vectorbt/`` directory is added to sys.path at load time so no
-system-wide installation is required.
-"""
-
-
 import sys
 from typing import Any
 
@@ -18,6 +10,15 @@ from loguru import logger
 from app.core.config import settings
 from app.services.engine.base import BaseStrategyEngine
 from app.services.engine.indicators import IndicatorService
+
+"""
+OpenSourceEngine — BackBT engine backed by the public vectorbt library.
+
+The vendored ``vectorbt/`` directory is added to sys.path at load time so no
+system-wide installation is required.
+"""
+
+
 
 # ---------------------------------------------------------------------------
 # Make vendored vectorbt importable before anything else touches it.

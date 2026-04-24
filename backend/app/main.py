@@ -1,24 +1,9 @@
-"""Główny punkt wejścia aplikacji FastAPI BlockBT — MVP Fazy 2.
-
-Architektura typu Air-Gapped: ścisłe środowisko lokalne, brak systemu autoryzacji,
-wyłącznie lokalna logika wykonawcza. Tabele bazy danych tworzone są automatycznie
-podczas startu przy pomocy menedżera kontekstu (lifespan).
-"""
-
+import json
 import sys
-from pathlib import Path
-
-# Prepend the vendored vectorbt path before importing local modules that might import vectorbt.
-# This prevents vectorbt from being mistakenly loaded as a namespace package
-# if the process is launched from the repository root.
-_vbt_path = Path(__file__).resolve().parents[3] / "vectorbt"
-if _vbt_path.exists() and str(_vbt_path) not in sys.path:
-    sys.path.insert(0, str(_vbt_path))
-
+import time
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
-import time
-import json
+from pathlib import Path
 
 import uvicorn
 from fastapi import FastAPI, Request
@@ -29,6 +14,22 @@ from app.api import backtest, results, settings, strategies, workflows
 from app.db.session import get_session, init_db
 from app.models.orm import SystemPrompt
 from app.services.mcp.llm_client import _SYSTEM_PROMPT
+
+"""Główny punkt wejścia aplikacji FastAPI BlockBT — MVP Fazy 2.
+
+Architektura typu Air-Gapped: ścisłe środowisko lokalne, brak systemu autoryzacji,
+wyłącznie lokalna logika wykonawcza. Tabele bazy danych tworzone są automatycznie
+podczas startu przy pomocy menedżera kontekstu (lifespan).
+"""
+
+
+# Prepend the vendored vectorbt path before importing local modules that might import vectorbt.
+# This prevents vectorbt from being mistakenly loaded as a namespace package
+# if the process is launched from the repository root.
+_vbt_path = Path(__file__).resolve().parents[3] / "vectorbt"
+if _vbt_path.exists() and str(_vbt_path) not in sys.path:
+    sys.path.insert(0, str(_vbt_path))
+
 
 # ---------------------------------------------------------------------------
 # Lifespan — runs init_db() once at startup
@@ -114,7 +115,9 @@ async def log_requests(request: Request, call_next):
             "query_params": dict(request.query_params),
             "body": body_json
         }
-        logger.info(f"API Request: {request.method} {request.url.path} - {response.status_code}\nData: {json.dumps(log_data, indent=2, ensure_ascii=False)}")
+        logger.info(f"API Request: {request.method} {request.url.path} - "
+                    f"{response.status_code}\nData: "
+                    f"{json.dumps(log_data, indent=2, ensure_ascii=False)}")
         
     return response
 

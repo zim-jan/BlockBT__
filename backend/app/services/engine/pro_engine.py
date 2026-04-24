@@ -1,5 +1,14 @@
 from __future__ import annotations
 
+import sys
+from typing import Any
+
+import pandas as pd
+from loguru import logger
+
+from app.core.config import settings
+from app.services.engine.base import BaseStrategyEngine
+
 """
 ProEngine — BYOL (Bring Your Own License) engine backed by vectorbtpro.
 
@@ -16,14 +25,6 @@ BYOL loading order:
 """
 
 
-import sys
-from typing import Any
-
-import pandas as pd
-from loguru import logger
-
-from app.core.config import settings
-from app.services.engine.base import BaseStrategyEngine
 
 
 class ProEngine(BaseStrategyEngine):

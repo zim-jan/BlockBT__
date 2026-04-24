@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 
 class AppSettingUpdate(BaseModel):
@@ -17,7 +17,7 @@ class SystemPromptCreate(BaseModel):
     content: str
 
 
-from pydantic import BaseModel, ConfigDict
+
 
 class SystemPromptResponse(BaseModel):
     id: int

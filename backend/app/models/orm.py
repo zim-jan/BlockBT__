@@ -1,5 +1,12 @@
 from __future__ import annotations
 
+import datetime
+from typing import Any
+
+from sqlalchemy import DateTime, Float, ForeignKey, Integer, String, Text
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
+from sqlalchemy.types import JSON
+
 """
 BlockBT Phase 2 ORM models — Strategy & BacktestJob.
 
@@ -9,16 +16,10 @@ These are the lightweight models used by the REST API layer.
 """
 
 
-import datetime
-from typing import Any
-
-from sqlalchemy import DateTime, Float, ForeignKey, Integer, String, Text
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
-from sqlalchemy.types import JSON
 
 
 def _utcnow() -> datetime.datetime:
-    return datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None)
+    return datetime.datetime.now(datetime.UTC).replace(tzinfo=None)
 
 
 class Base(DeclarativeBase):

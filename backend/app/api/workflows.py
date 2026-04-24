@@ -1,3 +1,9 @@
+import uuid
+from datetime import UTC
+from typing import Any
+
+from fastapi import APIRouter
+
 from app.schemas.workflows import WorkflowCreate
 
 """
@@ -6,10 +12,6 @@ Workflows routes — Phase 1 MVP (mock, in-memory store).
 Workflows represent React Flow graph definitions saved by the frontend.
 """
 
-import uuid
-from typing import Any
-
-from fastapi import APIRouter
 
 router = APIRouter()
 
@@ -41,9 +43,9 @@ def get_workflow(workflow_id: str) -> dict[str, Any]:
 @router.post("/", response_model=dict, status_code=201)
 def save_workflow(payload: WorkflowCreate) -> dict[str, Any]:
     """Save a new React Flow workflow definition."""
-    from datetime import datetime, timezone
+    from datetime import datetime
 
-    now = datetime.now(timezone.utc).isoformat()
+    now = datetime.now(UTC).isoformat()
     new_wf: dict[str, Any] = {
         "id": str(uuid.uuid4()),
         "name": payload.name,

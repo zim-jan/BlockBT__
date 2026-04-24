@@ -1,5 +1,15 @@
 from __future__ import annotations
 
+import sys
+from datetime import UTC, datetime, timedelta
+from pathlib import Path
+from typing import Any
+
+import numpy as np
+import pandas as pd
+import vectorbt  # noqa: F401 — ensure it loads the real __init__.py
+from loguru import logger
+
 """
 run_vectorbt_backtest — Phase 3 background task entry-point.
 
@@ -15,14 +25,6 @@ This function is designed to be called via FastAPI BackgroundTasks:
 """
 
 
-import sys
-from datetime import datetime, timedelta, timezone
-from pathlib import Path
-from typing import Any
-
-import numpy as np
-import pandas as pd
-from loguru import logger
 
 # Ensure the vendored vectorbt directory is importable.
 # We must insert it into sys.path before any import attempt to prevent Python
@@ -31,8 +33,6 @@ from loguru import logger
 _VENDORED_VBT = Path(__file__).resolve().parents[4] / "vectorbt"
 if _VENDORED_VBT.exists() and str(_VENDORED_VBT) not in sys.path:
     sys.path.insert(0, str(_VENDORED_VBT))
-
-import vectorbt  # noqa: F401 — ensure it loads the real __init__.py
 
 
 # ---------------------------------------------------------------------------
@@ -91,9 +91,9 @@ def _fetch_market_data(
 
     # Default date range: 2 years back from today
     if not end_date:
-        end_date = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+        end_date = datetime.now(UTC).strftime("%Y-%m-%d")
     if not start_date:
-        start_dt = datetime.now(timezone.utc) - timedelta(days=730)
+        start_dt = datetime.now(UTC) - timedelta(days=730)
         start_date = start_dt.strftime("%Y-%m-%d")
 
     logger.info(
@@ -170,15 +170,19 @@ def _execute_backtest(parameters: dict[str, Any]) -> dict[str, Any]:
         macd_slow_w = int(parameters.get("macd_slow", 26))
         macd_signal = int(parameters.get("macd_signal", 9))
 
-        macd = vbt.MACD.run(close, fast_window=macd_fast, slow_window=macd_slow_w, signal_window=macd_signal)
+        macd = vbt.MACD.run(close, fast_window=macd_fast, slow_window=macd_slow_w,
+                            signal_window=macd_signal)
         macd_line = macd.macd
         sig_line = macd.signal
 
         # Crossover signals (pure pandas — no .vbt accessor dependency)
-        entries = (macd_line > sig_line) & (macd_line.shift(fill_value=0.0) <= sig_line.shift(fill_value=0.0))
-        exits = (macd_line < sig_line) & (macd_line.shift(fill_value=0.0) >= sig_line.shift(fill_value=0.0))
+        entries = (macd_line > sig_line) & (macd_line.shift(fill_value=0.0)
+                                            <= sig_line.shift(fill_value=0.0))
+        exits = (macd_line < sig_line) & (macd_line.shift(fill_value=0.0)
+                                          >= sig_line.shift(fill_value=0.0))
 
-        logger.info("BacktestRunner: MACD({}/{}/{}) signals generated", macd_fast, macd_slow_w, macd_signal)
+        logger.info("BacktestRunner: MACD({}/{}/{}) signals generated", macd_fast, macd_slow_w
+                    , macd_signal)
     else:
         # Default: SMA Crossover
         fast_ma = vbt.MA.run(close, window=sma_fast).ma
@@ -270,13 +274,13 @@ def run_vectorbt_backtest(job_id: int, parameters: dict[str, Any]) -> None:
     This function intentionally swallows all exceptions after logging them
     so it doesn't crash the FastAPI worker thread.
     """
-    from datetime import datetime, timezone
+    from datetime import datetime
 
     from app.db.session import get_session
     from app.models.orm import BacktestJob, JobStatus
 
     def _utcnow() -> datetime:
-        return datetime.now(timezone.utc).replace(tzinfo=None)
+        return datetime.now(UTC).replace(tzinfo=None)
 
     # Mark RUNNING
     try:
