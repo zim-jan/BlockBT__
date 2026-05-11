@@ -68,3 +68,14 @@ vectorbt/
 vectorbt.pro-main/
 vectorbt_src/
 
+/backend/backend.log
+/.github/copilot-instructions.md
+/dep.log
+/site/c1_metodologia/index.html
+/site/c2_realizacja_faza1/index.html
+/site/c3_realizacja_faza2_5/index.html
+/site/developer/backtesting_patterns/index.html
+/site/developer/extending_data/index.html
+/site/developer/extending_db/index.html
+/site/developer/overview/index.html
+/site/security_audit_report/index.html
