@@ -7,8 +7,11 @@ This is the main orchestrator for async background backtesting.
 from __future__ import annotations
 
 import sys
-from typing import Any
 from pathlib import Path
+from typing import Any
+
+import numpy as np
+import pandas as pd
 from loguru import logger
 
 from app.db.session import get_session
@@ -35,6 +38,7 @@ def _update_job_status(job_id: int, status: str, metrics: dict[str, Any] | None 
 
         job.status = status
         if metrics:
+            logger.info(f"BacktestRunner: updating job_id={job_id} metrics: {metrics}")
             job.metrics = metrics
             job.total_return_pct = metrics.get("Total Return [%]")
             job.sharpe_ratio = metrics.get("Sharpe Ratio")
@@ -100,17 +104,23 @@ def _execute_backtest(parameters: dict[str, Any]) -> dict[str, Any]:
     # Convert numeric types to basic python floats/ints for JSON serialization
     safe_metrics = {}
     for k, v in metrics.get("metrics", {}).items():
-        if isinstance(v, (vbt.tp.Array1d, np.ndarray, pd.Series)):
-            safe_metrics[k] = float(v.iloc[0] if hasattr(v, "iloc") else v[0])
-        elif isinstance(v, (np.float64, np.float32, float)):
-            if np.isnan(v) or np.isinf(v):
-                safe_metrics[k] = None
+        try:
+            if isinstance(v, (np.ndarray, pd.Series)):
+                val = v.iloc[0] if hasattr(v, "iloc") else v[0]
+                safe_metrics[k] = float(val)
+            elif isinstance(v, (np.integer, int)):
+                safe_metrics[k] = int(v)
+            elif isinstance(v, (np.floating, float)):
+                if np.isnan(v) or np.isinf(v):
+                    safe_metrics[k] = None
+                else:
+                    safe_metrics[k] = float(v)
             else:
+                # Catch-all for other numeric-like types
                 safe_metrics[k] = float(v)
-        elif isinstance(v, (np.int64, np.int32, int)):
-            safe_metrics[k] = int(v)
-        else:
-            safe_metrics[k] = v
+        except (TypeError, ValueError):
+            # Fallback to string representation if all else fails
+            safe_metrics[k] = v if isinstance(v, (str, type(None))) else str(v)
 
     return {
         "status": "COMPLETED",

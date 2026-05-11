@@ -34,4 +34,9 @@ class BacktestJobResponse(BaseModel):
     created_at: datetime
     metrics: dict[str, Any] | None = None
     parameters: dict[str, Any] | None = None
+    total_return_pct: float | None = None
+    sharpe_ratio: float | None = None
+    max_drawdown_pct: float | None = None
+    num_trades: int | None = None
+    final_capital: float | None = None
     error_message: str | None = None

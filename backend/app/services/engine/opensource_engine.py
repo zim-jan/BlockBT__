@@ -114,9 +114,9 @@ class OpenSourceEngine(BaseStrategyEngine):
             "Benchmark Return [%]": float((data["close"].iloc[-1] / data["close"].iloc[0] - 1) * 100) if len(data) > 0 else 0.0,
             "Max Drawdown [%]": float(portfolio.max_drawdown() * 100),
             "Sharpe Ratio": float(portfolio.sharpe_ratio()),
-            "Win Rate [%]": float(portfolio.win_rate() * 100),
+            "Win Rate [%]": float(portfolio.trades.win_rate() * 100) if portfolio.trades.count() > 0 else 0.0,
             "Total Trades": int(portfolio.trades.count()),
-            "Final Value": float(portfolio.value()[-1] if len(portfolio.value()) > 0 else initial_capital),
+            "Final Value": float(portfolio.value().iloc[-1] if len(portfolio.value()) > 0 else initial_capital),
         }
 
         logger.info("vectorbt backtest completed. Return: {:.2f}%", metrics["Total Return [%]"])

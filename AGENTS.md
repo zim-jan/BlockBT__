@@ -34,8 +34,16 @@ Jesteś Głównym Architektem i Programistą w projekcie BlockBT. Pracujesz w ry
   * Status: [DONE]
   * Cel: Naprawa błędów wykrytych podczas testów manualnych.
   * Wynik: 
-    - Naprawiono `AttributeError` w backendzie (benchmark_return).
-    - Zresetowano początkowy stan frontendu (puste canvas) dla ułatwienia testów.
+    - Naprawiono `AttributeError` w backendzie (benchmark_return oraz win_rate).
+    - Naprawiono `NameError` (brakujące importy np, pd w runner.py).
+    - Wprowadzono „pancerną” serializację metryk i mapowanie API (z wymuszeniem typów int/float).
+    - Zaktualizowano schematy Pydantic o brakujące pola root-level.
+    - Dodano logowanie diagnostyczne w backendzie i frontendzie (console.log).
+    - Zresetowano początkowy stan frontendu (puste canvas).
+    - 
+* **Veryfy Phase 1:** Nodes connectors validate
+  * Status: [PENDING]
+  * Cel: Walidacja połączeń miedzy node'mi. aktuanie można uruchomic backtest bez łaczenia i da nam wynik 
 
 * **Phase 4: Optimization Engine & Advanced Vectorization**
   * Status: [IN PROGRESS]
@@ -45,3 +53,18 @@ Jesteś Głównym Architektem i Programistą w projekcie BlockBT. Pracujesz w ry
     2. **Native Vectorization:** Refaktor silnika `OpenSourceEngine` pod kątem natywnej wektoryzacji kombinacji parametrów (wyeliminowanie pętli w grid search).
     3. **Optimizer Node:** Nowy typ węzła we frontendowym Visual Builderze dedykowany do zadań optymalizacyjnych.
     4. **Wizualizacja:** Integracja wyników Optuna (Parallel Coordinate Plot) w interfejsie.
+    5. **Error:** przy zamykaniu procesu make api ```INFO:     Stopping reloader process [61703]
+     /home/przydan/.local/share/uv/python/cpython-3.13.12-linux-x86_64-gnu/lib/python3.13/multiprocessing/resource_tracker.py:400: UserWarning: resource_tracker: There appear to be 1 leaked semaphore objects to clean up at shutdown: {'/loky-61705-wwurfoft'}
+       warnings.warn(```
+       6. **ERROR2:** ``` 2026-05-11 13:36:21.538 | INFO     | app.main:lifespan:59 - Zamykanie API BlockBT.
+      INFO:     Application shutdown complete.
+      INFO:     Finished server process [123670]
+      INFO:     Stopping reloader process [123668]
+        /home/przydan/.local/share/uv/python/cpython-3.13.12-linux-x86_64-gnu/lib/python3.13/multiprocessing/resource_tracker.py:400: UserWarning: resource_tracker: There appear to be 1 leaked semaphore objects to clean up at shutdown: {'/loky-123670-asqlxoeb'}
+      warnings.warn(
+  ~/PycharmProjects/BlockBT-vm3-ai dev-przydan-improve* przydan@vm3-ai 2m 27s
+  BlockBT-vm3-ai ❯ make api
+  cd backend && uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
+  INFO:     Will watch for changes in these directories: ['/home/przydan/PycharmProjects/BlockBT-vm3-ai/backend']
+  ERROR:    [Errno 98] Address already in use
+  make: *** [Makefile:16: api] Błąd 1``` 

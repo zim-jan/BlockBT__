@@ -127,8 +127,23 @@ export function useWorkflowExecution() {
 
           if (status === 'COMPLETED') {
             stopPolling()
+            console.log('✅ useWorkflowExecution: COMPLETED. Raw jobData:', jobData)
+            
+            // Map metrics safely, ensuring we pull from both root and nested object
+            const rawMetrics = jobData.metrics || {}
+            const finalMetrics: BacktestMetrics = {
+              ...rawMetrics,
+              total_return_pct: jobData.total_return_pct ?? rawMetrics.total_return_pct,
+              sharpe_ratio: jobData.sharpe_ratio ?? rawMetrics.sharpe_ratio,
+              max_drawdown_pct: jobData.max_drawdown_pct ?? rawMetrics.max_drawdown_pct,
+              num_trades: jobData.num_trades ?? rawMetrics.num_trades,
+              final_capital: jobData.final_capital ?? rawMetrics.final_capital,
+            }
+            
+            console.log('📦 useWorkflowExecution: Formatted metrics for store:', finalMetrics)
+
             updatePortfolioResult(
-              jobData.metrics as BacktestMetrics | null,
+              finalMetrics,
               'COMPLETED',
               jobId
             )
