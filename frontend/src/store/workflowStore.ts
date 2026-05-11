@@ -24,41 +24,11 @@ import type {
 } from '../types/types'
 
 // ---------------------------------------------------------------------------
-// Initial canvas nodes — the four-step pipeline as a starting template
+// Initial canvas nodes — empty for testing
 // ---------------------------------------------------------------------------
 
-const initialNodes: Node[] = [
-  {
-    id: 'data-1',
-    type: 'dataNode',
-    position: { x: 60, y: 200 },
-    data: { symbol: 'AAPL', dataSource: 'yahoo', startDate: '2023-01-01', endDate: '2025-01-01', timeframe: '1d' } satisfies DataNodeData,
-  },
-  {
-    id: 'indicator-1',
-    type: 'indicatorNode',
-    position: { x: 320, y: 160 },
-    data: { indicatorType: 'sma_crossover', smaFast: 10, smaSlow: 30, initialCapital: 10000 } satisfies IndicatorNodeData,
-  },
-  {
-    id: 'signal-1',
-    type: 'signalNode',
-    position: { x: 600, y: 200 },
-    data: { signalType: 'sma_crossover' } satisfies SignalNodeData,
-  },
-  {
-    id: 'portfolio-1',
-    type: 'portfolioNode',
-    position: { x: 860, y: 140 },
-    data: {} satisfies PortfolioNodeData,
-  },
-]
-
-const initialEdges: Edge[] = [
-  { id: 'e1', source: 'data-1', target: 'indicator-1', animated: true },
-  { id: 'e2', source: 'indicator-1', target: 'signal-1', animated: true },
-  { id: 'e3', source: 'signal-1', target: 'portfolio-1', animated: true },
-]
+const initialNodes: Node[] = []
+const initialEdges: Edge[] = []
 
 // ---------------------------------------------------------------------------
 // Store interface

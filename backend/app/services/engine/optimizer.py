@@ -1,74 +1,70 @@
 """
-Static parameter optimization module using Grid Search.
+Phase 5 — Grid Search Optimizer for parameters.
 
-This module provides the GridSearchOptimizer class, which executes vectorized
-parameter searches using the open-source vectorbt library.
+Allows exhaustive Cartesian-product parameter searches using the open-source vectorbt library.
 """
 
-import itertools
-import sys
-from collections.abc import Callable
-from typing import Any
+from __future__ import annotations
 
+import sys
+import itertools
+from typing import Any
+from pathlib import Path
+
+import numpy as np
 import pandas as pd
 from loguru import logger
 
 from app.core.config import settings
-from app.services.engine.base import BaseStrategyEngine
 
 # Make vendored vectorbt importable
-_VENDORED_VBT = settings.PROJECT_ROOT / "vectorbt"
+_VENDORED_VBT = settings.PROJECT_ROOT / "vectorbt_src"
 if _VENDORED_VBT.exists() and str(_VENDORED_VBT) not in sys.path:
     sys.path.insert(0, str(_VENDORED_VBT))
 
 
 class GridSearchOptimizer:
-    """
-    Executes a static grid search optimization for a given strategy.
+    """Explores exhaustive combinations of strategy parameters to find optimal variables.
 
-    This optimizer generates a Cartesian product of all parameters in the
-    `param_grid` to perform a fully vectorized backtest using vectorbt.
-    Instead of passing lists directly (which could cause shape errors or
-    MultiIndex conflicts), it generates perfectly matched flat lists for
-    each parameter, ensuring that vectorbt's native broadcasting works
-    efficiently and safely.
+    Generates a flattened cartesian product array from the provided `param_grid` to perform a fully vectorized backtest using vectorbt.
+
+    This ensures that each run is isolated as a distinct sequence for each parameter, ensuring that vectorbt's native broadcasting works seamlessly without throwing MultiIndex errors.
     """
 
-    def __init__(
-        self,
-        engine: BaseStrategyEngine,
-        indicator_layer: Callable[..., tuple[pd.Series | pd.DataFrame, pd.Series | pd.DataFrame]],
-    ):
-        """
-        Initialize the optimizer.
+    def __init__(self, engine_instance: Any) -> None:
+        """Initialize the optimizer with a compatible BaseStrategyEngine instance.
 
-        Args:
-            engine: The strategy execution engine (e.g., OpenSourceEngine).
-            indicator_layer: A callable that accepts a data DataFrame/Series and
-                parameter lists as keyword arguments, and returns a tuple of
-                (entries, exits) as vectorized boolean masks.
+        Parameters
+        ----------
+        engine_instance : BaseStrategyEngine
+            Instance of the execution engine (OpenSourceEngine or ProEngine).
         """
-        self.engine = engine
-        self.indicator_layer = indicator_layer
+        self.engine = engine_instance
 
-    def optimize(
+    def run_optimization(
         self,
-        data: pd.DataFrame,
         param_grid: dict[str, list[Any]],
+        data: pd.DataFrame,
+        base_parameters: dict[str, Any],
         metric: str = "Total Return [%]",
-    ) -> dict[str, Any]:
-        """
-        Run a vectorized grid search optimization.
+    ) -> list[dict[str, Any]]:
+        """Run grid search optimization over all parameter combinations.
 
-        Args:
-            data: Market data DataFrame (must contain 'close' column).
-            param_grid: A dictionary where keys are parameter names and values are
-                lists of parameter values to test.
-            metric: The performance metric to maximize, exactly as it appears in
-                vectorbt's `portfolio.stats()`. Defaults to 'Total Return [%]'.
+        Parameters
+        ----------
+        param_grid : dict[str, list[Any]]
+            A dictionary where keys are parameter names and values are lists of discrete values to test. (e.g., {"sma_fast": [5, 10, 15], "sma_slow": [20, 30]}).
+        data : pd.DataFrame
+            Market data.
+        base_parameters : dict[str, Any]
+            The baseline parameters. Keys present in the `param_grid` will overwrite these.
+        metric : str, optional
+            The performance metric to extract from the returned results, must exactly match a key in vectorbt's `portfolio.stats()`. Defaults to 'Total Return [%]'.
 
-        Returns:
-            A dictionary containing the best parameter combination and its performance metrics.
+        Returns
+        -------
+        list[dict[str, Any]]
+            A list of result dictionaries, each containing the 'parameters' used and the resulting 'metrics'.
         """
         try:
             import vectorbt as vbt  # type: ignore[import]
@@ -78,95 +74,87 @@ class GridSearchOptimizer:
                 f"at {_VENDORED_VBT}."
             ) from exc
 
-        if not param_grid:
-            logger.warning("Empty param_grid provided to GridSearchOptimizer.")
-            return {}
-
+        # 1. Generate all flat combinations
         keys = list(param_grid.keys())
-        value_lists = [param_grid[k] for k in keys]
+        value_lists = list(param_grid.values())
 
-        # Generate Cartesian product of all parameters
+        # Cartesian product of all value lists
         combinations = list(itertools.product(*value_lists))
 
-        if not combinations:
-            logger.warning("Empty param_grid provided to GridSearchOptimizer.")
-            return {}
-
-        # Transpose combinations to get a flat list for each parameter
-        flat_args = list(zip(*combinations, strict=False))
-        kwargs = {keys[i]: list(flat_args[i]) for i in range(len(keys))}
-
-        logger.info(f"Running GridSearchOptimizer for {len(combinations)} combinations.")
-
-        # Call indicator layer to get vectorized entries and exits
-        entries, exits = self.indicator_layer(data, **kwargs)
-
-        if isinstance(data, pd.DataFrame) and "close" in data.columns:
-            close = data["close"]
-        else:
-            close = data
-
-        portfolio = vbt.Portfolio.from_signals(
-            close,
-            entries=entries,
-            exits=exits,
-            freq="D",
-        )
-
-        try:
-            stats_df = portfolio.stats(agg_func=None)
-        except Exception as e:
-            logger.error(f"Failed to generate stats from vectorbt portfolio: {e}")
-            return {}
-
-        # If there's only one combination, stats_df is a Series instead of a DataFrame
-        if isinstance(stats_df, pd.Series):
-            if metric not in stats_df.index:
-                logger.error(f"Metric '{metric}' not found in vectorbt stats.")
-                return {}
-            # For a single combination, we handle it explicitly
-            best_idx = 0
-            best_metric_val = stats_df[metric]
-            best_params = {keys[i]: combinations[0][i] for i in range(len(keys))}
-            best_stats = stats_df.to_dict()
-
-            logger.info(
-                f"Optimization finished. Best combination: {best_params} "
-                f"with {metric} = {best_metric_val}"
-            )
-
-            return {
-                "best_params": best_params,
-                "best_metric_value": best_metric_val,
-                "metric_name": metric,
-                "stats": best_stats,
-            }
-
-        if metric not in stats_df.columns:
-            logger.error(f"Metric '{metric}' not found in vectorbt stats.")
-            return {}
-
-        metric_series = stats_df[metric]
-
-        try:
-            best_idx = metric_series.argmax()
-        except Exception:
-            best_idx = metric_series.fillna(-float("inf")).argmax()
-
-        best_metric_val = metric_series.iloc[best_idx]
-        best_combination_tuple = combinations[best_idx]
-
-        best_params = {keys[i]: best_combination_tuple[i] for i in range(len(keys))}
-        best_stats = stats_df.iloc[best_idx].to_dict()
-
         logger.info(
-            f"Optimization finished. Best combination: {best_params} "
-            f"with {metric} = {best_metric_val}"
+            "Starting Grid Search: evaluating {} combinations for parameters: {}",
+            len(combinations),
+            keys,
         )
 
-        return {
-            "best_params": best_params,
-            "best_metric_value": best_metric_val,
-            "metric_name": metric,
-            "stats": best_stats,
-        }
+        results: list[dict[str, Any]] = []
+
+        # 2. Iterate combinations (Flat iteration for stability in OSS vectorbt)
+        # Note: True vectorization of entire grids is difficult without Pro,
+        # so we iterate. The engine itself still runs vectorized per-iteration.
+        for combo in combinations:
+            # Create a localized parameter payload
+            current_params = base_parameters.copy()
+            combo_dict = dict(zip(keys, combo))
+            current_params.update(combo_dict)
+
+            logger.debug("Testing grid parameters: {}", combo_dict)
+
+            # 3. Execute
+            try:
+                # We expect the engine to return a flat dictionary mapping metrics -> values
+                execution_result = self.engine.run_backtest(current_params, data)
+                metrics_output = execution_result.get("metrics", {})
+
+                # Construct a clean result object
+                run_record = {
+                    "parameters": combo_dict,
+                    "metrics": metrics_output,
+                }
+
+                results.append(run_record)
+
+            except Exception as e:
+                logger.error(f"Failed to generate stats from vectorbt portfolio: {e}")
+                # Append a failed marker
+                results.append({"parameters": combo_dict, "metrics": {metric: float("-inf")}})
+
+        # 4. Sort results descending by the target metric
+        def extract_metric(res: dict[str, Any]) -> float:
+            m = res.get("metrics", {}).get(metric)
+            if m is None:
+                logger.error(f"Metric '{metric}' not found in vectorbt stats.")
+                return float("-inf")
+            return float(m)
+
+        results.sort(key=extract_metric, reverse=True)
+
+        logger.info("Grid search completed. Best {} -> {}", metric, extract_metric(results[0]) if results else "N/A")
+
+        return results
+
+    @staticmethod
+    def get_best_parameters(results: list[dict[str, Any]], metric: str = "Total Return [%]") -> dict[str, Any]:
+        """Helper to extract the parameters from the best performing result.
+
+        Parameters
+        ----------
+        results : list[dict[str, Any]]
+            Output of `run_optimization`.
+        metric : str
+            Metric used for evaluation.
+
+        Returns
+        -------
+        dict[str, Any]
+            The optimal parameter dictionary.
+        """
+        if not results:
+            return {}
+
+        best_result = max(
+            results,
+            key=lambda x: float(x.get("metrics", {}).get(metric, float("-inf"))),
+        )
+
+        return best_result.get("parameters", {})

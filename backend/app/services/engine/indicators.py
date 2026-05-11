@@ -14,6 +14,22 @@ class IndicatorService:
     Klasa generująca sygnały wejścia i wyjścia (entries/exits) na podstawie danych OHLCV.
     """
 
+    @staticmethod
+    def generate_sma_crossover(close: pd.Series, fast_window: int, slow_window: int, vbt: Any) -> tuple[pd.Series, pd.Series]:
+        """
+        Generuje sygnały transakcyjne na podstawie strategii SMA Crossover.
+        """
+        logger.debug(f"IndicatorService: Generowanie sygnałów SMA (fast={fast_window}, slow={slow_window})")
+
+        # Korzystamy z darmowego wskaźnika vbt.MA zgodnie z wymaganiami MVP
+        fast_ma = vbt.MA.run(close, window=fast_window).ma
+        slow_ma = vbt.MA.run(close, window=slow_window).ma
+
+        entries = fast_ma.vbt.crossed_above(slow_ma)
+        exits = fast_ma.vbt.crossed_below(slow_ma)
+
+        return entries, exits
+
     def generate_signals(
         self, close: pd.Series, params: dict[str, Any], vbt: Any
     ) -> tuple[pd.Series, pd.Series]:
@@ -69,13 +85,4 @@ class IndicatorService:
         fast_w = params.get("sma_fast", 10)
         slow_w = params.get("sma_slow", 30)
 
-        logger.debug(f"IndicatorService: Generowanie sygnałów SMA (fast={fast_w}, slow={slow_w})")
-
-        # Korzystamy z darmowego wskaźnika vbt.MA zgodnie z wymaganiami MVP
-        fast_ma = vbt.MA.run(close, window=fast_w).ma
-        slow_ma = vbt.MA.run(close, window=slow_w).ma
-
-        entries = fast_ma.vbt.crossed_above(slow_ma)
-        exits = fast_ma.vbt.crossed_below(slow_ma)
-
-        return entries, exits
+        return self.generate_sma_crossover(close, fast_w, slow_w, vbt)
