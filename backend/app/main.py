@@ -56,7 +56,18 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 
     logger.info("Database ready.")
     yield
-    logger.info("Zamykanie API BlockBT.")
+    logger.info("Zamykanie API BlockBT. Czyszczenie zasobów...")
+
+    # Clean up joblib/loky executors to avoid leaked semaphores and child processes
+    try:
+        from joblib.externals.loky import get_reusable_executor
+        executor = get_reusable_executor()
+        executor.shutdown(wait=True)
+        logger.info("Loky executor shut down pomyślnie.")
+    except (ImportError, Exception) as e:
+        logger.debug(f"Pominięto czyszczenie loky: {e}")
+
+    logger.info("API BlockBT zostało zamknięte.")
 
 
 # ---------------------------------------------------------------------------

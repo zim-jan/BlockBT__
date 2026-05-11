@@ -19,7 +19,7 @@ const POLL_INTERVAL_MS = 2500
 const MAX_POLL_ATTEMPTS = 120 // 5-minute hard cap
 
 export function useWorkflowExecution() {
-  const { nodes, isRunning, setJobState, updatePortfolioResult, resetExecution } = useWorkflowStore()
+  const { nodes, edges, isRunning, setJobState, updatePortfolioResult, resetExecution } = useWorkflowStore()
   const pollTimer = useRef<ReturnType<typeof setInterval> | null>(null)
 
   const stopPolling = useCallback(() => {
@@ -32,13 +32,30 @@ export function useWorkflowExecution() {
   const runBacktest = useCallback(async () => {
     if (isRunning) return
 
-    //TODO: Wybiera node'y, co jak będzie kilka datasource, lub indicators
-    // 1. Extract parameters from canvas nodes
+    // 1. Extract and validate nodes and connections
     const dataNode = nodes.find((n) => n.type === 'dataNode')
     const indicatorNode = nodes.find((n) => n.type === 'indicatorNode')
+    const portfolioNode = nodes.find((n) => n.type === 'portfolioNode')
 
-    if (!dataNode || !indicatorNode) {
-      alert('The canvas must contain a Data node and an Indicator node.')
+    if (!dataNode || !indicatorNode || !portfolioNode) {
+      alert('The canvas must contain a Data node, an Indicator node, and a Portfolio node.')
+      return
+    }
+
+    // Validate connections
+    const isDataConnected = edges.some(e => 
+      e.source === dataNode.id && e.target === indicatorNode.id
+    )
+    const isIndicatorConnected = edges.some(e => 
+      e.source === indicatorNode.id && e.target === portfolioNode.id
+    )
+
+    if (!isDataConnected) {
+      alert('Data node must be connected to the Indicator node.')
+      return
+    }
+    if (!isIndicatorConnected) {
+      alert('Indicator node must be connected to the Portfolio node.')
       return
     }
 
@@ -130,14 +147,23 @@ export function useWorkflowExecution() {
             console.log('✅ useWorkflowExecution: COMPLETED. Raw jobData:', jobData)
             
             // Map metrics safely, ensuring we pull from both root and nested object
-            const rawMetrics = jobData.metrics || {}
+            const jd = jobData as any
+            const rawMetrics = (jd.metrics || {}) as Record<string, any>
             const finalMetrics: BacktestMetrics = {
-              ...rawMetrics,
-              total_return_pct: jobData.total_return_pct ?? rawMetrics.total_return_pct,
-              sharpe_ratio: jobData.sharpe_ratio ?? rawMetrics.sharpe_ratio,
-              max_drawdown_pct: jobData.max_drawdown_pct ?? rawMetrics.max_drawdown_pct,
-              num_trades: jobData.num_trades ?? rawMetrics.num_trades,
-              final_capital: jobData.final_capital ?? rawMetrics.final_capital,
+              engine: jd.parameters?.engine ?? 'vectorbt',
+              symbol: symbol,
+              data_source: dataSource,
+              strategy_type: indicatorType,
+              sma_fast: smaFast,
+              sma_slow: smaSlow,
+              n_days: 0, // Calculated later or ignored for now
+              initial_capital: initialCapital,
+              total_return_pct: jd.total_return_pct ?? rawMetrics.total_return_pct ?? 0,
+              sharpe_ratio: jd.sharpe_ratio ?? rawMetrics.sharpe_ratio ?? 0,
+              max_drawdown_pct: jd.max_drawdown_pct ?? rawMetrics.max_drawdown_pct ?? 0,
+              num_trades: jd.num_trades ?? rawMetrics.num_trades ?? 0,
+              final_capital: jd.final_capital ?? rawMetrics.final_capital ?? initialCapital,
+              win_rate_pct: rawMetrics.win_rate_pct ?? 0,
             }
             
             console.log('📦 useWorkflowExecution: Formatted metrics for store:', finalMetrics)
@@ -161,7 +187,7 @@ export function useWorkflowExecution() {
       setJobState(false, null, 'FAILED', msg)
       updatePortfolioResult(null, 'FAILED', 0, msg)
     }
-  }, [nodes, isRunning, setJobState, updatePortfolioResult, stopPolling])
+  }, [nodes, edges, isRunning, setJobState, updatePortfolioResult, stopPolling])
 
   // Cleanup polling timer on unmount to prevent memory leaks
   useEffect(() => () => stopPolling(), [stopPolling])
