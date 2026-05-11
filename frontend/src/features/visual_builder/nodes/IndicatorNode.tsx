@@ -13,6 +13,7 @@ import type {IndicatorNodeData, IndicatorType} from '../../../types/types'
 export function IndicatorNode({ id, data }: NodeProps<IndicatorNodeData>) {
   const updateNodeData = useWorkflowStore((s) => s.updateNodeData)
   const isMACD = data.indicatorType === 'macd'
+  const isCustom = data.indicatorType === 'custom'
 
   return (
     <div className="react-flow__node-indicator" style={nodeStyle}>
@@ -27,10 +28,11 @@ export function IndicatorNode({ id, data }: NodeProps<IndicatorNodeData>) {
       >
         <option value="sma_crossover">SMA Crossover</option>
         <option value="macd">MACD</option>
+        <option value="custom">Custom Code</option>
       </select>
 
       {/* SMA Crossover parameters */}
-      {!isMACD && (
+      {!isMACD && !isCustom && (
         <>
           <label style={labelStyle}>Fast SMA</label>
           <input
@@ -55,7 +57,7 @@ export function IndicatorNode({ id, data }: NodeProps<IndicatorNodeData>) {
       )}
 
       {/* MACD parameters */}
-      {isMACD && (
+      {isMACD && !isCustom && (
         <>
           <label style={labelStyle}>Fast Period</label>
           <input
@@ -86,6 +88,24 @@ export function IndicatorNode({ id, data }: NodeProps<IndicatorNodeData>) {
             onChange={(e) => updateNodeData(id, { macdSignal: Number(e.target.value) })}
             style={inputStyle}
           />
+        </>
+      )}
+
+      {/* Custom Code editor */}
+      {isCustom && (
+        <>
+          <label style={labelStyle}>Python / vectorbt Code</label>
+          <textarea
+            rows={8}
+            value={data.codeContent ?? "entries = close.vbt.indicators.RSI.run().rsi_below(30)\nexits = close.vbt.indicators.RSI.run().rsi_above(70)"}
+            onChange={(e) => updateNodeData(id, { codeContent: e.target.value })}
+            style={{ ...inputStyle, fontFamily: 'monospace', fontSize: '11px', resize: 'vertical' }}
+            placeholder="entries = ...\nexits = ..."
+          />
+          <div style={{ fontSize: '10px', color: '#64748b', marginTop: '4px' }}>
+            Available: <code>close</code>, <code>vbt</code>, <code>np</code>, <code>pd</code>.<br/>
+            Must define <code>entries</code> and <code>exits</code>.
+          </div>
         </>
       )}
 

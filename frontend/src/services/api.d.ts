@@ -93,6 +93,50 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/optimizer/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List optimization jobs
+         * @description Return all optimization jobs ordered by creation date.
+         */
+        get: operations["list_optimization_jobs_api_optimizer__get"];
+        put?: never;
+        /**
+         * Trigger optimization
+         * @description Create an OptimizationJob and enqueue the Optuna study in the background.
+         */
+        post: operations["trigger_optimization_api_optimizer__post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/optimizer/{job_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get optimization status
+         * @description Return the current status and results of an optimization job.
+         */
+        get: operations["get_optimization_status_api_optimizer__job_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/workflows/": {
         parameters: {
             query?: never;
@@ -404,6 +448,100 @@ export interface components {
             /** Detail */
             detail?: components["schemas"]["ValidationError"][];
         };
+        /** OptimizationJobResponse */
+        OptimizationJobResponse: {
+            /** Id */
+            id: number;
+            /** Job Id */
+            job_id: number;
+            /** Strategy Id */
+            strategy_id: number;
+            /** Status */
+            status: string;
+            /** Symbol */
+            symbol: string;
+            /** Initial Capital */
+            initial_capital: number;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Best Parameters */
+            best_parameters?: {
+                [key: string]: unknown;
+            } | null;
+            /** Best Value */
+            best_value?: number | null;
+            /** Trials Data */
+            trials_data?: {
+                [key: string]: unknown;
+            } | null;
+            /** Error Message */
+            error_message?: string | null;
+            /** Completed At */
+            completed_at?: string | null;
+        };
+        /** OptimizationRequest */
+        OptimizationRequest: {
+            /** Strategy Id */
+            strategy_id: number;
+            /** Symbol */
+            symbol: string;
+            /**
+             * Data Source
+             * @default yahoo
+             */
+            data_source: string;
+            /**
+             * Timeframe
+             * @default 1d
+             */
+            timeframe: string;
+            /** Start Date */
+            start_date?: string | null;
+            /** End Date */
+            end_date?: string | null;
+            /**
+             * Initial Capital
+             * @default 10000
+             */
+            initial_capital: number;
+            /**
+             * Metric
+             * @default Total Return [%]
+             */
+            metric: string;
+            /**
+             * N Trials
+             * @default 20
+             */
+            n_trials: number;
+            /** Param Bounds */
+            param_bounds: {
+                [key: string]: components["schemas"]["ParameterBounds"];
+            };
+            /** Parameters */
+            parameters?: {
+                [key: string]: unknown;
+            } | null;
+        };
+        /** ParameterBounds */
+        ParameterBounds: {
+            /** Min */
+            min: number;
+            /** Max */
+            max: number;
+            /** Step */
+            step?: number | null;
+            /**
+             * Type
+             * @default int
+             */
+            type: string;
+            /** Choices */
+            choices?: unknown[] | null;
+        };
         /** StrategyCreate */
         StrategyCreate: {
             /** Name */
@@ -672,6 +810,94 @@ export interface operations {
                     "application/json": {
                         [key: string]: unknown;
                     };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_optimization_jobs_api_optimizer__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    }[];
+                };
+            };
+        };
+    };
+    trigger_optimization_api_optimizer__post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OptimizationRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_optimization_status_api_optimizer__job_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                job_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OptimizationJobResponse"];
                 };
             };
             /** @description Validation Error */

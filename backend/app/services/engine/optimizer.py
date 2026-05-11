@@ -11,6 +11,7 @@ import itertools
 from typing import Any
 from pathlib import Path
 
+import optuna
 import numpy as np
 import pandas as pd
 from loguru import logger
@@ -82,42 +83,39 @@ class GridSearchOptimizer:
         combinations = list(itertools.product(*value_lists))
 
         logger.info(
-            "Starting Grid Search: evaluating {} combinations for parameters: {}",
+            "Starting Vectorized Grid Search: evaluating {} combinations for parameters: {}",
             len(combinations),
             keys,
         )
 
-        results: list[dict[str, Any]] = []
+        # 2. Build vectorized parameters payload
+        grid_params = base_parameters.copy()
+        for i, key in enumerate(keys):
+            # Extract all values for this parameter across all combinations
+            grid_params[key] = [combo[i] for combo in combinations]
 
-        # 2. Iterate combinations (Flat iteration for stability in OSS vectorbt)
-        # Note: True vectorization of entire grids is difficult without Pro,
-        # so we iterate. The engine itself still runs vectorized per-iteration.
-        for combo in combinations:
-            # Create a localized parameter payload
-            current_params = base_parameters.copy()
-            combo_dict = dict(zip(keys, combo))
-            current_params.update(combo_dict)
+        # 3. Execute vectorized backtest
+        try:
+            execution_result = self.engine.run_backtest(grid_params, data)
+            
+            if not execution_result.get("is_vectorized"):
+                 logger.warning("Engine did not return vectorized results. Falling back to empty.")
+                 return []
 
-            logger.debug("Testing grid parameters: {}", combo_dict)
-
-            # 3. Execute
-            try:
-                # We expect the engine to return a flat dictionary mapping metrics -> values
-                execution_result = self.engine.run_backtest(current_params, data)
-                metrics_output = execution_result.get("metrics", {})
-
-                # Construct a clean result object
-                run_record = {
+            vectorized_data = execution_result.get("vectorized_results", [])
+            
+            results: list[dict[str, Any]] = []
+            for i, record in enumerate(vectorized_data):
+                # Map back the parameters to the result
+                combo_dict = dict(zip(keys, combinations[i]))
+                results.append({
                     "parameters": combo_dict,
-                    "metrics": metrics_output,
-                }
+                    "metrics": record.get("metrics", {})
+                })
 
-                results.append(run_record)
-
-            except Exception as e:
-                logger.error(f"Failed to generate stats from vectorbt portfolio: {e}")
-                # Append a failed marker
-                results.append({"parameters": combo_dict, "metrics": {metric: float("-inf")}})
+        except Exception as e:
+            logger.error(f"Failed to execute vectorized grid search: {e}")
+            return []
 
         # 4. Sort results descending by the target metric
         def extract_metric(res: dict[str, Any]) -> float:
@@ -158,3 +156,81 @@ class GridSearchOptimizer:
         )
 
         return best_result.get("parameters", {})
+
+
+class OptunaOptimizer:
+    """Uses Optuna (TPE) to find optimal parameters efficiently."""
+
+    def __init__(self, engine_instance: Any) -> None:
+        self.engine = engine_instance
+
+    def run_optimization(
+        self,
+        param_bounds: dict[str, Any],
+        data: pd.DataFrame,
+        base_parameters: dict[str, Any],
+        n_trials: int = 20,
+        metric: str = "Total Return [%]",
+    ) -> dict[str, Any]:
+        """Run Bayesian optimization.
+
+        param_bounds: dict mapping param_name -> {min, max, type, ...}
+        """
+        logger.info("Starting Optuna optimization (trials={})", n_trials)
+
+        def objective(trial: optuna.Trial) -> float:
+            current_params = base_parameters.copy()
+            for name, bounds in param_bounds.items():
+                # Support both Pydantic model and dict
+                b = bounds.dict() if hasattr(bounds, "dict") else bounds
+                p_type = b.get("type", "int")
+
+                if p_type == "int":
+                    step_val = b.get("step")
+                    current_params[name] = trial.suggest_int(
+                        name, 
+                        int(b["min"]), 
+                        int(b["max"]), 
+                        step=int(step_val) if step_val is not None else 1
+                    )
+                elif p_type == "float":
+                    step_val = b.get("step")
+                    current_params[name] = trial.suggest_float(
+                        name, 
+                        float(b["min"]), 
+                        float(b["max"]), 
+                        step=float(step_val) if step_val is not None else None
+                    )
+                elif p_type == "categorical":
+                    current_params[name] = trial.suggest_categorical(name, b["choices"])
+
+            try:
+                execution_result = self.engine.run_backtest(current_params, data)
+                val = execution_result.get("metrics", {}).get(metric, 0.0)
+                return float(val) if val is not None else 0.0
+            except Exception as e:
+                logger.error(f"Trial {trial.number} failed: {e}")
+                return 0.0
+
+        study = optuna.create_study(direction="maximize")
+        study.optimize(objective, n_trials=n_trials)
+
+        # Format history
+        trials_history = []
+        for t in study.trials:
+            trials_history.append(
+                {
+                    "number": t.number,
+                    "value": t.value,
+                    "params": t.params,
+                    "state": str(t.state),
+                }
+            )
+
+        logger.info("Optuna optimization finished. Best value: {}", study.best_value)
+
+        return {
+            "best_params": study.best_params,
+            "best_value": study.best_value,
+            "trials": trials_history,
+        }

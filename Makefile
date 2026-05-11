@@ -15,6 +15,17 @@ dev: api frontend ## Start both backend and frontend (requires two terminals)
 api: ## Start FastAPI backend (dev mode)
 	cd backend && uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
 
+kill-api: ## Kill any existing uvicorn processes on port 8000
+	@lsof -ti:8000 | xargs -r kill -9
+	@echo "✓ Backend processes on port 8000 killed."
+
+clean: ## Clean up temporary files, caches and leaked resources
+	find . -type d -name "__pycache__" -exec rm -rf {} +
+	find . -type d -name ".pytest_cache" -exec rm -rf {} +
+	find . -type d -name ".ruff_cache" -exec rm -rf {} +
+	rm -rf backend/data/parquet_cache/*
+	@echo "✓ Caches and temporary files cleaned."
+
 frontend: ## Start Vite frontend (dev mode)
 	cd frontend && npm run dev
 

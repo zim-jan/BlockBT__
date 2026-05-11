@@ -72,6 +72,7 @@ export function useWorkflowExecution() {
     const smaFast: number = Number(iData.smaFast ?? 10)
     const smaSlow: number = Number(iData.smaSlow ?? 30)
     const initialCapital: number = Number(iData.initialCapital ?? 10000)
+    const codeContent: string = iData.codeContent ?? ""
 
     // SMA validation (only for SMA crossover)
     if (indicatorType === 'sma_crossover' && smaFast >= smaSlow) {
@@ -83,12 +84,17 @@ export function useWorkflowExecution() {
 
     try {
       // 2. Build strategy name based on indicator type
-      const strategyName = indicatorType === 'macd'
-        ? `${symbol} MACD(${iData.macdFast ?? 12}/${iData.macdSlow ?? 26}/${iData.macdSignal ?? 9})`
-        : `${symbol} SMA(${smaFast}/${smaSlow})`
+      let strategyName = ""
+      if (indicatorType === 'macd') {
+        strategyName = `${symbol} MACD(${iData.macdFast ?? 12}/${iData.macdSlow ?? 26}/${iData.macdSignal ?? 9})`
+      } else if (indicatorType === 'custom') {
+        strategyName = `${symbol} Custom Logic`
+      } else {
+        strategyName = `${symbol} SMA(${smaFast}/${smaSlow})`
+      }
 
       const stratRes = await api.strategies.create({
-        code_content: "",
+        code_content: codeContent,
         name: `${strategyName} — ${new Date().toLocaleTimeString()}`,
         description: `Created from WorkflowEditor [${dataSource}]`,
         parameters: {

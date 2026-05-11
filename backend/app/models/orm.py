@@ -46,12 +46,16 @@ class Strategy(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     name: Mapped[str] = mapped_column(String(128), nullable=False)
     description: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    code_content: Mapped[str] = mapped_column(Text, nullable=False, default="")
     parameters: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False, default=dict)
     created_at: Mapped[datetime.datetime] = mapped_column(DateTime, nullable=False, default=_utcnow)
 
     # relationships
     backtest_jobs: Mapped[list[BacktestJob]] = relationship(
         "BacktestJob", back_populates="strategy", lazy="select"
+    )
+    optimization_jobs: Mapped[list[OptimizationJob]] = relationship(
+        "OptimizationJob", back_populates="strategy", lazy="select"
     )
 
     def __repr__(self) -> str:
@@ -193,4 +197,49 @@ class AppSetting(Base):
 
     def __repr__(self) -> str:
         return f"<AppSetting key={self.key!r}>"
+
+
+# ---------------------------------------------------------------------------
+# OptimizationJob
+# ---------------------------------------------------------------------------
+
+
+class OptimizationJob(Base):
+    """A single optimization execution record (Optuna or GridSearch).
+
+    Lifecycle: PENDING → RUNNING → COMPLETED | FAILED
+    Stores the best parameters found and the complete trial history in JSON.
+    """
+
+    __tablename__ = "optimization_jobs"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    strategy_id: Mapped[int] = mapped_column(
+        ForeignKey("strategies.id", ondelete="CASCADE"), nullable=False
+    )
+
+    # Execution state
+    status: Mapped[str] = mapped_column(
+        String(16), nullable=False, default=JobStatus.PENDING
+    )  # PENDING | RUNNING | COMPLETED | FAILED
+
+    # Payload passed to the engine
+    parameters_snapshot: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False, default=dict)
+    bounds_definition: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False, default=dict)
+
+    # Results
+    best_parameters: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
+    best_value: Mapped[float | None] = mapped_column(Float, nullable=True)
+    trials_data: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
+
+    error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+    created_at: Mapped[datetime.datetime] = mapped_column(DateTime, nullable=False, default=_utcnow)
+    completed_at: Mapped[datetime.datetime | None] = mapped_column(DateTime, nullable=True)
+
+    # relationships
+    strategy: Mapped[Strategy] = relationship("Strategy", back_populates="optimization_jobs")
+
+    def __repr__(self) -> str:
+        return f"<OptimizationJob id={self.id} status={self.status!r}>"
 

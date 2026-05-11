@@ -17,7 +17,7 @@ _vbt_path = Path(__file__).resolve().parents[2] / "vectorbt_src"
 if _vbt_path.exists() and str(_vbt_path) not in sys.path:
     sys.path.insert(0, str(_vbt_path))
 
-from app.api import backtest, results, settings, strategies, workflows
+from app.api import backtest, optimizer, results, settings, strategies, workflows
 from app.db.session import get_session, init_db
 from app.models.orm import SystemPrompt
 from app.services.mcp.llm_client import _SYSTEM_PROMPT
@@ -136,6 +136,7 @@ async def log_requests(request: Request, call_next):
 # ---------------------------------------------------------------------------
 app.include_router(strategies.router, prefix="/api/strategies", tags=["Strategies"])
 app.include_router(backtest.router, prefix="/api/backtest", tags=["Backtest"])
+app.include_router(optimizer.router, prefix="/api/optimizer", tags=["Optimizer"])
 app.include_router(workflows.router, prefix="/api/workflows", tags=["Workflows"])
 app.include_router(results.router, prefix="/api/results", tags=["Results"])
 app.include_router(settings.router, prefix="/api/settings", tags=["Settings"])

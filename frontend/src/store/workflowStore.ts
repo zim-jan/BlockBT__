@@ -19,6 +19,7 @@ import type {
     DataNodeData,
     IndicatorNodeData,
     JobStatus,
+    OptimizerNodeData,
     PortfolioNodeData,
     SignalNodeData,
 } from '../types/types'
@@ -48,11 +49,14 @@ interface WorkflowState {
   errorMessage: string | null
 
   // Node data setters
-  updateNodeData: (nodeId: string, data: Partial<DataNodeData & IndicatorNodeData & PortfolioNodeData>) => void
+  updateNodeData: (nodeId: string, data: Partial<DataNodeData & IndicatorNodeData & PortfolioNodeData & OptimizerNodeData>) => void
   addNode: (type: string) => void
   setJobState: (isRunning: boolean, jobId: number | null, status: JobStatus | null, error?: string | null) => void
   updatePortfolioResult: (metrics: BacktestMetrics | null, status: JobStatus, jobId: number, error?: string | null) => void
+  updateOptimizerResult: (bestParams: Record<string, any> | null, bestValue: number | null, trials: any[] | null, status: JobStatus, jobId: number, error?: string | null) => void
   resetExecution: () => void
+  clearCanvas: () => void
+  setWorkflow: (nodes: Node[], edges: Edge[]) => void
 }
 
 let nodeCounter = 10
@@ -82,6 +86,10 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
       ),
     })),
 
+  clearCanvas: () => set({ nodes: [], edges: [] }),
+
+  setWorkflow: (nodes, edges) => set({ nodes, edges }),
+
   addNode: (type) => {
     nodeCounter++
     const id = `${type}-${nodeCounter}`
@@ -93,6 +101,14 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
       indicatorNode: { indicatorType: 'sma_crossover', smaFast: 10, smaSlow: 30, initialCapital: 10000 },
       signalNode: { signalType: 'sma_crossover' },
       portfolioNode: {},
+      optimizerNode: { 
+        metric: 'Total Return [%]', 
+        nTrials: 20, 
+        paramBounds: {
+          sma_fast: { min: 5, max: 20, type: 'int' },
+          sma_slow: { min: 25, max: 50, type: 'int' }
+        }
+      },
     }
 
     set((s) => ({
@@ -124,16 +140,33 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
       ),
     })),
 
+  updateOptimizerResult: (bestParams, bestValue, trials, status, jobId, error = null) =>
+    set((s) => ({
+      activeJobId: jobId,
+      jobStatus: status,
+      isRunning: false,
+      errorMessage: error ?? null,
+      nodes: s.nodes.map((n) =>
+        n.type === 'optimizerNode'
+          ? { ...n, data: { ...n.data, jobStatus: status, bestParameters: bestParams, bestValue: bestValue ?? undefined, trials: trials ?? undefined, jobId, error } satisfies OptimizerNodeData }
+          : n
+      ),
+    })),
+
   resetExecution: () =>
     set((s) => ({
       isRunning: false,
       activeJobId: null,
       jobStatus: null,
       errorMessage: null,
-      nodes: s.nodes.map((n) =>
-        n.type === 'portfolioNode'
-          ? { ...n, data: { jobStatus: undefined, metrics: undefined, jobId: undefined, error: undefined } }
-          : n
-      ),
+      nodes: s.nodes.map((n) => {
+        if (n.type === 'portfolioNode') {
+          return { ...n, data: { jobStatus: undefined, metrics: undefined, jobId: undefined, error: undefined } }
+        }
+        if (n.type === 'optimizerNode') {
+          return { ...n, data: { ...n.data, jobStatus: undefined, bestParameters: undefined, bestValue: undefined, trials: undefined, jobId: undefined, error: undefined } }
+        }
+        return n
+      }),
     })),
 }))

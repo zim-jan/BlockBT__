@@ -3,10 +3,12 @@ from __future__ import annotations
 from typing import Any
 
 from fastapi import APIRouter, BackgroundTasks, HTTPException
+from loguru import logger
 
 from app.db.session import get_session
 from app.models.orm import BacktestJob, JobStatus, Strategy
-from app.schemas.backtest import BacktestRequest
+from app.schemas.backtest import BacktestJobResponse, BacktestRequest
+from app.schemas.base import ApiResponse
 from app.services.engine.runner import run_vectorbt_backtest
 
 """Trasy obsługujące backtestowanie — Faza 2.
@@ -24,11 +26,9 @@ router = APIRouter()
 # ---------------------------------------------------------------------------
 
 
-def _job_to_dict(job: BacktestJob) -> dict[str, Any]:
-    """Konwertuje model ORM BacktestJob na standardowy słownik Pythona."""
-    # Map metrics to match frontend BacktestMetrics interface
+def _job_to_schema(job: BacktestJob) -> BacktestJobResponse:
+    """Konwertuje model ORM BacktestJob na schemat BacktestJobResponse."""
     raw_metrics = job.metrics or {}
-    print(f"DEBUG: Job ID {job.id} raw_metrics keys: {list(raw_metrics.keys())}")
     params = job.parameters_snapshot or {}
 
     # Helper to find values in raw_metrics or job attributes
@@ -68,39 +68,38 @@ def _job_to_dict(job: BacktestJob) -> dict[str, Any]:
     # Populate metrics ONLY if status is COMPLETED
     is_completed = (job.status == JobStatus.COMPLETED or job.status == "COMPLETED")
     
-    return {
-        "id": str(job.id),
-        "job_id": str(job.id),
-        "strategy_id": str(job.strategy_id),
-        "status": job.status,
-        "symbol": params.get("symbol", ""),
-        "timeframe": params.get("timeframe", ""),
-        "start_date": params.get("start_date", ""),
-        "end_date": params.get("end_date", ""),
-        "initial_capital": params.get("initial_capital", 10000.0),
-        "created_at": job.created_at,
-        "metrics": frontend_metrics if is_completed else None,
-        "parameters": params,
-        "error_message": job.error_message,
-        # Headline scalars for root-level access in BacktestJobData
-        "total_return_pct": job.total_return_pct,
-        "sharpe_ratio": job.sharpe_ratio,
-        "max_drawdown_pct": job.max_drawdown_pct,
-        "num_trades": job.num_trades,
-        "final_capital": job.final_capital,
-    }
+    return BacktestJobResponse(
+        id=job.id,
+        job_id=job.id,
+        strategy_id=job.strategy_id,
+        status=job.status,
+        symbol=params.get("symbol", ""),
+        timeframe=params.get("timeframe", ""),
+        start_date=params.get("start_date", ""),
+        end_date=params.get("end_date", ""),
+        initial_capital=params.get("initial_capital", 10000.0),
+        created_at=job.created_at,
+        metrics=frontend_metrics if is_completed else None,
+        parameters=params,
+        error_message=job.error_message,
+        total_return_pct=job.total_return_pct,
+        sharpe_ratio=job.sharpe_ratio,
+        max_drawdown_pct=job.max_drawdown_pct,
+        num_trades=job.num_trades,
+        final_capital=job.final_capital,
+    )
 
 
 # ---------------------------------------------------------------------------
-# Pydantic schemas
+# API Routes
 # ---------------------------------------------------------------------------
 
 
-@router.post("/", summary="Wyzwalanie backtestu", status_code=202)
+@router.post("/", summary="Wyzwalanie backtestu", status_code=202, response_model=ApiResponse[BacktestJobResponse])
 def trigger_backtest(
     payload: BacktestRequest,
     background_tasks: BackgroundTasks,
-) -> dict[str, Any]:
+) -> ApiResponse[BacktestJobResponse]:
     """Tworzy rekord BacktestJob o statusie PENDING, planuje wykonanie w tle i natychmiastowo
     zwraca jego identyfikator."""
     with get_session() as db:
@@ -113,31 +112,10 @@ def trigger_backtest(
 
         # Merge strategy parameters with any per-request overrides
         params: dict[str, Any] = dict(strategy.parameters)
-        if payload.symbol is not None:
-            params["symbol"] = payload.symbol
-        if payload.data_source is not None:
-            params["data_source"] = payload.data_source
-        if payload.sma_fast is not None:
-            params["sma_fast"] = payload.sma_fast
-        if payload.sma_slow is not None:
-            params["sma_slow"] = payload.sma_slow
-        if payload.initial_capital is not None:
-            params["initial_capital"] = payload.initial_capital
-        if payload.timeframe is not None:
-            params["timeframe"] = payload.timeframe
-        if payload.start_date is not None:
-            params["start_date"] = payload.start_date
-        if payload.end_date is not None:
-            params["end_date"] = payload.end_date
-        if payload.strategy_type is not None:
-            params["strategy_type"] = payload.strategy_type
-        if payload.macd_fast is not None:
-            params["macd_fast"] = payload.macd_fast
-        if payload.macd_slow is not None:
-            params["macd_slow"] = payload.macd_slow
-        if payload.macd_signal is not None:
-            params["macd_signal"] = payload.macd_signal
-        if payload.parameters is not None:
+        params["code_content"] = strategy.code_content
+        overrides = payload.model_dump(exclude_unset=True, exclude={"strategy_id", "parameters"})
+        params.update(overrides)
+        if payload.parameters:
             params.update(payload.parameters)
 
         job = BacktestJob(
@@ -147,33 +125,29 @@ def trigger_backtest(
         )
         db.add(job)
         db.flush()
-        job_id = job.id
-        result = _job_to_dict(job)
+        data = _job_to_schema(job)
 
     # Enqueue the engine — runs in FastAPI's background thread pool
-    background_tasks.add_task(run_vectorbt_backtest, job_id, params)
+    background_tasks.add_task(run_vectorbt_backtest, job.id, params)
 
-    return {"success": True, "data": result, "error": None}
+    return ApiResponse(success=True, data=data)
 
 
-@router.get("/{job_id}", summary="Pobieranie statusu pojedynczego zadania")
-def get_backtest_status(job_id: int) -> dict[str, Any]:
+@router.get("/{job_id}", summary="Pobieranie statusu pojedynczego zadania", response_model=ApiResponse[BacktestJobResponse])
+def get_backtest_status(job_id: int) -> ApiResponse[BacktestJobResponse]:
     """Zwraca aktualny status i wyniki wyliczonych metryk określonego zadania."""
     with get_session() as db:
         job = db.get(BacktestJob, job_id)
         if not job:
             raise HTTPException(status_code=404, detail=f"Job id={job_id} not found")
         db.refresh(job)  # Force refresh from DB to see latest metrics
-        return {"success": True, "data": _job_to_dict(job), "error": None}
+        return ApiResponse(success=True, data=_job_to_schema(job))
 
 
-@router.get("/", summary="Listowanie wszystkich zadań backtestów")
-def list_jobs() -> dict[str, Any]:
+@router.get("/", summary="Listowanie wszystkich zadań backtestów", response_model=ApiResponse[list[BacktestJobResponse]])
+def list_jobs() -> ApiResponse[list[BacktestJobResponse]]:
     """Zwraca listę wszystkich zadań backtestowania posortowanych od najnowszych."""
     with get_session() as db:
         jobs = db.query(BacktestJob).order_by(BacktestJob.created_at.desc()).all()
-        return {
-            "success": True,
-            "data": [_job_to_dict(j) for j in jobs],
-            "error": None,
-        }
+        data = [_job_to_schema(j) for j in jobs]
+        return ApiResponse(success=True, data=data)

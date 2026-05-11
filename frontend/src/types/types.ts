@@ -7,7 +7,7 @@ export type JobStatus = 'PENDING' | 'RUNNING' | 'COMPLETED' | 'FAILED'
 
 export type DataSourceType = 'yahoo' | 'alpaca' | 'synthetic'
 
-export type IndicatorType = 'sma_crossover' | 'macd'
+export type IndicatorType = 'sma_crossover' | 'macd' | 'custom'
 
 export interface BacktestMetrics {
   engine: string
@@ -46,6 +46,7 @@ export interface StrategyData {
   id: number
   name: string
   description: string
+  code_content: string
   parameters: Record<string, unknown>
   created_at: string
 }
@@ -67,10 +68,37 @@ export interface IndicatorNodeData {
   macdFast?: number
   macdSlow?: number
   macdSignal?: number
+  codeContent?: string
 }
 
 export interface SignalNodeData {
   signalType: 'sma_crossover'
+}
+
+export interface ParameterBound {
+  min: number
+  max: number
+  step?: number
+  type: 'int' | 'float'
+}
+
+export interface OptunaTrial {
+  number: number
+  value: number | null
+  params: Record<string, any>
+  state: string
+}
+
+export interface OptimizerNodeData {
+  metric: string
+  nTrials: number
+  paramBounds: Record<string, ParameterBound>
+  jobStatus?: JobStatus
+  jobId?: number
+  bestParameters?: Record<string, any>
+  bestValue?: number
+  trials?: OptunaTrial[]
+  error?: string | null
 }
 
 export interface PortfolioNodeData {

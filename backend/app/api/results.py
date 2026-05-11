@@ -5,6 +5,7 @@ from fastapi import APIRouter, HTTPException
 
 from app.db.session import get_session
 from app.models.orm import BacktestJob, ChatMessage
+from app.schemas.base import ApiResponse
 from app.schemas.results import AIAnalysisResponse, ChatMessageResponse, ChatRequest
 from app.services.mcp.llm_client import OllamaClient
 from app.services.mcp.report_builder import ReportBuilder
@@ -12,15 +13,15 @@ from app.services.mcp.report_builder import ReportBuilder
 router = APIRouter()
 
 
-@router.get("/{job_id}")
-def get_simulation_result(job_id: int) -> dict[str, Any]:
+@router.get("/{job_id}", response_model=ApiResponse[dict[str, Any]])
+def get_simulation_result(job_id: int) -> ApiResponse[dict[str, Any]]:
     """Retrieve the status and metrics of a backtest run by its Simulation ID."""
     with get_session() as db:
         job = db.get(BacktestJob, job_id)
         if not job:
             raise HTTPException(status_code=404, detail="Simulation Result not found")
 
-        return {
+        data = {
             "id": job.id,
             "strategy_id": job.strategy_id,
             "symbol": job.parameters_snapshot.get("symbol", "UNKNOWN"),
@@ -35,10 +36,11 @@ def get_simulation_result(job_id: int) -> dict[str, Any]:
             "ai_analysis_report": job.ai_analysis_report,
             "error_log": job.error_message,
         }
+        return ApiResponse(success=True, data=data)
 
 
-@router.post("/{job_id}/analyze", response_model=AIAnalysisResponse)
-async def analyze_simulation_result(job_id: int) -> AIAnalysisResponse:
+@router.post("/{job_id}/analyze", response_model=ApiResponse[AIAnalysisResponse])
+async def analyze_simulation_result(job_id: int) -> ApiResponse[AIAnalysisResponse]:
     """Generate an AI analysis report for a completed simulation."""
     with get_session() as db:
         job = db.get(BacktestJob, job_id)
@@ -51,7 +53,7 @@ async def analyze_simulation_result(job_id: int) -> AIAnalysisResponse:
             )
 
         if job.ai_analysis_report:
-            return AIAnalysisResponse(prompt=None, report=job.ai_analysis_report)
+            return ApiResponse(success=True, data=AIAnalysisResponse(prompt=None, report=job.ai_analysis_report))
 
         result = job.metrics or {}
         result["symbol"] = job.parameters_snapshot.get("symbol", "UNKNOWN")
@@ -88,11 +90,12 @@ async def analyze_simulation_result(job_id: int) -> AIAnalysisResponse:
         db.add(ChatMessage(job_id=job.id, role="assistant", content=report))
 
         db.commit()
-        return AIAnalysisResponse(prompt=prompt, report=job.ai_analysis_report)
+        data = AIAnalysisResponse(prompt=prompt, report=job.ai_analysis_report)
+        return ApiResponse(success=True, data=data)
 
 
-@router.get("/{job_id}/chat", response_model=list[ChatMessageResponse])
-def get_chat_history(job_id: int) -> list[ChatMessageResponse]:
+@router.get("/{job_id}/chat", response_model=ApiResponse[list[ChatMessageResponse]])
+def get_chat_history(job_id: int) -> ApiResponse[list[ChatMessageResponse]]:
     """Retrieve the chat history for a specific backtest job."""
     with get_session() as db:
         job = db.get(BacktestJob, job_id)
@@ -100,16 +103,17 @@ def get_chat_history(job_id: int) -> list[ChatMessageResponse]:
             raise HTTPException(status_code=404, detail="Simulation Result not found")
 
         messages = sorted(job.chat_messages, key=lambda m: m.created_at)
-        return [
+        data = [
             ChatMessageResponse(
                 id=m.id, job_id=m.job_id, role=m.role, content=m.content, created_at=m.created_at
             )
             for m in messages
         ]
+        return ApiResponse(success=True, data=data)
 
 
-@router.post("/{job_id}/chat", response_model=ChatMessageResponse)
-async def add_chat_message(job_id: int, request: ChatRequest) -> ChatMessageResponse:
+@router.post("/{job_id}/chat", response_model=ApiResponse[ChatMessageResponse])
+async def add_chat_message(job_id: int, request: ChatRequest) -> ApiResponse[ChatMessageResponse]:
     """Pobiera wiadomość analityka, przekazuje kontekst i zwraca odpowiedź LLM."""
     with get_session() as db:
         job = db.get(BacktestJob, job_id)
@@ -144,10 +148,11 @@ async def add_chat_message(job_id: int, request: ChatRequest) -> ChatMessageResp
         db.commit()
         db.refresh(assistant_message)
 
-        return ChatMessageResponse(
+        data = ChatMessageResponse(
             id=assistant_message.id,
             job_id=assistant_message.job_id,
             role=assistant_message.role,
             content=assistant_message.content,
             created_at=assistant_message.created_at,
         )
+        return ApiResponse(success=True, data=data)

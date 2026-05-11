@@ -73,6 +73,15 @@ export const api = {
         method: 'POST',
         body: JSON.stringify(payload),
       }),
+    update: (id: number, payload: components['schemas']['StrategyCreate']) =>
+      request<ApiResponse<StrategyData>>(`/api/strategies/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(payload),
+      }),
+    delete: (id: number) =>
+      request<ApiResponse<{ id: string }>>(`/api/strategies/${id}`, {
+        method: 'DELETE',
+      }),
   },
 
   backtest: {
@@ -84,6 +93,17 @@ export const api = {
     status: (jobId: number) =>
       request<ApiResponse<BacktestJobData>>(`/api/backtest/${jobId}`),
     list: () => request<ApiResponse<BacktestJobData[]>>('/api/backtest/'),
+  },
+
+  optimizer: {
+    trigger: (payload: components['schemas']['OptimizationRequest']) =>
+      request<ApiResponse<{ job_id: number }>>('/api/optimizer/', {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      }),
+    status: (jobId: number) =>
+      request<ApiResponse<any>>(`/api/optimizer/${jobId}`),
+    list: () => request<ApiResponse<any[]>>('/api/optimizer/'),
   },
 
   workflows: {

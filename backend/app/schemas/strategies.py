@@ -15,5 +15,6 @@ class StrategyResponse(BaseModel):
     id: str
     name: str
     description: str | None = None
+    code_content: str = ""
     parameters: dict[str, Any] | None = None
     created_at: datetime

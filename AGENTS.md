@@ -49,22 +49,12 @@ Jesteś Głównym Architektem i Programistą w projekcie BlockBT. Pracujesz w ry
   * Status: [IN PROGRESS]
   * Cel: Pełne wykorzystanie biblioteki vectorbt opensource poprzez implementację zaawansowanej optymalizacji.
   * Kamienie Milowe:
-    1. **Optuna API:** Nowy endpoint `/api/optimizer/` obsługujący optymalizację bayesowską (TPE).
-    2. **Native Vectorization:** Refaktor silnika `OpenSourceEngine` pod kątem natywnej wektoryzacji kombinacji parametrów (wyeliminowanie pętli w grid search).
-    3. **Optimizer Node:** Nowy typ węzła we frontendowym Visual Builderze dedykowany do zadań optymalizacyjnych.
+    1. **Optuna API:** Nowy endpoint `/api/optimizer/` obsługujący optymalizację bayesowską (TPE). [DONE - Backend Integration]
+    2. **Native Vectorization:** Refaktor silnika `OpenSourceEngine` pod kątem natywnej wektoryzacji kombinacji parametrów (wyeliminowanie pętli w grid search). [DONE]
+    3. **Optimizer Node:** Nowy typ węzła we frontendowym Visual Builderze dedykowany do zadań optymalizacyjnych. [DONE]
     4. **Wizualizacja:** Integracja wyników Optuna (Parallel Coordinate Plot) w interfejsie.
-    5. **Error:** przy zamykaniu procesu make api ```INFO:     Stopping reloader process [61703]
-     /home/przydan/.local/share/uv/python/cpython-3.13.12-linux-x86_64-gnu/lib/python3.13/multiprocessing/resource_tracker.py:400: UserWarning: resource_tracker: There appear to be 1 leaked semaphore objects to clean up at shutdown: {'/loky-61705-wwurfoft'}
-       warnings.warn(```
-       6. **ERROR2:** ``` 2026-05-11 13:36:21.538 | INFO     | app.main:lifespan:59 - Zamykanie API BlockBT.
-      INFO:     Application shutdown complete.
-      INFO:     Finished server process [123670]
-      INFO:     Stopping reloader process [123668]
-        /home/przydan/.local/share/uv/python/cpython-3.13.12-linux-x86_64-gnu/lib/python3.13/multiprocessing/resource_tracker.py:400: UserWarning: resource_tracker: There appear to be 1 leaked semaphore objects to clean up at shutdown: {'/loky-123670-asqlxoeb'}
-      warnings.warn(
-  ~/PycharmProjects/BlockBT-vm3-ai dev-przydan-improve* przydan@vm3-ai 2m 27s
-  BlockBT-vm3-ai ❯ make api
-  cd backend && uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
-  INFO:     Will watch for changes in these directories: ['/home/przydan/PycharmProjects/BlockBT-vm3-ai/backend']
-  ERROR:    [Errno 98] Address already in use
-  make: *** [Makefile:16: api] Błąd 1``` 
+    5. **Usuwanie wezłów:** funcjonalnosc usuwania wezłow [DONE]
+    6. **Zapisywanie strategii:** mozliwosc zapisania [DONE]
+    7. **Wczytanie zapisanej strategii:** popup z listą zapisanych strategii razem z wyszukiwarka, mozliwoscia usuniecia, wczytania [DONE]
+    8. **Poprawa procesu:** Dodano `make kill-api` i `make clean` dla lepszego zarządzania procesami i czyszczenia zasobów. [DONE]
+ 
