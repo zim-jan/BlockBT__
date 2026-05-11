@@ -542,6 +542,100 @@ export interface components {
             /** Choices */
             choices?: unknown[] | null;
         };
+        /** OptimizationJobResponse */
+        OptimizationJobResponse: {
+            /** Id */
+            id: number;
+            /** Job Id */
+            job_id: number;
+            /** Strategy Id */
+            strategy_id: number;
+            /** Status */
+            status: string;
+            /** Symbol */
+            symbol: string;
+            /** Initial Capital */
+            initial_capital: number;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Best Parameters */
+            best_parameters?: {
+                [key: string]: unknown;
+            } | null;
+            /** Best Value */
+            best_value?: number | null;
+            /** Trials Data */
+            trials_data?: {
+                [key: string]: unknown;
+            } | null;
+            /** Error Message */
+            error_message?: string | null;
+            /** Completed At */
+            completed_at?: string | null;
+        };
+        /** OptimizationRequest */
+        OptimizationRequest: {
+            /** Strategy Id */
+            strategy_id: number;
+            /** Symbol */
+            symbol: string;
+            /**
+             * Data Source
+             * @default yahoo
+             */
+            data_source: string;
+            /**
+             * Timeframe
+             * @default 1d
+             */
+            timeframe: string;
+            /** Start Date */
+            start_date?: string | null;
+            /** End Date */
+            end_date?: string | null;
+            /**
+             * Initial Capital
+             * @default 10000
+             */
+            initial_capital: number;
+            /**
+             * Metric
+             * @default Total Return [%]
+             */
+            metric: string;
+            /**
+             * N Trials
+             * @default 20
+             */
+            n_trials: number;
+            /** Param Bounds */
+            param_bounds: {
+                [key: string]: components["schemas"]["ParameterBounds"];
+            };
+            /** Parameters */
+            parameters?: {
+                [key: string]: unknown;
+            } | null;
+        };
+        /** ParameterBounds */
+        ParameterBounds: {
+            /** Min */
+            min: number;
+            /** Max */
+            max: number;
+            /** Step */
+            step?: number | null;
+            /**
+             * Type
+             * @default int
+             */
+            type: string;
+            /** Choices */
+            choices?: unknown[] | null;
+        };
         /** StrategyCreate */
         StrategyCreate: {
             /** Name */
