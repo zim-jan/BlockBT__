@@ -1,4 +1,4 @@
-import {Handle, Position} from 'reactflow'
+import {Handle, Position} from '@xyflow/react'
 import type {PortfolioNodeData} from '../../../types/types'
 import {useChatStore} from '../../../store/chatStore'
 
@@ -22,8 +22,6 @@ function fmt(n: number | null | undefined, decimals = 2, suffix = ''): string {
 
 export function PortfolioNode({ data }: Props) {
   const { jobStatus, metrics, error, jobId } = data
-  console.log('PortfolioNode metrics:', metrics)
-  if (metrics) console.table(metrics)
   const openChat = useChatStore(state => state.openChat)
 
   const isPending = jobStatus === 'PENDING'
@@ -33,8 +31,13 @@ export function PortfolioNode({ data }: Props) {
 
   return (
     <div className={`rf-node rf-node--portfolio ${isCompleted ? 'rf-node--completed' : ''} ${isFailed ? 'rf-node--failed' : ''}`}>
-      <Handle type="target" position={Position.Left} id="in" />
-      <div className="rf-node__header">
+      <Handle 
+        type="target" 
+        position={Position.Left} 
+        id="in" 
+        className="easy-connect-handle"
+      />
+      <div className="rf-node__header react-flow__node-drag-handle">
         <div className="flex items-center gap-2">
           <span className="rf-node__icon text-xl">💼</span>
           <span className="rf-node__title font-semibold">Portfolio</span>
@@ -92,6 +95,7 @@ export function PortfolioNode({ data }: Props) {
                 }}
                 title="Analyze via AI"
                 className="w-full py-2 bg-blue-50 text-blue-600 border border-blue-200 rounded font-medium hover:bg-blue-100 transition-colors shadow-sm flex items-center justify-center gap-2"
+                style={{ position: 'relative', zIndex: 10 }}
               >
                 <span className="text-lg">✨</span> Analyze Results
               </button>

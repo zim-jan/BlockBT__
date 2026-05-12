@@ -1,6 +1,6 @@
 # Frontend - Visual Builder (React Flow)
 
-Visual Builder to serce interfejsu BlockBT, umożliwiające projektowanie strategii handlowych za pomocą intuicyjnego edytora graficznego. Moduł ten opiera się na bibliotece **React Flow** i implementuje model skierowanego grafu acyklicznego (DAG).
+Visual Builder to serce interfejsu BlockBT, umożliwiające projektowanie strategii handlowych za pomocą intuicyjnego edytora graficznego. Moduł ten opiera się na najnowszej bibliotece **React Flow 12 (@xyflow/react)** i implementuje model skierowanego grafu acyklicznego (DAG).
 
 ## Architektura i Przepływ
 
@@ -8,6 +8,17 @@ Edytor wizualny pozwala na budowanie przepływów, w których dane rynkowe są p
 
 - **`WorkflowEditor.tsx`**: Główny komponent zarządzający płótnem edytora.
 - **`workflowStore.ts`**: Sklep Zustand przechowujący stan wszystkich węzłów (`nodes`) i krawędzi (`edges`).
+- **Easy Connect**: Funkcjonalność ułatwiająca tworzenie połączeń. Cały obszar węzła działa jako aktywny uchwyt (`Handle`), co pozwala na przeciąganie krawędzi z dowolnego punktu ciała węzła.
+
+---
+
+## Interakcja z Węzłami
+
+Wraz z przejściem na React Flow 12 i implementacją Easy Connect, interakcja z węzłami została zoptymalizowana:
+
+*   **Przesuwanie**: Odbywa się poprzez chwycenie za nagłówek węzła (wykorzystanie klasy `.react-flow__node-drag-handle`).
+*   **Łączenie**: Odbywa się poprzez kliknięcie i przeciągnięcie z dowolnego miejsca wewnątrz węzła (oprócz interaktywnych pól wejściowych). Wykorzystuje to niewidzialne uchwyty `.easy-connect-handle`.
+*   **Z-Index**: Elementy formularzy (inputy, selecty) są umieszczone powyżej uchwytów łączenia, aby zachować pełną interaktywność.
 
 ---
 

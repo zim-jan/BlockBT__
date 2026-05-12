@@ -13,7 +13,7 @@ import {
     type OnConnect,
     type OnEdgesChange,
     type OnNodesChange,
-} from 'reactflow'
+} from '@xyflow/react'
 import type {
     BacktestMetrics,
     DataNodeData,

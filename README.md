@@ -6,11 +6,22 @@ System jest tworzony zgodnie z zasadą "Air-Gapped": wszystkie Twoje dane giełd
 
 ## Stos Technologiczny
 
-*   **Frontend**: React, TypeScript, Vite, Tailwind CSS. Architektura Feature-Driven bez logowania.
+*   **Frontend**: React 18, TypeScript, Vite, Tailwind CSS, **React Flow 12 (@xyflow/react)**.
 *   **Backend**: Python 3.12+, FastAPI, Pydantic, SQLAlchemy. Zarządzanie zależnościami przy użyciu `uv`.
 *   **Silnik (Engine)**: Dwusilnikowa (Dual-Engine Ready) struktura z domyślnym silnikiem opartym na wektoryzowanym `vectorbt`.
 *   **Baza i Dane**: SQLite (MVP: paradygmat Wipe and Recreate) i lokalne pliki Parquet w katalogu `local_data/`.
 *   **Dokumentacja**: MkDocs (dostępna w `docs/` i budowana przez mkdocs-material).
+
+## Narzędzia Makefile
+
+Projekt zawiera `Makefile` ułatwiający codzienne zadania:
+
+*   `make dev` - Uruchamia backend i frontend (wymaga dwóch terminali).
+*   `make api` - Uruchamia tylko backend FastAPI.
+*   `make build-api` - Buduje obraz Docker dla backendu.
+*   `make rebuild-api` - Przebudowuje i restartuje kontener backendu.
+*   `make test` - Uruchamia pełną suitę testową pytest.
+*   `make clean` - Czyści cache i pliki tymczasowe.
 
 ## Szybki Start (Docker Compose)
 

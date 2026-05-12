@@ -1,6 +1,6 @@
 import {useCallback, useState} from 'react'
-import ReactFlow, {Background, Controls, MiniMap, Panel,} from 'reactflow'
-import 'reactflow/dist/style.css'
+import ReactFlow, {Background, Controls, MiniMap, Panel,} from '@xyflow/react'
+import '@xyflow/react/dist/style.css'
 import {useWorkflowStore} from '../../store/workflowStore'
 import {useWorkflowExecution} from '../../hooks/useWorkflowExecution'
 import {api} from '../../services/api'

@@ -1,4 +1,4 @@
-import {Handle, Position} from 'reactflow'
+import {Handle, Position} from '@xyflow/react'
 import type {PortfolioNodeData} from '../../types'
 import {useChatStore} from '../../store/chatStore'
 

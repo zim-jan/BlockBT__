@@ -44,8 +44,14 @@ Integracja z biblioteką **Optuna** dla inteligentnego przeszukiwania przestrzen
 ## Przepływ Zadania (Runner)
 
 Zadania backtestu i optymalizacji są wykonywane asynchronicznie przez `BacktestRunner` (`backend/app/services/engine/runner.py`):
-1. Pobranie danych rynkowych przez `ConnectorRegistry`.
+1. Pobranie danych rynkowych przez `ConnectorRegistry` (DataFrame z `DatetimeIndex`).
 2. Pobranie instancji silnika przez `EngineLoader`.
-3. Wykonanie obliczeń (Backtest lub Optuna).
-4. Normalizacja wyników do formatu JSON.
+3. Wykonanie obliczeń poprzez metodę `engine.run_backtest(df, parameters)` – **uwaga**: dane OHLCV są przekazywane jako pierwszy argument.
+4. Normalizacja wyników. Każdy silnik zwraca ujednolicony obiekt zawierający klucz `metrics` z podstawowymi danymi (Total Return, Sharpe Ratio, itp.).
 5. Zapisanie wyników w bazie danych poprzez `JobService`.
+
+---
+
+## Zgodność z NumPy
+
+W celu zachowania stabilności z otwartą wersją biblioteki `vectorbt`, projekt wymusza wersję **NumPy < 2.0**. Jest to kluczowe dla poprawnego działania wektoryzowanych operacji na tablicach.
