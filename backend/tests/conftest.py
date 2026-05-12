@@ -1,19 +1,21 @@
 from __future__ import annotations
 
-"""
-Tests conftest — shared fixtures for the BlockBT test suite.
-"""
-
-
 import os
-
-# Set a dummy SECRET_KEY so imports won't fail globally during pytest collection
-os.environ["SECRET_KEY"] = "yNmj9oJp0YJXY7vWvJ0M2bI-W3k6U_X1qR5u7M_fA-Q="
 
 import pandas as pd
 import pytest
 
 from app.db.session import drop_db, init_db
+
+"""
+Tests conftest — shared fixtures for the BlockBT test suite.
+"""
+
+
+
+# Set a dummy SECRET_KEY so imports won't fail globally during pytest collection
+os.environ["SECRET_KEY"] = "yNmj9oJp0YJXY7vWvJ0M2bI-W3k6U_X1qR5u7M_fA-Q="
+
 
 # ---------------------------------------------------------------------------
 # Database fixtures
@@ -79,10 +81,10 @@ def sample_ohlcv() -> pd.DataFrame:
     close = 100.0 * (1 + rng.normal(0, 0.01, n)).cumprod()
     return pd.DataFrame(
         {
-            "open":   close * (1 + rng.uniform(-0.005, 0.005, n)),
-            "high":   close * (1 + rng.uniform(0, 0.01, n)),
-            "low":    close * (1 - rng.uniform(0, 0.01, n)),
-            "close":  close,
+            "open": close * (1 + rng.uniform(-0.005, 0.005, n)),
+            "high": close * (1 + rng.uniform(0, 0.01, n)),
+            "low": close * (1 - rng.uniform(0, 0.01, n)),
+            "close": close,
             "volume": rng.integers(1_000_000, 10_000_000, n).astype(float),
         },
         index=dates,

@@ -1,22 +1,12 @@
-from __future__ import annotations
-
 """
 run_vectorbt_backtest — Phase 3 background task entry-point.
 
-Wraps OpenSourceEngine with:
-  - Synthetic OHLCV data generation (random-walk, no network required).
-  - Real market data via ConnectorRegistry (Yahoo Finance, Alpaca, etc.).
-  - DB persistence: updates BacktestJob status + metrics.
-  - Full error capture with FAILED status on any exception.
-
-This function is designed to be called via FastAPI BackgroundTasks:
-
-    background_tasks.add_task(run_vectorbt_backtest, job_id, parameters)
+This is the main orchestrator for async background backtesting.
 """
 
+from __future__ import annotations
 
 import sys
-from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
@@ -24,291 +14,145 @@ import numpy as np
 import pandas as pd
 from loguru import logger
 
+from app.db.session import get_session
+from app.models.orm import JobStatus
+from app.services.connectors.registry import ConnectorRegistry
+from app.services.engine.loader import EngineLoader
+from app.services.engine.optimizer import OptunaOptimizer
+from app.services.engine.job_service import JobService
+
 # Ensure the vendored vectorbt directory is importable.
-# We must insert it into sys.path before any import attempt to prevent Python 
-# from mistakenly turning the repo's vectorbt folder into a namespace package 
-# if the backend is launched from the project root.
-_VENDORED_VBT = Path(__file__).resolve().parents[4] / "vectorbt"
+_VENDORED_VBT = Path(__file__).resolve().parents[4] / "vectorbt_src"
 if _VENDORED_VBT.exists() and str(_VENDORED_VBT) not in sys.path:
     sys.path.insert(0, str(_VENDORED_VBT))
 
-import vectorbt  # noqa: F401 — ensure it loads the real __init__.py
+import vectorbt  # noqa: F401
 
 
-# ---------------------------------------------------------------------------
-# Data generation / acquisition
-# ---------------------------------------------------------------------------
-
-
-def _generate_ohlcv(
-    n_days: int = 504,
-    start_price: float = 100.0,
-    seed: int = 42,
-) -> pd.DataFrame:
-    """Generate a realistic synthetic OHLCV DataFrame (random walk).
-
-    Parameters
-    ----------
-    n_days:       Number of trading days to simulate.
-    start_price:  Starting close price.
-    seed:         NumPy random seed for reproducibility.
-
-    Returns
-    -------
-    pd.DataFrame with columns [open, high, low, close, volume].
-    """
-    rng = np.random.default_rng(seed)
-    dates = pd.date_range("2022-01-03", periods=n_days, freq="B")
-
-    # Log-normal daily returns around 0% drift
-    returns = rng.normal(loc=0.0003, scale=0.015, size=n_days)
-    close = start_price * np.exp(np.cumsum(returns))
-
-    spread = close * rng.uniform(0.002, 0.012, size=n_days)
-    high = close + spread * 0.6
-    low = close - spread * 0.4
-    open_ = close * (1 + rng.normal(0, 0.003, size=n_days))
-    volume = rng.integers(500_000, 5_000_000, size=n_days).astype(float)
-
-    return pd.DataFrame(
-        {"open": open_, "high": high, "low": low, "close": close, "volume": volume},
-        index=dates,
-    )
-
-
-def _fetch_market_data(
-    data_source: str,
-    symbol: str,
-    start_date: str | None,
-    end_date: str | None,
-    timeframe: str,
-) -> pd.DataFrame:
-    """Fetch real market data via ConnectorRegistry.
-
-    Falls back to synthetic generation if the connector returns empty data.
-    """
-    from app.services.connectors.registry import ConnectorRegistry
-
-    # Default date range: 2 years back from today
-    if not end_date:
-        end_date = datetime.now(timezone.utc).strftime("%Y-%m-%d")
-    if not start_date:
-        start_dt = datetime.now(timezone.utc) - timedelta(days=730)
-        start_date = start_dt.strftime("%Y-%m-%d")
-
-    logger.info(
-        "BacktestRunner: fetching data | source={} symbol={} {} → {} {}",
-        data_source, symbol, start_date, end_date, timeframe,
-    )
-
-    try:
-        connector = ConnectorRegistry.get(data_source)
-        df = connector.fetch(symbol, start_date, end_date, timeframe)
-        if df.empty:
-            logger.warning(
-                "BacktestRunner: connector returned empty data for {}, falling back to synthetic",
-                symbol,
-            )
-            return _generate_ohlcv()
-        logger.info("BacktestRunner: fetched {} rows from {}", len(df), data_source)
-        return df
-    except Exception as exc:
-        logger.error("BacktestRunner: connector error — {}", exc)
-        raise RuntimeError(
-            f"Failed to fetch data from '{data_source}' for {symbol}: {exc}"
-        ) from exc
-
-
-# ---------------------------------------------------------------------------
-# Core backtest runner
-# ---------------------------------------------------------------------------
+def _fetch_market_data(source: str, symbol: str, start: str, end: str, timeframe: str) -> Any:
+    """Helper to grab market data via Connector Registry."""
+    logger.info(f"BacktestRunner: fetching data | source={source} symbol={symbol} {start} → {end} {timeframe}")
+    connector = ConnectorRegistry.get(source)
+    df = connector.fetch(symbol, start, end, timeframe)
+    logger.info(f"BacktestRunner: fetched {len(df)} rows from {source}")
+    return df
 
 
 def _execute_backtest(parameters: dict[str, Any]) -> dict[str, Any]:
-    """Run a vectorbt backtest with configurable data source and strategy.
-
-    Returns a metrics dict on success.
-    Raises on failure (caller handles DB persistence of the error).
-    """
-    try:
-        import vectorbt as vbt  # type: ignore[import]
-    except ImportError as exc:
-        raise RuntimeError(
-            "vectorbt is not importable. "
-            f"Checked vendored path: {_VENDORED_VBT}"
-        ) from exc
-
-    symbol = parameters.get("symbol", "SYNTHETIC")
-    data_source = parameters.get("data_source", "synthetic")
-    initial_capital = float(parameters.get("initial_capital", 10_000.0))
-    sma_fast = int(parameters.get("sma_fast", 10))
-    sma_slow = int(parameters.get("sma_slow", 30))
-    fees = float(parameters.get("fees", 0.001))
-    n_days = int(parameters.get("n_days", 504))
+    """Internal execution logic for a single backtest run."""
+    source = parameters.get("data_source", "yahoo")
+    symbol = parameters.get("symbol", "AAPL")
+    start = parameters.get("start_date", "2020-01-01")
+    end = parameters.get("end_date", "2023-01-01")
     timeframe = parameters.get("timeframe", "1d")
-    start_date = parameters.get("start_date")
-    end_date = parameters.get("end_date")
-    strategy_type = parameters.get("strategy_type", "sma_crossover")
 
-    logger.info(
-        "BacktestRunner: starting | source={} symbol={} strategy={} sma=({}/{}) capital={}",
-        data_source, symbol, strategy_type, sma_fast, sma_slow, initial_capital,
-    )
+    df = _fetch_market_data(source, symbol, start, end, timeframe)
+    if df.empty:
+        raise ValueError(f"No data returned for {symbol} from {source}.")
 
-    # 1. OHLCV data — synthetic or real
-    if data_source == "synthetic":
-        data = _generate_ohlcv(n_days=n_days)
-    else:
-        data = _fetch_market_data(data_source, symbol, start_date, end_date, timeframe)
+    # Get Engine (BYOL adapter)
+    engine = EngineLoader.load()
+    
+    logger.debug(f"BacktestRunner: executing strategy via {engine.__class__.__name__}...")
+    result = engine.run_backtest(df, parameters)
+    
+    # Extract metrics robustly
+    metrics = result.get("metrics", {})
+    if not metrics:
+        # Fallback for engines returning flat results
+        metrics = {
+            "Total Return [%]": result.get("total_return_pct"),
+            "Sharpe Ratio": result.get("sharpe_ratio"),
+            "Max Drawdown [%]": result.get("max_drawdown_pct"),
+            "Total Trades": result.get("num_trades"),
+            "Final Value": result.get("final_capital"),
+        }
+        # If still empty, try extracting from raw if it exists
+        if not any(v is not None for v in metrics.values()) and "raw" in result:
+             metrics.update(result["raw"])
 
-    close = data["close"]
-
-    # 2. Generate entry/exit signals based on strategy type
-    if strategy_type == "macd":
-        macd_fast = int(parameters.get("macd_fast", 12))
-        macd_slow_w = int(parameters.get("macd_slow", 26))
-        macd_signal = int(parameters.get("macd_signal", 9))
-
-        macd = vbt.MACD.run(close, fast_window=macd_fast, slow_window=macd_slow_w, signal_window=macd_signal)
-        macd_line = macd.macd
-        sig_line = macd.signal
-
-        # Crossover signals (pure pandas — no .vbt accessor dependency)
-        entries = (macd_line > sig_line) & (macd_line.shift(fill_value=0.0) <= sig_line.shift(fill_value=0.0))
-        exits = (macd_line < sig_line) & (macd_line.shift(fill_value=0.0) >= sig_line.shift(fill_value=0.0))
-
-        logger.info("BacktestRunner: MACD({}/{}/{}) signals generated", macd_fast, macd_slow_w, macd_signal)
-    else:
-        # Default: SMA Crossover
-        fast_ma = vbt.MA.run(close, window=sma_fast).ma
-        slow_ma = vbt.MA.run(close, window=sma_slow).ma
-
-        # Crossover signals (pure pandas arithmetic — no .vbt accessor dependency)
-        entries = (fast_ma > slow_ma) & (fast_ma.shift(fill_value=False) <= slow_ma.shift(fill_value=False))
-        exits   = (fast_ma < slow_ma) & (fast_ma.shift(fill_value=False) >= slow_ma.shift(fill_value=False))
-
-    # 3. Portfolio simulation
-    portfolio = vbt.Portfolio.from_signals(
-        close,
-        entries=entries,
-        exits=exits,
-        init_cash=initial_capital,
-        fees=fees,
-        freq="D",
-    )
-
-    stats = portfolio.stats()
-
-    # portfolio.value is a property (Series) in vbtpro 2025+, callable in OSS vbt
-    equity = portfolio.value() if callable(portfolio.value) else portfolio.value
-
-    def _sf(v: Any) -> float | None:
+    # Convert numeric types to basic python floats/ints for JSON serialization
+    safe_metrics = {}
+    for k, v in metrics.items():
         try:
-            f = float(v)
-            return None if np.isnan(f) else round(f, 4)
+            if isinstance(v, (np.ndarray, pd.Series)):
+                val = v.iloc[0] if hasattr(v, "iloc") else v[0]
+                safe_metrics[k] = float(val)
+            elif isinstance(v, (np.integer, int)):
+                safe_metrics[k] = int(v)
+            elif isinstance(v, (np.floating, float)):
+                if np.isnan(v) or np.isinf(v):
+                    safe_metrics[k] = None
+                else:
+                    safe_metrics[k] = float(v)
+            else:
+                safe_metrics[k] = float(v)
         except (TypeError, ValueError):
-            return None
+            safe_metrics[k] = v if isinstance(v, (str, type(None))) else str(v)
 
-    def _si(v: Any) -> int | None:
-        try:
-            return int(v)
-        except (TypeError, ValueError):
-            return None
-
-    metrics: dict[str, Any] = {
-        "engine": "vectorbt-opensource",
-        "symbol": symbol,
-        "data_source": data_source,
-        "strategy_type": strategy_type,
-        "sma_fast": sma_fast,
-        "sma_slow": sma_slow,
-        "n_days": len(data),
-        "total_return_pct": _sf(stats.get("Total Return [%]")),
-        "sharpe_ratio": _sf(stats.get("Sharpe Ratio")),
-        "max_drawdown_pct": _sf(stats.get("Max Drawdown [%]")),
-        "win_rate_pct": _sf(stats.get("Win Rate [%]")),
-        "num_trades": _si(stats.get("Total Trades")),
-        "initial_capital": initial_capital,
-        "final_capital": _sf(stats.get("End Value")),
-        # Downsampled equity curve (≤ 200 pts) for frontend chart
-        "equity_curve": [
-            {"date": str(d.date()), "value": round(float(v), 2)}
-            for d, v in zip(
-                equity.index[:: max(1, len(equity) // 200)],
-                equity.values[:: max(1, len(equity) // 200)], strict=False,
-            )
-        ],
-    }
-
-    logger.info(
-        "BacktestRunner: completed | source={} return={:.2f}% sharpe={} trades={}",
-        data_source,
-        metrics["total_return_pct"] or 0,
-        metrics["sharpe_ratio"],
-        metrics["num_trades"],
-    )
-    return metrics
-
-
-# ---------------------------------------------------------------------------
-# Background task entry-point (called by FastAPI BackgroundTasks)
-# ---------------------------------------------------------------------------
+    return safe_metrics
 
 
 def run_vectorbt_backtest(job_id: int, parameters: dict[str, Any]) -> None:
-    """Execute a backtest and persist results to the BacktestJob row.
+    """Background worker for executing a backtest."""
+    logger.debug(f"BacktestRunner: processing job_id={job_id} in background...")
+    
+    with get_session() as db:
+        JobService.update_backtest_status(db, job_id, JobStatus.RUNNING)
 
-    Status transitions:
-        PENDING  →  RUNNING  →  COMPLETED   (success)
-                              →  FAILED      (exception)
-
-    This function intentionally swallows all exceptions after logging them
-    so it doesn't crash the FastAPI worker thread.
-    """
-    from datetime import datetime, timezone
-
-    from app.db.session import get_session
-    from app.models.orm import BacktestJob, JobStatus
-
-    def _utcnow() -> datetime:
-        return datetime.now(timezone.utc).replace(tzinfo=None)
-
-    # Mark RUNNING
-    try:
-        with get_session() as db:
-            job = db.get(BacktestJob, job_id)
-            if not job:
-                logger.error("BacktestRunner: job_id={} not found in DB", job_id)
-                return
-            job.status = JobStatus.RUNNING
-    except Exception as exc:
-        logger.error("BacktestRunner: failed to set RUNNING for job_id={}: {}", job_id, exc)
-        return
-
-    # Execute
     try:
         metrics = _execute_backtest(parameters)
         with get_session() as db:
-            job = db.get(BacktestJob, job_id)
-            if not job:
-                return
-            job.status = JobStatus.COMPLETED
-            job.metrics = metrics
-            job.total_return_pct = metrics.get("total_return_pct")
-            job.sharpe_ratio = metrics.get("sharpe_ratio")
-            job.max_drawdown_pct = metrics.get("max_drawdown_pct")
-            job.num_trades = metrics.get("num_trades")
-            job.final_capital = metrics.get("final_capital")
-            job.completed_at = _utcnow()
+            JobService.update_backtest_status(db, job_id, JobStatus.COMPLETED, metrics)
+        logger.success(f"BacktestRunner: job_id={job_id} COMPLETED successfully.")
 
-    except Exception as exc:
-        logger.exception("BacktestRunner: job_id={} FAILED: {}", job_id, exc)
-        try:
-            with get_session() as db:
-                job = db.get(BacktestJob, job_id)
-                if job:
-                    job.status = JobStatus.FAILED
-                    job.error_message = str(exc)
-                    job.completed_at = _utcnow()
-        except Exception as inner:
-            logger.error("BacktestRunner: could not persist FAILED status: {}", inner)
+    except Exception as e:
+        logger.exception(f"BacktestRunner: job_id={job_id} FAILED: {e}")
+        error_metrics = {
+            "error_msg": str(e),
+            "Total Return [%]": 0.0,
+            "Benchmark Return [%]": 0.0,
+            "Max Drawdown [%]": 0.0,
+            "Sharpe Ratio": 0.0,
+            "Total Trades": 0,
+            "Final Value": 0.0,
+            "Win Rate [%]": 0.0,
+        }
+        with get_session() as db:
+            JobService.update_backtest_status(db, job_id, JobStatus.FAILED, error_metrics, error_message=str(e))
+
+
+def run_optuna_optimization(
+    job_id: int,
+    parameters: dict[str, Any],
+    bounds: dict[str, Any],
+    n_trials: int,
+    metric: str,
+) -> None:
+    """Background worker for executing an Optuna optimization study."""
+    logger.info(f"OptunaRunner: starting job_id={job_id} | trials={n_trials}")
+
+    with get_session() as db:
+        JobService.update_optimization_status(db, job_id, JobStatus.RUNNING)
+
+    try:
+        source = parameters.get("data_source", "yahoo")
+        symbol = parameters.get("symbol", "AAPL")
+        start = parameters.get("start_date")
+        end = parameters.get("end_date")
+        tf = parameters.get("timeframe", "1d")
+
+        df = _fetch_market_data(source, symbol, start, end, tf)
+        engine = EngineLoader.load()
+
+        optimizer = OptunaOptimizer(engine)
+        results = optimizer.run_optimization(bounds, df, parameters, n_trials, metric)
+
+        with get_session() as db:
+            JobService.update_optimization_status(db, job_id, JobStatus.COMPLETED, results=results)
+        logger.success(f"OptunaRunner: job_id={job_id} COMPLETED.")
+
+    except Exception as e:
+        logger.exception(f"OptunaRunner: job_id={job_id} FAILED: {e}")
+        with get_session() as db:
+            JobService.update_optimization_status(db, job_id, JobStatus.FAILED, error_message=str(e))

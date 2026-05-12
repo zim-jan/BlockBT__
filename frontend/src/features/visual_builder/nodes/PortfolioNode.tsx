@@ -1,4 +1,4 @@
-import {Handle, Position} from 'reactflow'
+import {Handle, Position} from '@xyflow/react'
 import type {PortfolioNodeData} from '../../../types/types'
 import {useChatStore} from '../../../store/chatStore'
 
@@ -8,9 +8,9 @@ interface Props {
 
 function MetricRow({ label, value, colorClass }: { label: string; value: string; colorClass?: string }) {
   return (
-    <div className="rf-metric-row flex justify-between py-1">
-      <span className="rf-metric-label text-gray-600">{label}</span>
-      <span className={`rf-metric-value font-medium ${colorClass ?? 'text-gray-900'}`}>{value}</span>
+    <div className="rf-metric-row">
+      <span className="rf-metric-label">{label}</span>
+      <span className={`rf-metric-value ${colorClass ?? ''}`}>{value}</span>
     </div>
   )
 }
@@ -30,19 +30,24 @@ export function PortfolioNode({ data }: Props) {
   const isFailed = jobStatus === 'FAILED'
 
   return (
-    <div className={`rf-node rf-node--portfolio bg-white p-4 rounded-lg shadow-md border-2 border-transparent w-64 ${isCompleted ? 'border-green-400' : ''} ${isFailed ? 'border-red-400' : ''}`}>
-      <Handle type="target" position={Position.Left} id="in" />
-      <div className="rf-node__header flex justify-between items-center mb-4 border-b pb-2">
+    <div className={`rf-node rf-node--portfolio ${isCompleted ? 'rf-node--completed' : ''} ${isFailed ? 'rf-node--failed' : ''}`}>
+      <Handle 
+        type="target" 
+        position={Position.Left} 
+        id="in" 
+        className="easy-connect-handle"
+      />
+      <div className="rf-node__header react-flow__node-drag-handle">
         <div className="flex items-center gap-2">
           <span className="rf-node__icon text-xl">💼</span>
           <span className="rf-node__title font-semibold">Portfolio</span>
         </div>
         {jobStatus && (
-          <span className={`rf-status-pill text-xs px-2 py-1 rounded-full ${
-            isPending ? 'bg-yellow-100 text-yellow-800' :
-            isRunning ? 'bg-blue-100 text-blue-800' :
-            isCompleted ? 'bg-green-100 text-green-800' :
-            'bg-red-100 text-red-800'
+          <span className={`rf-status-pill ${
+            isPending ? 'rf-status-pill--pending' :
+            isRunning ? 'rf-status-pill--running' :
+            isCompleted ? 'rf-status-pill--completed' :
+            'rf-status-pill--failed'
           }`}>
             {isPending && '⏳ Pending'}
             {isRunning && '⚙️ Running'}
@@ -53,35 +58,35 @@ export function PortfolioNode({ data }: Props) {
       </div>
       <div className="rf-node__body">
         {!jobStatus && (
-          <p className="rf-hint rf-hint--center text-sm text-gray-500 text-center italic">Run backtest to see results</p>
+          <p className="rf-hint rf-hint--center italic">Run backtest to see results</p>
         )}
         {(isPending || isRunning) && (
           <div className="rf-spinner-wrap flex flex-col items-center justify-center py-4">
             <div className="rf-spinner animate-spin w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full mb-2" />
-            <p className="rf-hint text-sm text-gray-500">{isPending ? 'Queued...' : 'Executing vectorbt...'}</p>
+            <p className="rf-hint">{isPending ? 'Queued...' : 'Executing vectorbt...'}</p>
           </div>
         )}
         {isCompleted && metrics && (
-          <div className="rf-metrics text-sm">
+          <div className="rf-metrics">
             <MetricRow
               label="Total Return"
               value={fmt(metrics.total_return_pct, 2, '%')}
-              colorClass={(metrics.total_return_pct ?? 0) >= 0 ? 'text-green-600' : 'text-red-600'}
+              colorClass={(metrics.total_return_pct ?? 0) >= 0 ? 'rf-metric-value--green' : 'rf-metric-value--red'}
             />
             <MetricRow
               label="Sharpe Ratio"
               value={fmt(metrics.sharpe_ratio)}
-              colorClass={(metrics.sharpe_ratio ?? 0) >= 0 ? 'text-green-600' : 'text-red-600'}
+              colorClass={(metrics.sharpe_ratio ?? 0) >= 0 ? 'rf-metric-value--green' : 'rf-metric-value--red'}
             />
             <MetricRow
               label="Max Drawdown"
               value={fmt(metrics.max_drawdown_pct, 2, '%')}
-              colorClass="text-amber-600"
+              colorClass="rf-metric-value--amber"
             />
             <MetricRow label="Trades" value={String(metrics.num_trades ?? '—')} />
             <MetricRow
               label="Final Capital"
-              value={metrics.final_capital != null ? `$${metrics.final_capital.toLocaleString('en-US', { maximumFractionDigits: 0 })}` : '—'}
+              value={metrics.final_capital != null ? `$${Number(metrics.final_capital).toLocaleString('en-US', { maximumFractionDigits: 0 })}` : '—'}
             />
             <div className="rf-action-row mt-4 flex justify-center">
               <button
@@ -90,6 +95,7 @@ export function PortfolioNode({ data }: Props) {
                 }}
                 title="Analyze via AI"
                 className="w-full py-2 bg-blue-50 text-blue-600 border border-blue-200 rounded font-medium hover:bg-blue-100 transition-colors shadow-sm flex items-center justify-center gap-2"
+                style={{ position: 'relative', zIndex: 10 }}
               >
                 <span className="text-lg">✨</span> Analyze Results
               </button>
@@ -97,7 +103,7 @@ export function PortfolioNode({ data }: Props) {
           </div>
         )}
         {isFailed && (
-          <p className="rf-hint rf-hint--error text-sm text-red-500 text-center mt-2">{error ?? 'Engine error'}</p>
+          <p className="rf-hint rf-hint--error text-center mt-2">{error ?? 'Engine error'}</p>
         )}
       </div>
     </div>

@@ -1,5 +1,15 @@
 from __future__ import annotations
 
+import sys
+from typing import Any
+
+import pandas as pd
+from loguru import logger
+
+from app.core.config import settings
+from app.services.engine.base import BaseStrategyEngine
+from app.services.engine.indicators import IndicatorService
+
 """
 ProEngine — BYOL (Bring Your Own License) engine backed by vectorbtpro.
 
@@ -16,14 +26,6 @@ BYOL loading order:
 """
 
 
-import sys
-from typing import Any
-
-import pandas as pd
-from loguru import logger
-
-from app.core.config import settings
-from app.services.engine.base import BaseStrategyEngine
 
 
 class ProEngine(BaseStrategyEngine):
@@ -97,7 +99,9 @@ class ProEngine(BaseStrategyEngine):
             "name": self.ENGINE_NAME,
             "version": self.ENGINE_VERSION,
             "mode": "mock" if self._mock_mode else "live",
-            "library": "vectorbtpro (BYOL)" if not self._mock_mode else "vectorbtpro (BYOL — not loaded)",
+            "library": "vectorbtpro (BYOL)"
+            if not self._mock_mode
+            else "vectorbtpro (BYOL — not loaded)",
             "vbtpro_path": str(settings.effective_vbtpro_path() or "not-configured"),
         }
 
@@ -189,19 +193,32 @@ class ProEngine(BaseStrategyEngine):
         )
 
         total_return = float((equity.iloc[-1] / initial_capital - 1) * 100)
+        sharpe = round(float(rng.normal(1.2, 0.2)), 4)
+        mdd = round(float(abs(rng.normal(15.0, 5.0))), 4)
+        wr = round(float(rng.uniform(45.0, 65.0)), 4)
+        trades = int(rng.integers(10, 80))
+        final_val = round(float(equity.iloc[-1]), 2)
 
         return dict(
             symbol=symbol,
             timeframe=timeframe,
             engine_name="pro_mock",  # clearly indicates mock mode
             total_return_pct=round(total_return, 4),
-            sharpe_ratio=round(float(rng.normal(1.2, 0.2)), 4),
-            max_drawdown_pct=round(float(abs(rng.normal(15.0, 5.0))), 4),
-            win_rate_pct=round(float(rng.uniform(45.0, 65.0)), 4),
-            num_trades=int(rng.integers(10, 80)),
+            sharpe_ratio=sharpe,
+            max_drawdown_pct=mdd,
+            win_rate_pct=wr,
+            num_trades=trades,
             initial_capital=initial_capital,
-            final_capital=round(float(equity.iloc[-1]), 2),
+            final_capital=final_val,
             equity_curve=equity,
+            metrics={
+                "Total Return [%]": round(total_return, 4),
+                "Sharpe Ratio": sharpe,
+                "Max Drawdown [%]": mdd,
+                "Total Trades": trades,
+                "Final Value": final_val,
+                "Win Rate [%]": wr,
+            },
             raw={"mock": True, "note": "vectorbtpro not installed — BYOL required"},
         )
 

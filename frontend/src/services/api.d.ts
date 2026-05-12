@@ -56,14 +56,15 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * List all backtest jobs
-         * @description Return all backtest jobs ordered by creation time, newest first.
+         * Listowanie wszystkich zadań backtestów
+         * @description Zwraca listę wszystkich zadań backtestowania posortowanych od najnowszych.
          */
         get: operations["list_jobs_api_backtest__get"];
         put?: never;
         /**
-         * Trigger a backtest
-         * @description Create a BacktestJob (PENDING), enqueue engine execution, return job_id immediately.
+         * Wyzwalanie backtestu
+         * @description Tworzy rekord BacktestJob o statusie PENDING, planuje wykonanie w tle i natychmiastowo
+         *     zwraca jego identyfikator.
          */
         post: operations["trigger_backtest_api_backtest__post"];
         delete?: never;
@@ -80,10 +81,54 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Poll backtest job status
-         * @description Return the current status and metrics of a backtest job.
+         * Pobieranie statusu pojedynczego zadania
+         * @description Zwraca aktualny status i wyniki wyliczonych metryk określonego zadania.
          */
         get: operations["get_backtest_status_api_backtest__job_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/optimizer/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List optimization jobs
+         * @description Return all optimization jobs ordered by creation date.
+         */
+        get: operations["list_optimization_jobs_api_optimizer__get"];
+        put?: never;
+        /**
+         * Trigger optimization
+         * @description Create an OptimizationJob and enqueue the Optuna study in the background.
+         */
+        post: operations["trigger_optimization_api_optimizer__post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/optimizer/{job_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get optimization status
+         * @description Return the current status and results of an optimization job.
+         */
+        get: operations["get_optimization_status_api_optimizer__job_id__get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -191,9 +236,101 @@ export interface paths {
         put?: never;
         /**
          * Add Chat Message
-         * @description Pobiera wiadomość użytkownika, przekazuje kontekst i zwraca odpowiedź LLM.
+         * @description Pobiera wiadomość analityka, przekazuje kontekst i zwraca odpowiedź LLM.
          */
         post: operations["add_chat_message_api_results__job_id__chat_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/settings/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get All Settings
+         * @description Get all global application settings.
+         */
+        get: operations["get_all_settings_api_settings__get"];
+        /**
+         * Update Settings
+         * @description Bulk update application settings.
+         */
+        put: operations["update_settings_api_settings__put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/settings/prompts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List System Prompts
+         * @description List all system prompts.
+         */
+        get: operations["list_system_prompts_api_settings_prompts_get"];
+        put?: never;
+        /**
+         * Create System Prompt
+         * @description Create a new system prompt.
+         */
+        post: operations["create_system_prompt_api_settings_prompts_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/settings/prompts/{prompt_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Update System Prompt
+         * @description Update an existing system prompt.
+         */
+        put: operations["update_system_prompt_api_settings_prompts__prompt_id__put"];
+        post?: never;
+        /**
+         * Delete System Prompt
+         * @description Delete a system prompt.
+         */
+        delete: operations["delete_system_prompt_api_settings_prompts__prompt_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/settings/prompts/{prompt_id}/default": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Set Default Prompt
+         * @description Mark a system prompt as the default.
+         */
+        post: operations["set_default_prompt_api_settings_prompts__prompt_id__default_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -209,7 +346,7 @@ export interface paths {
         };
         /**
          * Health Check
-         * @description Liveness probe.
+         * @description Sonda sprawdzająca stan życia usługi (Liveness probe).
          */
         get: operations["health_check_api_health_get"];
         put?: never;
@@ -231,12 +368,32 @@ export interface components {
             /** Report */
             report: string;
         };
+        /** AppSettingUpdate */
+        AppSettingUpdate: {
+            /** Data Connector */
+            data_connector?: string | null;
+            /** Vbtpro Path */
+            vbtpro_path?: string | null;
+            /** Prefer Pro Engine */
+            prefer_pro_engine?: boolean | null;
+            /** Ollama Base Url */
+            ollama_base_url?: string | null;
+            /** Ollama Model */
+            ollama_model?: string | null;
+            /** Parquet Cache Ttl Hours */
+            parquet_cache_ttl_hours?: number | null;
+        };
         /** BacktestRequest */
         BacktestRequest: {
             /** Strategy Id */
             strategy_id: number;
             /** Symbol */
             symbol: string;
+            /**
+             * Data Source
+             * @default synthetic
+             */
+            data_source: string;
             /** Timeframe */
             timeframe?: string | null;
             /** Start Date */
@@ -252,6 +409,14 @@ export interface components {
             sma_fast?: number | null;
             /** Sma Slow */
             sma_slow?: number | null;
+            /** Strategy Type */
+            strategy_type?: string | null;
+            /** Macd Fast */
+            macd_fast?: number | null;
+            /** Macd Slow */
+            macd_slow?: number | null;
+            /** Macd Signal */
+            macd_signal?: number | null;
             /** Parameters */
             parameters?: {
                 [key: string]: unknown;
@@ -278,29 +443,104 @@ export interface components {
             /** Content */
             content: string;
         };
-        /** ChatMessageResponse */
-        ChatMessageResponse: {
+        /** HTTPValidationError */
+        HTTPValidationError: {
+            /** Detail */
+            detail?: components["schemas"]["ValidationError"][];
+        };
+        /** OptimizationJobResponse */
+        OptimizationJobResponse: {
             /** Id */
             id: number;
-            /** Role */
-            role: string;
-            /** Content */
-            content: string;
+            /** Job Id */
+            job_id: number;
+            /** Strategy Id */
+            strategy_id: number;
+            /** Status */
+            status: string;
+            /** Symbol */
+            symbol: string;
+            /** Initial Capital */
+            initial_capital: number;
             /**
              * Created At
              * Format: date-time
              */
             created_at: string;
+            /** Best Parameters */
+            best_parameters?: {
+                [key: string]: unknown;
+            } | null;
+            /** Best Value */
+            best_value?: number | null;
+            /** Trials Data */
+            trials_data?: {
+                [key: string]: unknown;
+            } | null;
+            /** Error Message */
+            error_message?: string | null;
+            /** Completed At */
+            completed_at?: string | null;
         };
-        /** ChatRequest */
-        ChatRequest: {
-            /** Content */
-            content: string;
+        /** OptimizationRequest */
+        OptimizationRequest: {
+            /** Strategy Id */
+            strategy_id: number;
+            /** Symbol */
+            symbol: string;
+            /**
+             * Data Source
+             * @default yahoo
+             */
+            data_source: string;
+            /**
+             * Timeframe
+             * @default 1d
+             */
+            timeframe: string;
+            /** Start Date */
+            start_date?: string | null;
+            /** End Date */
+            end_date?: string | null;
+            /**
+             * Initial Capital
+             * @default 10000
+             */
+            initial_capital: number;
+            /**
+             * Metric
+             * @default Total Return [%]
+             */
+            metric: string;
+            /**
+             * N Trials
+             * @default 20
+             */
+            n_trials: number;
+            /** Param Bounds */
+            param_bounds: {
+                [key: string]: components["schemas"]["ParameterBounds"];
+            };
+            /** Parameters */
+            parameters?: {
+                [key: string]: unknown;
+            } | null;
         };
-        /** HTTPValidationError */
-        HTTPValidationError: {
-            /** Detail */
-            detail?: components["schemas"]["ValidationError"][];
+        /** ParameterBounds */
+        ParameterBounds: {
+            /** Min */
+            min: number;
+            /** Max */
+            max: number;
+            /** Step */
+            step?: number | null;
+            /**
+             * Type
+             * @default int
+             */
+            type: string;
+            /** Choices */
+            choices?: unknown[] | null;
         };
         /** StrategyCreate */
         StrategyCreate: {
@@ -317,6 +557,34 @@ export interface components {
              * @default
              */
             code_content: string;
+        };
+        /** SystemPromptCreate */
+        SystemPromptCreate: {
+            /** Name */
+            name: string;
+            /** Content */
+            content: string;
+        };
+        /** SystemPromptResponse */
+        SystemPromptResponse: {
+            /** Id */
+            id: number;
+            /** Name */
+            name: string;
+            /** Content */
+            content: string;
+            /** Is Default */
+            is_default: boolean;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
         };
         /** ValidationError */
         ValidationError: {
@@ -555,6 +823,94 @@ export interface operations {
             };
         };
     };
+    list_optimization_jobs_api_optimizer__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    }[];
+                };
+            };
+        };
+    };
+    trigger_optimization_api_optimizer__post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OptimizationRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_optimization_status_api_optimizer__job_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                job_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OptimizationJobResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_workflows_api_workflows__get: {
         parameters: {
             query?: never;
@@ -762,6 +1118,211 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ChatMessageResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_all_settings_api_settings__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: string;
+                    };
+                };
+            };
+        };
+    };
+    update_settings_api_settings__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AppSettingUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: string;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_system_prompts_api_settings_prompts_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SystemPromptResponse"][];
+                };
+            };
+        };
+    };
+    create_system_prompt_api_settings_prompts_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SystemPromptCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SystemPromptResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_system_prompt_api_settings_prompts__prompt_id__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                prompt_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SystemPromptCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SystemPromptResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_system_prompt_api_settings_prompts__prompt_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                prompt_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    set_default_prompt_api_settings_prompts__prompt_id__default_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                prompt_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SystemPromptResponse"];
                 };
             };
             /** @description Validation Error */

@@ -1,4 +1,4 @@
-import {Handle, Position} from 'reactflow'
+import {Handle, Position} from '@xyflow/react'
 import {useWorkflowStore} from '../../store/workflowStore'
 import type {DataNodeData} from '../../types'
 
@@ -12,7 +12,7 @@ export function DataNode({ id, data }: Props) {
 
   return (
     <div className="rf-node rf-node--data">
-      <div className="rf-node__header">
+      <div className="rf-node__header react-flow__node-drag-handle">
         <span className="rf-node__icon">📡</span>
         <span className="rf-node__title">Data Source</span>
       </div>
@@ -27,7 +27,13 @@ export function DataNode({ id, data }: Props) {
         />
         <p className="rf-hint">Synthetic OHLCV data generated for MVP</p>
       </div>
-      <Handle type="source" position={Position.Right} id="out" />
+      {/* Easy Connect Handle */}
+      <Handle 
+        type="source" 
+        position={Position.Right} 
+        id="out" 
+        className="easy-connect-handle"
+      />
     </div>
   )
 }

@@ -1,5 +1,15 @@
 from __future__ import annotations
 
+import os
+from collections.abc import Generator
+from contextlib import contextmanager
+from pathlib import Path
+
+from sqlalchemy import create_engine, event
+from sqlalchemy.orm import Session, sessionmaker
+
+from app.models.orm import Base
+
 """
 Database session for Phase 2 REST API models.
 
@@ -13,15 +23,6 @@ Database path resolves in priority order:
 """
 
 
-import os
-from collections.abc import Generator
-from contextlib import contextmanager
-from pathlib import Path
-
-from sqlalchemy import create_engine, event
-from sqlalchemy.orm import Session, sessionmaker
-
-from app.models.orm import Base
 
 
 def _resolve_db_url() -> str:
@@ -66,7 +67,8 @@ def _set_sqlite_pragmas(dbapi_connection, connection_record):  # type: ignore[no
         cursor.close()
 
 
-_SessionLocal = sessionmaker(bind=_engine, autoflush=False, autocommit=False, future=True, expire_on_commit=False)
+_SessionLocal = sessionmaker(bind=_engine, autoflush=False, autocommit=False,
+                             future=True, expire_on_commit=False)
 
 
 def init_db() -> None:
@@ -86,6 +88,7 @@ def get_session() -> Generator[Session, None, None]:
         raise
     finally:
         session.close()
+
 
 def drop_db() -> None:
     """Drop all Phase 2 tables."""

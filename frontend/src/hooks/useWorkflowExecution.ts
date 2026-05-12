@@ -19,7 +19,7 @@ const POLL_INTERVAL_MS = 2500
 const MAX_POLL_ATTEMPTS = 120 // 5-minute hard cap
 
 export function useWorkflowExecution() {
-  const { nodes, isRunning, setJobState, updatePortfolioResult, resetExecution } = useWorkflowStore()
+  const { nodes, edges, isRunning, setJobState, updatePortfolioResult, resetExecution } = useWorkflowStore()
   const pollTimer = useRef<ReturnType<typeof setInterval> | null>(null)
 
   const stopPolling = useCallback(() => {
@@ -32,18 +32,35 @@ export function useWorkflowExecution() {
   const runBacktest = useCallback(async () => {
     if (isRunning) return
 
-    //TODO: Wybiera node'y, co jak będzie kilka datasource, lub indicators
-    // 1. Extract parameters from canvas nodes
+    // 1. Extract and validate nodes and connections
     const dataNode = nodes.find((n) => n.type === 'dataNode')
     const indicatorNode = nodes.find((n) => n.type === 'indicatorNode')
+    const portfolioNode = nodes.find((n) => n.type === 'portfolioNode')
 
-    if (!dataNode || !indicatorNode) {
-      alert('The canvas must contain a Data node and an Indicator node.')
+    if (!dataNode || !indicatorNode || !portfolioNode) {
+      alert('The canvas must contain a Data node, an Indicator node, and a Portfolio node.')
       return
     }
 
-    const dData = dataNode.data as DataNodeData
-    const iData = indicatorNode.data as IndicatorNodeData
+    // Validate connections
+    const isDataConnected = edges.some(e => 
+      e.source === dataNode.id && e.target === indicatorNode.id
+    )
+    const isIndicatorConnected = edges.some(e => 
+      e.source === indicatorNode.id && e.target === portfolioNode.id
+    )
+
+    if (!isDataConnected) {
+      alert('Data node must be connected to the Indicator node.')
+      return
+    }
+    if (!isIndicatorConnected) {
+      alert('Indicator node must be connected to the Portfolio node.')
+      return
+    }
+
+    const dData = dataNode.data as unknown as DataNodeData
+    const iData = indicatorNode.data as unknown as IndicatorNodeData
 
     const symbol: string = dData.symbol ?? 'AAPL'
     const dataSource: string = dData.dataSource ?? 'yahoo'
@@ -55,6 +72,7 @@ export function useWorkflowExecution() {
     const smaFast: number = Number(iData.smaFast ?? 10)
     const smaSlow: number = Number(iData.smaSlow ?? 30)
     const initialCapital: number = Number(iData.initialCapital ?? 10000)
+    const codeContent: string = iData.codeContent ?? ""
 
     // SMA validation (only for SMA crossover)
     if (indicatorType === 'sma_crossover' && smaFast >= smaSlow) {
@@ -66,12 +84,17 @@ export function useWorkflowExecution() {
 
     try {
       // 2. Build strategy name based on indicator type
-      const strategyName = indicatorType === 'macd'
-        ? `${symbol} MACD(${iData.macdFast ?? 12}/${iData.macdSlow ?? 26}/${iData.macdSignal ?? 9})`
-        : `${symbol} SMA(${smaFast}/${smaSlow})`
+      let strategyName = ""
+      if (indicatorType === 'macd') {
+        strategyName = `${symbol} MACD(${iData.macdFast ?? 12}/${iData.macdSlow ?? 26}/${iData.macdSignal ?? 9})`
+      } else if (indicatorType === 'custom') {
+        strategyName = `${symbol} Custom Logic`
+      } else {
+        strategyName = `${symbol} SMA(${smaFast}/${smaSlow})`
+      }
 
       const stratRes = await api.strategies.create({
-        code_content: "",
+        code_content: codeContent,
         name: `${strategyName} — ${new Date().toLocaleTimeString()}`,
         description: `Created from WorkflowEditor [${dataSource}]`,
         parameters: {
@@ -127,8 +150,32 @@ export function useWorkflowExecution() {
 
           if (status === 'COMPLETED') {
             stopPolling()
+            console.log('✅ useWorkflowExecution: COMPLETED. Raw jobData:', jobData)
+            
+            // Map metrics safely, ensuring we pull from both root and nested object
+            const jd = jobData as any
+            const rawMetrics = (jd.metrics || {}) as Record<string, any>
+            const finalMetrics: BacktestMetrics = {
+              engine: jd.parameters?.engine ?? 'vectorbt',
+              symbol: symbol,
+              data_source: dataSource,
+              strategy_type: indicatorType,
+              sma_fast: smaFast,
+              sma_slow: smaSlow,
+              n_days: 0, // Calculated later or ignored for now
+              initial_capital: initialCapital,
+              total_return_pct: jd.total_return_pct ?? rawMetrics.total_return_pct ?? 0,
+              sharpe_ratio: jd.sharpe_ratio ?? rawMetrics.sharpe_ratio ?? 0,
+              max_drawdown_pct: jd.max_drawdown_pct ?? rawMetrics.max_drawdown_pct ?? 0,
+              num_trades: jd.num_trades ?? rawMetrics.num_trades ?? 0,
+              final_capital: jd.final_capital ?? rawMetrics.final_capital ?? initialCapital,
+              win_rate_pct: rawMetrics.win_rate_pct ?? 0,
+            }
+            
+            console.log('📦 useWorkflowExecution: Formatted metrics for store:', finalMetrics)
+
             updatePortfolioResult(
-              jobData.metrics as BacktestMetrics | null,
+              finalMetrics,
               'COMPLETED',
               jobId
             )
@@ -146,7 +193,7 @@ export function useWorkflowExecution() {
       setJobState(false, null, 'FAILED', msg)
       updatePortfolioResult(null, 'FAILED', 0, msg)
     }
-  }, [nodes, isRunning, setJobState, updatePortfolioResult, stopPolling])
+  }, [nodes, edges, isRunning, setJobState, updatePortfolioResult, stopPolling])
 
   // Cleanup polling timer on unmount to prevent memory leaks
   useEffect(() => () => stopPolling(), [stopPolling])

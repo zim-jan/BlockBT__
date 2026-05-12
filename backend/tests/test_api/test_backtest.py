@@ -6,6 +6,7 @@ from app.models.orm import Strategy
 
 client = TestClient(app)
 
+
 def test_trigger_backtest_success(db_session):
     # First, create a strategy
     with get_session() as db:
@@ -25,7 +26,7 @@ def test_trigger_backtest_success(db_session):
         "symbol": "SYNTHETIC",
         "sma_fast": 10,
         "sma_slow": 30,
-        "initial_capital": 10000
+        "initial_capital": 10000,
     }
 
     response = client.post("/api/backtest/", json=payload)
@@ -34,7 +35,7 @@ def test_trigger_backtest_success(db_session):
 
     data = response.json()
     assert data["success"] is True
-    assert data["data"]["strategy_id"] == str(strategy_id)
+    assert data["data"]["strategy_id"] == strategy_id
     assert data["data"]["status"] == "PENDING"
     assert data["data"]["symbol"] == "SYNTHETIC"
     assert data["data"]["initial_capital"] == 10000.0

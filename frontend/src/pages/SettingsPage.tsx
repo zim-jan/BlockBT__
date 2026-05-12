@@ -68,27 +68,48 @@ function AIPromptsTab() {
     queryFn: async () => {
       const res = await fetch('/api/settings/prompts')
       if (!res.ok) throw new Error('Failed to fetch prompts')
-      return res.json()
+      const json = await res.json()
+      return json.data
     }
   })
   
-  const [newPromptName, setNewPromptName] = useState('')
-  const [newPromptContent, setNewPromptContent] = useState('')
+  const [editingId, setEditingId] = useState<number | null>(null)
+  const [promptName, setPromptName] = useState('')
+  const [promptContent, setPromptContent] = useState('')
 
   const createMutation = useMutation({
     mutationFn: async () => {
       const res = await fetch('/api/settings/prompts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: newPromptName, content: newPromptContent })
+        body: JSON.stringify({ name: promptName, content: promptContent })
       })
       if (!res.ok) throw new Error('Failed to create prompt')
       return res.json()
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['system-prompts'] })
-      setNewPromptName('')
-      setNewPromptContent('')
+      setPromptName('')
+      setPromptContent('')
+    }
+  })
+
+  const updateMutation = useMutation({
+    mutationFn: async () => {
+      if (!editingId) return
+      const res = await fetch(`/api/settings/prompts/${editingId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: promptName, content: promptContent })
+      })
+      if (!res.ok) throw new Error('Failed to update prompt')
+      return res.json()
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['system-prompts'] })
+      setEditingId(null)
+      setPromptName('')
+      setPromptContent('')
     }
   })
 
@@ -113,6 +134,20 @@ function AIPromptsTab() {
     }
   })
 
+  const handleEdit = (prompt: any) => {
+    setEditingId(prompt.id)
+    setPromptName(prompt.name)
+    setPromptContent(prompt.content)
+    // Scroll to form
+    document.getElementById('prompt-form')?.scrollIntoView({ behavior: 'smooth' })
+  }
+
+  const handleCancel = () => {
+    setEditingId(null)
+    setPromptName('')
+    setPromptContent('')
+  }
+
   if (isLoading) return <div className="text-on-surface-variant p-4">Loading prompts...</div>
 
   return (
@@ -132,6 +167,12 @@ function AIPromptsTab() {
                             )}
                         </div>
                         <div className="flex gap-2">
+                             <button 
+                                onClick={() => handleEdit(prompt)}
+                                className="text-xs px-2 py-1 text-on-surface-variant hover:text-primary transition-colors"
+                             >
+                                Edit
+                             </button>
                              {!prompt.is_default && (
                                 <button 
                                     onClick={() => setDefaultMutation.mutate(prompt.id)}
@@ -155,15 +196,17 @@ function AIPromptsTab() {
         </div>
       </div>
       
-      <div className="pt-6 border-t border-outline-variant/20">
-        <h4 className="text-md font-medium text-on-surface mb-4">Add New Prompt</h4>
+      <div id="prompt-form" className="pt-6 border-t border-outline-variant/20">
+        <h4 className="text-md font-medium text-on-surface mb-4">
+            {editingId ? 'Edit Prompt' : 'Add New Prompt'}
+        </h4>
         <div className="space-y-4">
             <div>
                 <label className="block text-sm font-medium text-on-surface-variant mb-1">Name</label>
                 <input 
                     type="text" 
-                    value={newPromptName}
-                    onChange={(e) => setNewPromptName(e.target.value)}
+                    value={promptName}
+                    onChange={(e) => setPromptName(e.target.value)}
                     className="w-full bg-surface-container-high border border-outline-variant/50 rounded p-2 text-on-surface text-sm focus:outline-none focus:border-primary"
                     placeholder="e.g. Aggressive Growth Analyst"
                 />
@@ -171,20 +214,30 @@ function AIPromptsTab() {
             <div>
                 <label className="block text-sm font-medium text-on-surface-variant mb-1">Prompt Content</label>
                 <textarea 
-                    value={newPromptContent}
-                    onChange={(e) => setNewPromptContent(e.target.value)}
-                    rows={4}
+                    value={promptContent}
+                    onChange={(e) => setPromptContent(e.target.value)}
+                    rows={6}
                     className="w-full bg-surface-container-high border border-outline-variant/50 rounded p-2 text-on-surface text-sm focus:outline-none focus:border-primary"
                     placeholder="You are an expert quantitative analyst..."
                 />
             </div>
-            <button 
-                onClick={() => createMutation.mutate()}
-                disabled={!newPromptName || !newPromptContent || createMutation.isPending}
-                className="px-4 py-2 bg-primary text-on-primary rounded text-sm font-medium hover:bg-primary/90 disabled:opacity-50 transition-colors"
-            >
-                Save Prompt
-            </button>
+            <div className="flex gap-3">
+                <button 
+                    onClick={() => editingId ? updateMutation.mutate() : createMutation.mutate()}
+                    disabled={!promptName || !promptContent || createMutation.isPending || updateMutation.isPending}
+                    className="px-4 py-2 bg-primary text-on-primary rounded text-sm font-medium hover:bg-primary/90 disabled:opacity-50 transition-colors"
+                >
+                    {editingId ? 'Update Prompt' : 'Save Prompt'}
+                </button>
+                {editingId && (
+                    <button 
+                        onClick={handleCancel}
+                        className="px-4 py-2 border border-outline-variant/50 text-on-surface-variant rounded text-sm font-medium hover:bg-surface-container-high transition-colors"
+                    >
+                        Cancel
+                    </button>
+                )}
+            </div>
         </div>
       </div>
     </div>

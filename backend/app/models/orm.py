@@ -1,5 +1,12 @@
 from __future__ import annotations
 
+import datetime
+from typing import Any
+
+from sqlalchemy import DateTime, Float, ForeignKey, Integer, String, Text
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
+from sqlalchemy.types import JSON
+
 """
 BlockBT Phase 2 ORM models — Strategy & BacktestJob.
 
@@ -9,20 +16,15 @@ These are the lightweight models used by the REST API layer.
 """
 
 
-import datetime
-from typing import Any
-
-from sqlalchemy import DateTime, Float, ForeignKey, Integer, String, Text
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
-from sqlalchemy.types import JSON
 
 
 def _utcnow() -> datetime.datetime:
-    return datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None)
+    return datetime.datetime.now(datetime.UTC).replace(tzinfo=None)
 
 
 class Base(DeclarativeBase):
     """Dedicated base for Phase 2 REST API models."""
+
     pass
 
 
@@ -44,14 +46,16 @@ class Strategy(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     name: Mapped[str] = mapped_column(String(128), nullable=False)
     description: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    code_content: Mapped[str] = mapped_column(Text, nullable=False, default="")
     parameters: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False, default=dict)
-    created_at: Mapped[datetime.datetime] = mapped_column(
-        DateTime, nullable=False, default=_utcnow
-    )
+    created_at: Mapped[datetime.datetime] = mapped_column(DateTime, nullable=False, default=_utcnow)
 
     # relationships
     backtest_jobs: Mapped[list[BacktestJob]] = relationship(
         "BacktestJob", back_populates="strategy", lazy="select"
+    )
+    optimization_jobs: Mapped[list[OptimizationJob]] = relationship(
+        "OptimizationJob", back_populates="strategy", lazy="select"
     )
 
     def __repr__(self) -> str:
@@ -61,6 +65,7 @@ class Strategy(Base):
 # ---------------------------------------------------------------------------
 # BacktestJob
 # ---------------------------------------------------------------------------
+
 
 class JobStatus:
     PENDING = "PENDING"
@@ -91,9 +96,7 @@ class BacktestJob(Base):
     )  # PENDING | RUNNING | COMPLETED | FAILED
 
     # Payload passed to the engine (snapshot of strategy params at job start)
-    parameters_snapshot: Mapped[dict[str, Any]] = mapped_column(
-        JSON, nullable=False, default=dict
-    )
+    parameters_snapshot: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False, default=dict)
 
     # Results
     metrics: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
@@ -107,9 +110,7 @@ class BacktestJob(Base):
 
     error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
 
-    created_at: Mapped[datetime.datetime] = mapped_column(
-        DateTime, nullable=False, default=_utcnow
-    )
+    created_at: Mapped[datetime.datetime] = mapped_column(DateTime, nullable=False, default=_utcnow)
     completed_at: Mapped[datetime.datetime | None] = mapped_column(DateTime, nullable=True)
 
     # relationships
@@ -137,9 +138,7 @@ class ChatMessage(Base):
     )
     role: Mapped[str] = mapped_column(String(50), nullable=False)
     content: Mapped[str] = mapped_column(Text, nullable=False)
-    created_at: Mapped[datetime.datetime] = mapped_column(
-        DateTime, nullable=False, default=_utcnow
-    )
+    created_at: Mapped[datetime.datetime] = mapped_column(DateTime, nullable=False, default=_utcnow)
 
     job: Mapped[BacktestJob] = relationship("BacktestJob", back_populates="chat_messages")
 
@@ -198,4 +197,49 @@ class AppSetting(Base):
 
     def __repr__(self) -> str:
         return f"<AppSetting key={self.key!r}>"
+
+
+# ---------------------------------------------------------------------------
+# OptimizationJob
+# ---------------------------------------------------------------------------
+
+
+class OptimizationJob(Base):
+    """A single optimization execution record (Optuna or GridSearch).
+
+    Lifecycle: PENDING → RUNNING → COMPLETED | FAILED
+    Stores the best parameters found and the complete trial history in JSON.
+    """
+
+    __tablename__ = "optimization_jobs"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    strategy_id: Mapped[int] = mapped_column(
+        ForeignKey("strategies.id", ondelete="CASCADE"), nullable=False
+    )
+
+    # Execution state
+    status: Mapped[str] = mapped_column(
+        String(16), nullable=False, default=JobStatus.PENDING
+    )  # PENDING | RUNNING | COMPLETED | FAILED
+
+    # Payload passed to the engine
+    parameters_snapshot: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False, default=dict)
+    bounds_definition: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False, default=dict)
+
+    # Results
+    best_parameters: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
+    best_value: Mapped[float | None] = mapped_column(Float, nullable=True)
+    trials_data: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
+
+    error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+    created_at: Mapped[datetime.datetime] = mapped_column(DateTime, nullable=False, default=_utcnow)
+    completed_at: Mapped[datetime.datetime | None] = mapped_column(DateTime, nullable=True)
+
+    # relationships
+    strategy: Mapped[Strategy] = relationship("Strategy", back_populates="optimization_jobs")
+
+    def __repr__(self) -> str:
+        return f"<OptimizationJob id={self.id} status={self.status!r}>"
 

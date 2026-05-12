@@ -1,14 +1,14 @@
 from __future__ import annotations
 
+import pytest
+
 """
 Testy dla Loadera Dual-Engine oraz mocków ProEngine.
 """
 
 
-import pytest
 
 
-import pytest
 class TestEngineLoader:
     def test_returns_engine_instance(self):
         from app.services.engine.loader import EngineLoader
@@ -89,3 +89,35 @@ class TestProEngineMock:
         r2 = engine.run_backtest(sample_ohlcv, minimal_params)
         assert r1["total_return_pct"] == r2["total_return_pct"]
         assert r1["num_trades"] == r2["num_trades"]
+
+
+class TestBacktestRunnerIntegration:
+    """Tests the integration between the runner and the engines."""
+
+    def test_execute_backtest_integration(self, monkeypatch, sample_ohlcv):
+        from app.services.engine.runner import _execute_backtest
+        from app.services.connectors.registry import ConnectorRegistry
+        from unittest.mock import MagicMock
+
+        # Mock the connector to return sample data
+        mock_connector = MagicMock()
+        mock_connector.fetch.return_value = sample_ohlcv
+        monkeypatch.setattr(ConnectorRegistry, "get", lambda name: mock_connector)
+
+        params = {
+            "symbol": "INTEGRATION_TEST",
+            "strategy_type": "sma_crossover",
+            "sma_fast": 5,
+            "sma_slow": 15,
+            "initial_capital": 5000.0,
+            "data_source": "mock"
+        }
+
+        # This calls engine.run_backtest(df, parameters) and extracts metrics
+        metrics = _execute_backtest(params)
+
+        assert "Total Return [%]" in metrics
+        assert isinstance(metrics["Total Return [%]"], (float, int))
+        assert "Sharpe Ratio" in metrics
+        assert "Total Trades" in metrics
+        assert metrics["Total Trades"] >= 0

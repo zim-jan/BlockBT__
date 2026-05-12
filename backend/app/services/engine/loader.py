@@ -1,5 +1,10 @@
 from __future__ import annotations
 
+from loguru import logger
+
+from app.core.config import settings
+from app.services.engine.base import BaseStrategyEngine
+
 """
 EngineLoader — BYOL-aware engine selector.
 
@@ -12,10 +17,6 @@ Import once at startup; the result is cached.
 """
 
 
-from loguru import logger
-
-from app.core.config import settings
-from app.services.engine.base import BaseStrategyEngine
 
 
 class EngineLoader:
@@ -40,6 +41,7 @@ class EngineLoader:
             # Do not cache a forced-OSS engine so the normal engine is still
             # available on the next call without force_opensource.
             from app.services.engine.opensource_engine import OpenSourceEngine
+
             oss = OpenSourceEngine()
             logger.debug("EngineLoader: force_opensource=True → OpenSourceEngine")
             return oss

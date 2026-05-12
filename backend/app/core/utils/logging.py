@@ -1,5 +1,11 @@
 from __future__ import annotations
 
+import sys
+
+from loguru import logger
+
+from app.core.config import settings
+
 """
 Structured logging configuration for BlockBT.
 
@@ -11,11 +17,6 @@ Call ``setup_logging()`` once at app startup.
 """
 
 
-import sys
-
-from loguru import logger
-
-from app.core.config import settings
 
 
 def setup_logging(level: str | None = None) -> None:
@@ -53,8 +54,8 @@ def setup_logging(level: str | None = None) -> None:
         rotation="10 MB",
         retention="30 days",
         compression="gz",
-        serialize=True,          # JSON output
-        enqueue=True,            # thread-safe async writes
+        serialize=True,  # JSON output
+        enqueue=True,  # thread-safe async writes
         backtrace=False,
     )
 

@@ -5,80 +5,131 @@ W ramach MVP implementuje podstawową logikę opartą na przecięciu dwóch śre
 
 from typing import Any
 
+import numpy as np
 import pandas as pd
 from loguru import logger
 
 
 class IndicatorService:
     """
-    Klasa generująca sygnały wejścia i wyjścia (entries/exits) na podstawie danych OHLCV.
+    Service for generating entry and exit signals (entries/exits) based on OHLCV data.
+    Supports native vectorbt vectorization for parameters.
     """
 
-    def generate_signals(
-        self,
-        close: pd.Series,
-        params: dict[str, Any],
-        vbt: Any
-    ) -> tuple[pd.Series, pd.Series]:
+    @staticmethod
+    def _get_val(params: dict[str, Any], key: str, default: Any) -> Any:
+        """Helper to extract a parameter value, supporting lists for vectorization."""
+        val = params.get(key, default)
+        if isinstance(val, (list, np.ndarray, pd.Series)):
+            return val
+        try:
+            # Try to convert to int if it's a simple scalar string/float
+            return int(val)
+        except (TypeError, ValueError):
+            return val
+
+    @staticmethod
+    def generate_sma_crossover(
+        close: pd.Series, fast_window: Any, slow_window: Any, vbt: Any
+    ) -> tuple[pd.Series | pd.DataFrame, pd.Series | pd.DataFrame]:
         """
-        Generuje sygnały transakcyjne na podstawie strategii zdefiniowanej w `params`.
-
-        W ramach MVP wspierana jest głównie strategia przecięcia średnich (SMA Crossover)
-        przy użyciu darmowego modułu `vectorbt.indicators.MA`.
-
-        Args:
-            close (pd.Series): Szereg czasowy cen zamknięcia.
-            params (dict[str, Any]): Słownik parametrów strategii (z `wizard_state`).
-            vbt (Any): Zewnętrznie zaimportowany moduł vectorbt.
-
-        Returns:
-            tuple[pd.Series, pd.Series]: Krotka z dwoma wektorami logicznymi:
-                - entries (sygnały wejścia - True/False)
-                - exits (sygnały wyjścia - True/False)
+        Generate signals based on SMA Crossover strategy.
+        Supports vectorization (fast_window and slow_window can be lists).
         """
-        strategy_type = params.get("strategy_type", "sma_crossover")
+        logger.debug(f"IndicatorService: Generating SMA signals (fast={fast_window}, slow={slow_window})")
 
-        if strategy_type == "visual_ast":
-            ast = params.get("ast", {})
-            nodes = {n.get("id"): n for n in ast.get("nodes", [])}
-            logger.info(f"IndicatorService: parsowanie AST dla węzłów: {list(nodes.keys())}")
-
-            fast_ma = vbt.MA.run(close, window=10).ma
-            slow_ma = vbt.MA.run(close, window=50).ma
-
-            entries = fast_ma.vbt.crossed_above(slow_ma)
-            exits = fast_ma.vbt.crossed_below(slow_ma)
-            return entries, exits
-
-        if strategy_type == "macd":
-            fast = params.get("macd_fast", 12)
-            slow = params.get("macd_slow", 26)
-            signal = params.get("macd_signal", 9)
-
-            # Korzystamy z natywnego wskaźnika vbt.MACD w celach wektoryzacji
-            macd = vbt.MACD.run(close, fast_window=fast, slow_window=slow, signal_window=signal)
-
-            macd_line = macd.macd
-            sig_line = macd.signal
-
-            entries = macd_line.vbt.crossed_above(sig_line)
-            exits = macd_line.vbt.crossed_below(sig_line)
-
-            return entries, exits
-
-        # -------------------------------------------------------------
-        # Fallback / Domyślnie: SMA Crossover (wymaganie MVP)
-        # -------------------------------------------------------------
-        fast_w = params.get("sma_fast", 10)
-        slow_w = params.get("sma_slow", 30)
-
-        logger.debug(f"IndicatorService: Generowanie sygnałów SMA (fast={fast_w}, slow={slow_w})")
-
-        # Korzystamy z darmowego wskaźnika vbt.MA zgodnie z wymaganiami MVP
-        fast_ma = vbt.MA.run(close, window=fast_w).ma
-        slow_ma = vbt.MA.run(close, window=slow_w).ma
+        fast_ma = vbt.MA.run(close, window=fast_window).ma
+        slow_ma = vbt.MA.run(close, window=slow_window).ma
 
         entries = fast_ma.vbt.crossed_above(slow_ma)
         exits = fast_ma.vbt.crossed_below(slow_ma)
 
         return entries, exits
+
+    @staticmethod
+    def generate_macd(
+        close: pd.Series, fast: Any, slow: Any, signal: Any, vbt: Any
+    ) -> tuple[pd.Series | pd.DataFrame, pd.Series | pd.DataFrame]:
+        """
+        Generate signals based on MACD strategy.
+        Supports vectorization.
+        """
+        logger.debug(f"IndicatorService: Generating MACD signals (fast={fast}, slow={slow}, signal={signal})")
+
+        macd = vbt.MACD.run(close, fast_window=fast, slow_window=slow, signal_window=signal)
+
+        entries = macd.macd.vbt.crossed_above(macd.signal)
+        exits = macd.macd.vbt.crossed_below(macd.signal)
+
+        return entries, exits
+
+    @staticmethod
+    def generate_custom(
+        close: pd.Series, code_content: str, vbt: Any
+    ) -> tuple[pd.Series | pd.DataFrame, pd.Series | pd.DataFrame]:
+        """
+        Execute custom Python/vectorbt code to generate signals.
+        The code should define 'entries' and 'exits' variables.
+        """
+        logger.info("IndicatorService: Executing custom strategy code")
+        
+        local_scope = {
+            "close": close,
+            "vbt": vbt,
+            "np": np,
+            "pd": pd,
+        }
+        
+        try:
+            # Execute the user code
+            exec(code_content, {}, local_scope)
+            
+            entries = local_scope.get("entries")
+            exits = local_scope.get("exits")
+            
+            if entries is None or exits is None:
+                raise ValueError("Custom code must define 'entries' and 'exits' variables.")
+                
+            return entries, exits
+        except Exception as e:
+            logger.error(f"Error executing custom strategy code: {e}")
+            raise RuntimeError(f"Custom strategy execution failed: {e}") from e
+
+    @classmethod
+    def generate_signals(
+        cls, close: pd.Series, params: dict[str, Any], vbt: Any
+    ) -> tuple[pd.Series | pd.DataFrame, pd.Series | pd.DataFrame]:
+        """
+        Orchestrator for signal generation based on the strategy defined in `params`.
+        """
+        strategy_type = params.get("strategy_type", "sma_crossover").lower()
+
+        if strategy_type == "custom":
+            code_content = params.get("code_content", "")
+            if not code_content:
+                # Fallback or error? Let's try to find it in parameters if not top-level
+                code_content = params.get("parameters", {}).get("code_content", "")
+            
+            if not code_content:
+                raise ValueError("Custom strategy type requested but no code_content provided.")
+                
+            return cls.generate_custom(close, code_content, vbt)
+
+        if strategy_type == "macd":
+            fast = cls._get_val(params, "sma_fast", 12)  # Shared UI fields for simplicity
+            if "macd_fast" in params:
+                fast = cls._get_val(params, "macd_fast", 12)
+            
+            slow = cls._get_val(params, "sma_slow", 26)
+            if "macd_slow" in params:
+                slow = cls._get_val(params, "macd_slow", 26)
+                
+            signal = cls._get_val(params, "macd_signal", 9)
+
+            return cls.generate_macd(close, fast, slow, signal, vbt)
+
+        # Default / Fallback: SMA Crossover
+        fast_w = cls._get_val(params, "sma_fast", 10)
+        slow_w = cls._get_val(params, "sma_slow", 30)
+
+        return cls.generate_sma_crossover(close, fast_w, slow_w, vbt)

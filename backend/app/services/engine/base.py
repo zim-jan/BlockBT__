@@ -1,5 +1,11 @@
 from __future__ import annotations
 
+from abc import ABC, abstractmethod
+from dataclasses import dataclass, field
+from typing import Any
+
+import pandas as pd
+
 """
 Abstract base class for BlockBT strategy engines.
 
@@ -8,11 +14,6 @@ rest of the application code is engine-agnostic.
 """
 
 
-from abc import ABC, abstractmethod
-from dataclasses import dataclass, field
-from typing import Any
-
-import pandas as pd
 
 # ---------------------------------------------------------------------------
 # Result container

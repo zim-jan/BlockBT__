@@ -1,15 +1,16 @@
 from __future__ import annotations
 
+from unittest.mock import patch
+
+import numpy as np
+import pandas as pd
+
 """
 Tests for YahooFinanceConnector — Parquet caching round-trip.
 (No live network calls — uses patched yfinance download.)
 """
 
 
-from unittest.mock import patch
-
-import numpy as np
-import pandas as pd
 
 
 def _make_ohlcv(n: int = 50) -> pd.DataFrame:

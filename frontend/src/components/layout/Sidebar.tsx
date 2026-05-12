@@ -5,7 +5,7 @@ export function Sidebar() {
   return (
     <nav className="w-64 bg-surface-container flex flex-col h-full border-r border-outline-variant/20">
       <div className="p-6">
-        <h1 className="font-headline text-2xl text-on-surface tracking-tight uppercase">Sovereign</h1>
+        <h1 className="font-headline text-2xl text-on-surface tracking-tight uppercase">BlockBT</h1>
       </div>
 
       <div className="flex-1 px-4 space-y-2 mt-4">

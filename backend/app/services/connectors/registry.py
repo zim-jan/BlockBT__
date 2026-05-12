@@ -1,5 +1,10 @@
 from __future__ import annotations
 
+from loguru import logger
+
+from app.core.config import settings
+from app.services.connectors.base import BaseDataConnector
+
 """
 ConnectorRegistry — auto-discovery and lookup for data provider plugins.
 
@@ -11,10 +16,7 @@ Usage:
 """
 
 
-from loguru import logger
 
-from app.core.config import settings
-from app.services.connectors.base import BaseDataConnector
 
 
 class ConnectorRegistry:
@@ -43,9 +45,7 @@ class ConnectorRegistry:
         resolved = (key or settings.DATA_CONNECTOR).lower()
         if resolved not in cls._registry:
             available = list(cls._registry.keys())
-            raise KeyError(
-                f"Unknown connector {resolved!r}. Available: {available}"
-            )
+            raise KeyError(f"Unknown connector {resolved!r}. Available: {available}")
         return cls._registry[resolved]()
 
     @classmethod
