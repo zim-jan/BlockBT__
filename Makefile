@@ -23,6 +23,12 @@ dev: api frontend ## Start both backend and frontend (requires two terminals)
 api: ## Start FastAPI backend (dev mode)
 	cd backend && uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
 
+build-api: ## Build backend docker image
+	docker compose build blockbt-api
+
+rebuild-api: ## Rebuild and restart backend container
+	docker compose up -d --build blockbt-api
+
 kill-api: ## Kill any existing uvicorn processes on port 8000
 	@lsof -ti:8000 | xargs -r kill -9
 	@echo "✓ Backend processes on port 8000 killed."

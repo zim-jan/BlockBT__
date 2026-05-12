@@ -54,8 +54,22 @@ def _execute_backtest(parameters: dict[str, Any]) -> dict[str, Any]:
     engine = EngineLoader.load()
     
     logger.debug(f"BacktestRunner: executing strategy via {engine.__class__.__name__}...")
-    result = engine.run_backtest(parameters, df)
+    result = engine.run_backtest(df, parameters)
+    
+    # Extract metrics robustly
     metrics = result.get("metrics", {})
+    if not metrics:
+        # Fallback for engines returning flat results
+        metrics = {
+            "Total Return [%]": result.get("total_return_pct"),
+            "Sharpe Ratio": result.get("sharpe_ratio"),
+            "Max Drawdown [%]": result.get("max_drawdown_pct"),
+            "Total Trades": result.get("num_trades"),
+            "Final Value": result.get("final_capital"),
+        }
+        # If still empty, try extracting from raw if it exists
+        if not any(v is not None for v in metrics.values()) and "raw" in result:
+             metrics.update(result["raw"])
 
     # Convert numeric types to basic python floats/ints for JSON serialization
     safe_metrics = {}

@@ -212,7 +212,7 @@ class OptunaOptimizer:
                     current_params[name] = trial.suggest_categorical(name, b["choices"])
 
             try:
-                execution_result = self.engine.run_backtest(current_params, data)
+                execution_result = self.engine.run_backtest(data, current_params)
                 val = execution_result.get("metrics", {}).get(metric, 0.0)
                 return float(val) if val is not None else 0.0
             except Exception as e:

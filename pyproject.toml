@@ -48,7 +48,7 @@ dependencies = [
     "psycopg",
     "pgvector",
     "ollama",
-    "numpy>=1.23",
+    "numpy>=1.23,<2.0",
     "psycopg-binary",
     "langchain-text-splitters",
     "mcp[cli]",

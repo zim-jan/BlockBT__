@@ -116,19 +116,34 @@ class OpenSourceEngine(BaseStrategyEngine):
             # Standard single result
             stats = portfolio.stats()
             
+            total_return = float(portfolio.total_return() * 100)
+            sharpe = float(portfolio.sharpe_ratio())
+            drawdown = float(portfolio.max_drawdown() * 100)
+            win_rate = float(portfolio.trades.win_rate() * 100) if portfolio.trades.count() > 0 else 0.0
+            trades_count = int(portfolio.trades.count())
+            final_val = float(portfolio.value().iloc[-1] if len(portfolio.value()) > 0 else initial_capital)
+
             return {
                 "symbol": symbol,
                 "timeframe": timeframe,
                 "engine_name": self.ENGINE_NAME,
                 "status": "COMPLETED",
-                "total_return_pct": float(portfolio.total_return() * 100),
-                "sharpe_ratio": float(portfolio.sharpe_ratio()),
-                "max_drawdown_pct": float(portfolio.max_drawdown() * 100),
-                "win_rate_pct": float(portfolio.trades.win_rate() * 100) if portfolio.trades.count() > 0 else 0.0,
-                "num_trades": int(portfolio.trades.count()),
+                "total_return_pct": total_return,
+                "sharpe_ratio": sharpe,
+                "max_drawdown_pct": drawdown,
+                "win_rate_pct": win_rate,
+                "num_trades": trades_count,
                 "initial_capital": initial_capital,
-                "final_capital": float(portfolio.value().iloc[-1] if len(portfolio.value()) > 0 else initial_capital),
+                "final_capital": final_val,
                 "equity_curve": portfolio.value(),
+                "metrics": {
+                    "Total Return [%]": total_return,
+                    "Sharpe Ratio": sharpe,
+                    "Max Drawdown [%]": drawdown,
+                    "Total Trades": trades_count,
+                    "Final Value": final_val,
+                    "Win Rate [%]": win_rate,
+                },
                 "raw": stats.to_dict() if hasattr(stats, "to_dict") else dict(stats),
             }
         else:
