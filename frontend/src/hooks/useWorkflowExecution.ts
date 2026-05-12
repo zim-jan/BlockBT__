@@ -59,8 +59,8 @@ export function useWorkflowExecution() {
       return
     }
 
-    const dData = dataNode.data as DataNodeData
-    const iData = indicatorNode.data as IndicatorNodeData
+    const dData = dataNode.data as unknown as DataNodeData
+    const iData = indicatorNode.data as unknown as IndicatorNodeData
 
     const symbol: string = dData.symbol ?? 'AAPL'
     const dataSource: string = dData.dataSource ?? 'yahoo'

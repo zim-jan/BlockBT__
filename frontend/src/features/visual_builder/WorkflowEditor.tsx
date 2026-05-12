@@ -1,18 +1,18 @@
 import {useCallback, useState} from 'react'
-import ReactFlow, {Background, Controls, MiniMap, Panel,} from '@xyflow/react'
+import {ReactFlow, Background, Controls, MiniMap, Panel,} from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
 import {useWorkflowStore} from '../../store/workflowStore'
 import {useWorkflowExecution} from '../../hooks/useWorkflowExecution'
 import {api} from '../../services/api'
 import {StrategyListModal} from './StrategyListModal'
 
-import {DataNode} from './nodes/DataNode'
-import {IndicatorNode} from './nodes/IndicatorNode'
+import DataNode from './nodes/DataNode'
+import IndicatorNode from './nodes/IndicatorNode'
 import {SignalNode} from './nodes/SignalNode'
 import {PortfolioNode} from './nodes/PortfolioNode'
-import {OptimizerNode} from './nodes/OptimizerNode'
+import OptimizerNode from './nodes/OptimizerNode'
 
-const nodeTypes = {
+const nodeTypes: any = {
   dataNode: DataNode,
   indicatorNode: IndicatorNode,
   signalNode: SignalNode,

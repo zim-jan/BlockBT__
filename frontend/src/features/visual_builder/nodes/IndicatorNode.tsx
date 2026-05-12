@@ -6,11 +6,13 @@
  *   - MACD: Fast / Slow / Signal window periods
  */
 
-import {Handle, type NodeProps, Position} from '@xyflow/react'
+import {Handle, type Node, type NodeProps, Position} from '@xyflow/react'
 import {useWorkflowStore} from '../../../store/workflowStore'
 import type {IndicatorNodeData, IndicatorType} from '../../../types/types'
 
-export function IndicatorNode({ id, data }: NodeProps<IndicatorNodeData>) {
+export type IndicatorNode = Node<IndicatorNodeData, 'indicatorNode'>
+
+export function IndicatorNode({ id, data }: NodeProps<IndicatorNode>) {
   const updateNodeData = useWorkflowStore((s) => s.updateNodeData)
   const isMACD = data.indicatorType === 'macd'
   const isCustom = data.indicatorType === 'custom'
@@ -28,7 +30,7 @@ export function IndicatorNode({ id, data }: NodeProps<IndicatorNodeData>) {
         <label className="rf-label">Strategy Type</label>
         <select
           value={data.indicatorType}
-          onChange={(e) => updateNodeData(id, { indicatorType: e.target.value as IndicatorType })}
+          onChange={(e) => updateNodeData(id as string, { indicatorType: e.target.value as IndicatorType })}
           className="rf-input"
         >
           <option value="sma_crossover">SMA Crossover</option>
@@ -45,7 +47,7 @@ export function IndicatorNode({ id, data }: NodeProps<IndicatorNodeData>) {
               min={2}
               max={200}
               value={data.smaFast}
-              onChange={(e) => updateNodeData(id, { smaFast: Number(e.target.value) })}
+              onChange={(e) => updateNodeData(id as string, { smaFast: Number(e.target.value) })}
               className="rf-input"
             />
 
@@ -55,7 +57,7 @@ export function IndicatorNode({ id, data }: NodeProps<IndicatorNodeData>) {
               min={5}
               max={500}
               value={data.smaSlow}
-              onChange={(e) => updateNodeData(id, { smaSlow: Number(e.target.value) })}
+              onChange={(e) => updateNodeData(id as string, { smaSlow: Number(e.target.value) })}
               className="rf-input"
             />
           </>
@@ -70,7 +72,7 @@ export function IndicatorNode({ id, data }: NodeProps<IndicatorNodeData>) {
               min={2}
               max={100}
               value={data.macdFast ?? 12}
-              onChange={(e) => updateNodeData(id, { macdFast: Number(e.target.value) })}
+              onChange={(e) => updateNodeData(id as string, { macdFast: Number(e.target.value) })}
               className="rf-input"
             />
 
@@ -80,7 +82,7 @@ export function IndicatorNode({ id, data }: NodeProps<IndicatorNodeData>) {
               min={5}
               max={200}
               value={data.macdSlow ?? 26}
-              onChange={(e) => updateNodeData(id, { macdSlow: Number(e.target.value) })}
+              onChange={(e) => updateNodeData(id as string, { macdSlow: Number(e.target.value) })}
               className="rf-input"
             />
 
@@ -90,7 +92,7 @@ export function IndicatorNode({ id, data }: NodeProps<IndicatorNodeData>) {
               min={2}
               max={50}
               value={data.macdSignal ?? 9}
-              onChange={(e) => updateNodeData(id, { macdSignal: Number(e.target.value) })}
+              onChange={(e) => updateNodeData(id as string, { macdSignal: Number(e.target.value) })}
               className="rf-input"
             />
           </>
@@ -103,7 +105,7 @@ export function IndicatorNode({ id, data }: NodeProps<IndicatorNodeData>) {
             <textarea
               rows={8}
               value={data.codeContent ?? "entries = close.vbt.indicators.RSI.run().rsi_below(30)\nexits = close.vbt.indicators.RSI.run().rsi_above(70)"}
-              onChange={(e) => updateNodeData(id, { codeContent: e.target.value })}
+              onChange={(e) => updateNodeData(id as string, { codeContent: e.target.value })}
               className="rf-input"
               style={{ fontFamily: 'monospace', fontSize: '11px', resize: 'vertical' }}
               placeholder="entries = ...\nexits = ..."
@@ -122,7 +124,7 @@ export function IndicatorNode({ id, data }: NodeProps<IndicatorNodeData>) {
           min={100}
           step={1000}
           value={data.initialCapital}
-          onChange={(e) => updateNodeData(id, { initialCapital: Number(e.target.value) })}
+          onChange={(e) => updateNodeData(id as string, { initialCapital: Number(e.target.value) })}
           className="rf-input"
         />
       </div>

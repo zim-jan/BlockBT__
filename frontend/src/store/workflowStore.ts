@@ -118,8 +118,8 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
           id,
           type,
           position: { x: baseX, y: baseY },
-          data: defaultData[type] ?? {},
-        },
+          data: (defaultData[type] ?? {}) as Record<string, unknown>,
+        } as Node,
       ],
     }))
   },
@@ -148,7 +148,7 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
       errorMessage: error ?? null,
       nodes: s.nodes.map((n) =>
         n.type === 'optimizerNode'
-          ? { ...n, data: { ...n.data, jobStatus: status, bestParameters: bestParams, bestValue: bestValue ?? undefined, trials: trials ?? undefined, jobId, error } satisfies OptimizerNodeData }
+          ? { ...n, data: { ...n.data as OptimizerNodeData, jobStatus: status, bestParameters: bestParams ?? undefined, bestValue: bestValue ?? undefined, trials: trials ?? undefined, jobId, error } }
           : n
       ),
     })),

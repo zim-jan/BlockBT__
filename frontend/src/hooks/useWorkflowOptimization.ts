@@ -43,9 +43,9 @@ export function useWorkflowOptimization() {
       return
     }
 
-    const dData = dataNode.data as DataNodeData
-    const iData = indicatorNode.data as IndicatorNodeData
-    const oData = optimizerNode.data as OptimizerNodeData
+    const dData = dataNode.data as unknown as DataNodeData
+    const iData = indicatorNode.data as unknown as IndicatorNodeData
+    const oData = optimizerNode.data as unknown as OptimizerNodeData
 
     setJobState(true, null, 'PENDING')
 

@@ -52,7 +52,7 @@ export interface StrategyData {
 }
 
 // Custom node data shapes used by React Flow nodes
-export interface DataNodeData {
+export interface DataNodeData extends Record<string, unknown> {
   symbol: string
   dataSource: DataSourceType
   startDate: string
@@ -60,7 +60,7 @@ export interface DataNodeData {
   timeframe: string
 }
 
-export interface IndicatorNodeData {
+export interface IndicatorNodeData extends Record<string, unknown> {
   indicatorType: IndicatorType
   smaFast: number
   smaSlow: number
@@ -71,7 +71,7 @@ export interface IndicatorNodeData {
   codeContent?: string
 }
 
-export interface SignalNodeData {
+export interface SignalNodeData extends Record<string, unknown> {
   signalType: 'sma_crossover'
 }
 
@@ -89,7 +89,7 @@ export interface OptunaTrial {
   state: string
 }
 
-export interface OptimizerNodeData {
+export interface OptimizerNodeData extends Record<string, unknown> {
   metric: string
   nTrials: number
   paramBounds: Record<string, ParameterBound>
@@ -101,7 +101,7 @@ export interface OptimizerNodeData {
   error?: string | null
 }
 
-export interface PortfolioNodeData {
+export interface PortfolioNodeData extends Record<string, unknown> {
   jobStatus?: JobStatus
   metrics?: BacktestMetrics | null
   jobId?: number

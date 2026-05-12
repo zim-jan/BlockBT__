@@ -4,14 +4,16 @@
  * Defines bounds for strategy parameters and optimization trials.
  */
 
-import {Handle, type NodeProps, Position} from '@xyflow/react'
+import {Handle, type Node, type NodeProps, Position} from '@xyflow/react'
 import {useState} from 'react'
 import {useWorkflowStore} from '../../../store/workflowStore'
 import {useWorkflowOptimization} from '../../../hooks/useWorkflowOptimization'
 import type {IndicatorNodeData, OptimizerNodeData, ParameterBound} from '../../../types/types'
 import {OptimizationChart} from './OptimizationChart'
 
-export function OptimizerNode({ id, data }: NodeProps<OptimizerNodeData>) {
+export type OptimizerNode = Node<OptimizerNodeData, 'optimizerNode'>
+
+export function OptimizerNode({ id, data }: NodeProps<OptimizerNode>) {
   const updateNodeData = useWorkflowStore((s) => s.updateNodeData)
   const edges = useWorkflowStore((s) => s.edges)
   const nodes = useWorkflowStore((s) => s.nodes)
@@ -38,7 +40,7 @@ export function OptimizerNode({ id, data }: NodeProps<OptimizerNodeData>) {
       return
     }
 
-    const iData = indicator.data as IndicatorNodeData
+    const iData = indicator.data as unknown as IndicatorNodeData
     let newBounds: Record<string, ParameterBound> = {}
 
     if (iData.indicatorType === 'macd') {
@@ -53,7 +55,7 @@ export function OptimizerNode({ id, data }: NodeProps<OptimizerNodeData>) {
         sma_slow: { min: 25, max: 50, type: 'int' }
       }
     }
-    updateNodeData(id, { paramBounds: newBounds })
+    updateNodeData(id as string, { paramBounds: newBounds })
   }
 
   const handleApplyToIndicator = () => {
@@ -68,7 +70,7 @@ export function OptimizerNode({ id, data }: NodeProps<OptimizerNodeData>) {
     const mappedParams: Record<string, any> = {}
     
     // For MACD, the frontend uses macdFast, macdSlow, macdSignal but backend uses sma_fast, sma_slow, macd_signal
-    const iData = indicator.data as IndicatorNodeData
+    const iData = indicator.data as unknown as IndicatorNodeData
     if (iData.indicatorType === 'macd') {
         if (data.bestParameters.sma_fast !== undefined) mappedParams.macdFast = data.bestParameters.sma_fast
         if (data.bestParameters.sma_slow !== undefined) mappedParams.macdSlow = data.bestParameters.sma_slow
@@ -78,7 +80,7 @@ export function OptimizerNode({ id, data }: NodeProps<OptimizerNodeData>) {
         if (data.bestParameters.sma_slow !== undefined) mappedParams.smaSlow = data.bestParameters.sma_slow
     }
 
-    updateNodeData(indicator.id, mappedParams)
+    updateNodeData(indicator.id as string, mappedParams)
     alert('Parameters applied to Indicator node!')
   }
 
@@ -118,7 +120,7 @@ export function OptimizerNode({ id, data }: NodeProps<OptimizerNodeData>) {
         <label className="rf-label">Target Metric</label>
         <select
           value={data.metric}
-          onChange={(e) => updateNodeData(id, { metric: e.target.value })}
+          onChange={(e) => updateNodeData(id as string, { metric: e.target.value })}
           className="rf-input"
         >
           <option value="Total Return [%]">Total Return [%]</option>
@@ -133,14 +135,14 @@ export function OptimizerNode({ id, data }: NodeProps<OptimizerNodeData>) {
           min={5}
           max={200}
           value={data.nTrials}
-          onChange={(e) => updateNodeData(id, { nTrials: Number(e.target.value) })}
+          onChange={(e) => updateNodeData(id as string, { nTrials: Number(e.target.value) })}
           className="rf-input"
         />
 
         <div style={{ marginTop: 12, borderTop: '1px solid var(--border)', paddingTop: 8 }}>
           <div style={{ fontSize: 11, color: '#a78bfa', fontWeight: 600, marginBottom: 4 }}>PARAM BOUNDS</div>
           
-          {Object.entries(data.paramBounds).map(([key, bound]) => (
+          {Object.entries(data.paramBounds as Record<string, ParameterBound>).map(([key, bound]) => (
             <div key={key} style={{ marginBottom: 8, padding: 6, background: 'rgba(0,0,0,0.2)', borderRadius: 6 }}>
               <div style={{ fontSize: 10, color: '#f8fafc', fontWeight: 700, marginBottom: 2 }}>{key.toUpperCase()}</div>
               <div style={{ display: 'flex', gap: 4 }}>
@@ -182,13 +184,13 @@ export function OptimizerNode({ id, data }: NodeProps<OptimizerNodeData>) {
               </button>
             </div>
             <div style={{ fontSize: 10 }}>
-              {Object.entries(data.bestParameters).map(([k, v]) => (
-                <div key={k}>{k}: {v}</div>
+              {Object.entries(data.bestParameters as Record<string, any>).map(([k, v]) => (
+                <div key={k}>{k}: {v as React.ReactNode}</div>
               ))}
-              <div style={{ marginTop: 4, color: '#a78bfa' }}>Value: {data.bestValue?.toFixed(4)}</div>
+              <div style={{ marginTop: 4, color: '#a78bfa' }}>Value: {(data.bestValue as number)?.toFixed(4)}</div>
             </div>
 
-            {data.trials && data.trials.length > 0 && (
+            {(data.trials as any[]) && (data.trials as any[]).length > 0 && (
               <button 
                 onClick={() => setShowChart(!showChart)}
                 className="rf-btn"
@@ -199,7 +201,7 @@ export function OptimizerNode({ id, data }: NodeProps<OptimizerNodeData>) {
             )}
 
             {showChart && data.trials && (
-              <OptimizationChart trials={data.trials} metricName={data.metric} />
+              <OptimizationChart trials={data.trials as any[]} metricName={data.metric as string} />
             )}
           </div>
         )}

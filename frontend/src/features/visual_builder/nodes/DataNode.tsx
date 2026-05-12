@@ -7,13 +7,15 @@
  *   - Synthetic (random-walk OHLCV — no network needed)
  */
 
-import {Handle, type NodeProps, Position} from '@xyflow/react'
+import {Handle, type Node, type NodeProps, Position} from '@xyflow/react'
 import {useWorkflowStore} from '../../../store/workflowStore'
 import type {DataNodeData, DataSourceType} from '../../../types/types'
 
 const TIMEFRAMES = ['1d', '1h', '5m', '15m', '30m', '1w'] as const
 
-export function DataNode({ id, data }: NodeProps<DataNodeData>) {
+export type DataNode = Node<DataNodeData, 'dataNode'>
+
+export function DataNode({ id, data }: NodeProps<DataNode>) {
   const updateNodeData = useWorkflowStore((s) => s.updateNodeData)
 
   const isSynthetic = data.dataSource === 'synthetic'
@@ -30,10 +32,9 @@ export function DataNode({ id, data }: NodeProps<DataNodeData>) {
         <label className="rf-label">Source</label>
         <select
           value={data.dataSource}
-          onChange={(e) => updateNodeData(id, { dataSource: e.target.value as DataSourceType })}
+          onChange={(e) => updateNodeData(id as string, { dataSource: e.target.value as DataSourceType })}
           className="rf-input"
-        >
-          <option value="yahoo">Yahoo Finance</option>
+        >          <option value="yahoo">Yahoo Finance</option>
           <option value="alpaca">Alpaca</option>
           <option value="synthetic">Synthetic</option>
         </select>
@@ -42,7 +43,7 @@ export function DataNode({ id, data }: NodeProps<DataNodeData>) {
         <label className="rf-label">Symbol</label>
         <input
           value={data.symbol}
-          onChange={(e) => updateNodeData(id, { symbol: e.target.value.toUpperCase() })}
+          onChange={(e) => updateNodeData(id as string, { symbol: e.target.value.toUpperCase() })}
           placeholder={isSynthetic ? 'SYNTHETIC' : 'AAPL'}
           className="rf-input"
           disabled={isSynthetic}
@@ -55,7 +56,7 @@ export function DataNode({ id, data }: NodeProps<DataNodeData>) {
             <input
               type="date"
               value={data.startDate}
-              onChange={(e) => updateNodeData(id, { startDate: e.target.value })}
+              onChange={(e) => updateNodeData(id as string, { startDate: e.target.value })}
               className="rf-input"
             />
 
@@ -63,7 +64,7 @@ export function DataNode({ id, data }: NodeProps<DataNodeData>) {
             <input
               type="date"
               value={data.endDate}
-              onChange={(e) => updateNodeData(id, { endDate: e.target.value })}
+              onChange={(e) => updateNodeData(id as string, { endDate: e.target.value })}
               className="rf-input"
             />
           </>
@@ -73,7 +74,7 @@ export function DataNode({ id, data }: NodeProps<DataNodeData>) {
         <label className="rf-label">Timeframe</label>
         <select
           value={data.timeframe}
-          onChange={(e) => updateNodeData(id, { timeframe: e.target.value })}
+          onChange={(e) => updateNodeData(id as string, { timeframe: e.target.value })}
           className="rf-input"
         >
           {TIMEFRAMES.map((tf) => (
