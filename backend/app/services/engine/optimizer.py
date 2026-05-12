@@ -32,41 +32,44 @@ class GridSearchOptimizer:
     This ensures that each run is isolated as a distinct sequence for each parameter, ensuring that vectorbt's native broadcasting works seamlessly without throwing MultiIndex errors.
     """
 
-    def __init__(self, engine_instance: Any) -> None:
+    def __init__(self, engine: Any, **kwargs: Any) -> None:
         """Initialize the optimizer with a compatible BaseStrategyEngine instance.
 
         Parameters
         ----------
-        engine_instance : BaseStrategyEngine
+        engine : BaseStrategyEngine
             Instance of the execution engine (OpenSourceEngine or ProEngine).
         """
-        self.engine = engine_instance
+        self.engine = engine
 
-    def run_optimization(
+    def optimize(
         self,
-        param_grid: dict[str, list[Any]],
         data: pd.DataFrame,
-        base_parameters: dict[str, Any],
+        param_grid: dict[str, list[Any]],
+        base_parameters: dict[str, Any] | None = None,
         metric: str = "Total Return [%]",
     ) -> list[dict[str, Any]]:
         """Run grid search optimization over all parameter combinations.
 
         Parameters
         ----------
-        param_grid : dict[str, list[Any]]
-            A dictionary where keys are parameter names and values are lists of discrete values to test. (e.g., {"sma_fast": [5, 10, 15], "sma_slow": [20, 30]}).
         data : pd.DataFrame
             Market data.
-        base_parameters : dict[str, Any]
+        param_grid : dict[str, list[Any]]
+            A dictionary where keys are parameter names and values are lists of discrete values to test.
+        base_parameters : dict[str, Any], optional
             The baseline parameters. Keys present in the `param_grid` will overwrite these.
         metric : str, optional
-            The performance metric to extract from the returned results, must exactly match a key in vectorbt's `portfolio.stats()`. Defaults to 'Total Return [%]'.
+            The performance metric to extract from the returned results.
 
         Returns
         -------
         list[dict[str, Any]]
-            A list of result dictionaries, each containing the 'parameters' used and the resulting 'metrics'.
+            A list of result dictionaries, sorted by metric descending.
         """
+        if base_parameters is None:
+            base_parameters = {}
+
         try:
             import vectorbt as vbt  # type: ignore[import]
         except ImportError as exc:
@@ -74,6 +77,10 @@ class GridSearchOptimizer:
                 "vectorbt is not importable. Ensure the vendored copy is intact "
                 f"at {_VENDORED_VBT}."
             ) from exc
+
+        # If param_grid is empty, return empty list
+        if not param_grid:
+            return []
 
         # 1. Generate all flat combinations
         keys = list(param_grid.keys())
@@ -96,7 +103,7 @@ class GridSearchOptimizer:
 
         # 3. Execute vectorized backtest
         try:
-            execution_result = self.engine.run_backtest(grid_params, data)
+            execution_result = self.engine.run_backtest(data, grid_params)
             
             if not execution_result.get("is_vectorized"):
                  logger.warning("Engine did not return vectorized results. Falling back to empty.")
@@ -161,8 +168,8 @@ class GridSearchOptimizer:
 class OptunaOptimizer:
     """Uses Optuna (TPE) to find optimal parameters efficiently."""
 
-    def __init__(self, engine_instance: Any) -> None:
-        self.engine = engine_instance
+    def __init__(self, engine: Any) -> None:
+        self.engine = engine
 
     def run_optimization(
         self,

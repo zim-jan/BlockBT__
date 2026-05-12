@@ -50,6 +50,7 @@ dependencies = [
     "ollama",
     "numpy>=1.23",
     "psycopg-binary",
+    "langchain-text-splitters",
     "mcp[cli]",
     "mkdocstrings",
     "ruff",

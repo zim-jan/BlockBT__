@@ -46,18 +46,21 @@ def test_grid_search_optimizer_basic(dummy_data):
         "sma_slow": [20, 50],
     }
 
-    result = optimizer.optimize(dummy_data, param_grid, metric="Total Return [%]")
+    results = optimizer.optimize(dummy_data, param_grid, metric="Total Return [%]")
 
-    assert result is not None
-    assert "best_params" in result
-    assert "best_metric_value" in result
-    assert "stats" in result
-
-    best_params = result["best_params"]
+    assert results is not None
+    assert len(results) == 4
+    
+    # Best result is first
+    best_result = results[0]
+    assert "parameters" in best_result
+    assert "metrics" in best_result
+    
+    best_params = best_result["parameters"]
     assert "sma_fast" in best_params
     assert "sma_slow" in best_params
 
-    # 4 combinations should have been tested
+    # Check if best_params is one of our combinations
     assert best_params["sma_fast"] in [5, 10]
     assert best_params["sma_slow"] in [20, 50]
 
@@ -71,4 +74,4 @@ def test_grid_search_optimizer_empty_grid(dummy_data):
 
     result = optimizer.optimize(dummy_data, {}, metric="Total Return [%]")
 
-    assert result == {}
+    assert result == []

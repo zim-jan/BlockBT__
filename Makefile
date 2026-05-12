@@ -2,11 +2,19 @@
 # BlockBT — Makefile
 # ──────────────────────────────────────────────────────────────
 
-.PHONY: help dev api frontend generate-api lint test
+.PHONY: help dev api frontend generate-api lint test docs docs-serve
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | \
 		awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-18s\033[0m %s\n", $$1, $$2}'
+
+# ── Documentation ─────────────────────────────────────────────
+
+docs: ## Build documentation
+	mkdocs build
+
+docs-serve: ## Start documentation server
+	mkdocs serve --dev-addr 127.0.0.1:8001
 
 # ── Development ───────────────────────────────────────────────
 

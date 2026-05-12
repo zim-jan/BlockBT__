@@ -3,6 +3,7 @@ pyproject.toml
 backend/app/main.py
 backend/app/api/__init__.py
 backend/app/api/backtest.py
+backend/app/api/optimizer.py
 backend/app/api/results.py
 backend/app/api/settings.py
 backend/app/api/strategies.py
@@ -14,6 +15,8 @@ backend/app/core/utils/parquet.py
 backend/app/db/session.py
 backend/app/models/orm.py
 backend/app/schemas/backtest.py
+backend/app/schemas/base.py
+backend/app/schemas/optimizer.py
 backend/app/schemas/results.py
 backend/app/schemas/settings.py
 backend/app/schemas/strategies.py
@@ -26,15 +29,18 @@ backend/app/services/connectors/yahoo_finance.py
 backend/app/services/engine/__init__.py
 backend/app/services/engine/base.py
 backend/app/services/engine/indicators.py
+backend/app/services/engine/job_service.py
 backend/app/services/engine/loader.py
 backend/app/services/engine/opensource_engine.py
 backend/app/services/engine/optimizer.py
 backend/app/services/engine/pro_engine.py
 backend/app/services/engine/runner.py
 backend/app/services/mcp/__init__.py
+backend/app/services/mcp/code_kb_server.py
 backend/app/services/mcp/llm_client.py
 backend/app/services/mcp/protocol.py
 backend/app/services/mcp/report_builder.py
+backend/app/services/mcp/router.py
 backend/app/services/strategy/__init__.py
 backend/blockbt.egg-info/PKG-INFO
 backend/blockbt.egg-info/SOURCES.txt

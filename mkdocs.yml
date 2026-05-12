@@ -44,9 +44,13 @@ plugins:
             show_root_heading: true
 
 nav:
-  - Wprowadzenie (Getting Started): index.md
-  - Architektura: architecture.md
-  - Backend API (FastAPI): backend.md
-  - Frontend (React): frontend.md
-  - Silnik Backtestingu (Engine): engine.md
-  - Zarządzanie Danymi (Parquet & SQLite): data.md
+  - Home: index.md
+  - Architektura: architecture/overview.md
+  - Backend:
+      - Database: backend/database.md
+      - Connectors: backend/connectors.md
+      - Engines & Optimization: backend/engines_and_optimization.md
+      - API & Agents: backend/api_and_agents.md
+  - Frontend:
+      - Architecture: frontend/architecture.md
+      - Visual Builder: frontend/visual_builder.md

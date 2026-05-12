@@ -35,7 +35,7 @@ def test_trigger_backtest_success(db_session):
 
     data = response.json()
     assert data["success"] is True
-    assert data["data"]["strategy_id"] == str(strategy_id)
+    assert data["data"]["strategy_id"] == strategy_id
     assert data["data"]["status"] == "PENDING"
     assert data["data"]["symbol"] == "SYNTHETIC"
     assert data["data"]["initial_capital"] == 10000.0

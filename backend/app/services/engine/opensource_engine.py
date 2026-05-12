@@ -32,6 +32,8 @@ class OpenSourceEngine(BaseStrategyEngine):
     execution and advanced metrics found in vectorbtpro.
     """
 
+    ENGINE_NAME = "opensource"
+
     def __init__(self) -> None:
         """Initialize the OpenSource engine, verifying dependencies are present."""
         super().__init__()
@@ -67,7 +69,7 @@ class OpenSourceEngine(BaseStrategyEngine):
             "vbt_path": str(_VENDORED_VBT) if _VENDORED_VBT.exists() else "not found",
         }
 
-    def run_backtest(self, parameters: dict[str, Any], data: pd.DataFrame) -> dict[str, Any]:
+    def run_backtest(self, data: pd.DataFrame, params: dict[str, Any]) -> dict[str, Any]:
         """Run a vectorbt-powered backtest.
         Supports both single-run and vectorized (multi-parameter) execution.
         """
@@ -84,11 +86,11 @@ class OpenSourceEngine(BaseStrategyEngine):
             data.index = pd.to_datetime(data.index)
 
         # Build entries / exits using consolidated IndicatorService
-        entries, exits = IndicatorService.generate_signals(data["close"], parameters, vbt)
+        entries, exits = IndicatorService.generate_signals(data["close"], params, vbt)
 
         # Simulate
-        initial_capital = float(parameters.get("initial_capital", 10000.0))
-        fees = float(parameters.get("fees", 0.001))
+        initial_capital = float(params.get("initial_capital", 10000.0))
+        fees = float(params.get("fees", {}).get("commission_pct", 0.001)) if isinstance(params.get("fees"), dict) else float(params.get("fees", 0.001))
 
         is_vectorized = isinstance(entries, pd.DataFrame)
         logger.info(
@@ -107,26 +109,27 @@ class OpenSourceEngine(BaseStrategyEngine):
             freq="D",  # vectorbt needs frequency for annualisation
         )
 
+        symbol = params.get("symbol", "UNKNOWN")
+        timeframe = params.get("timeframe", "1d")
+
         if not is_vectorized:
             # Standard single result
-            metrics = {
-                "Total Return [%]": float(portfolio.total_return() * 100),
-                "Benchmark Return [%]": float((data["close"].iloc[-1] / data["close"].iloc[0] - 1) * 100) if len(data) > 0 else 0.0,
-                "Max Drawdown [%]": float(portfolio.max_drawdown() * 100),
-                "Sharpe Ratio": float(portfolio.sharpe_ratio()),
-                "Win Rate [%]": float(portfolio.trades.win_rate() * 100) if portfolio.trades.count() > 0 else 0.0,
-                "Total Trades": int(portfolio.trades.count()),
-                "Final Value": float(portfolio.value().iloc[-1] if len(portfolio.value()) > 0 else initial_capital),
-            }
-            logger.info("vectorbt backtest completed. Return: {:.2f}%", metrics["Total Return [%]"])
+            stats = portfolio.stats()
             
             return {
+                "symbol": symbol,
+                "timeframe": timeframe,
+                "engine_name": self.ENGINE_NAME,
                 "status": "COMPLETED",
-                "engine": "vectorbt-opensource",
-                "library": "vectorbt (open-source)",
-                "vbt_version": getattr(vbt, "__version__", "unknown"),
-                "vbt_path": str(_VENDORED_VBT),
-                "metrics": metrics,
+                "total_return_pct": float(portfolio.total_return() * 100),
+                "sharpe_ratio": float(portfolio.sharpe_ratio()),
+                "max_drawdown_pct": float(portfolio.max_drawdown() * 100),
+                "win_rate_pct": float(portfolio.trades.win_rate() * 100) if portfolio.trades.count() > 0 else 0.0,
+                "num_trades": int(portfolio.trades.count()),
+                "initial_capital": initial_capital,
+                "final_capital": float(portfolio.value().iloc[-1] if len(portfolio.value()) > 0 else initial_capital),
+                "equity_curve": portfolio.value(),
+                "raw": stats.to_dict() if hasattr(stats, "to_dict") else dict(stats),
             }
         else:
             # Vectorized multi-result
@@ -137,7 +140,7 @@ class OpenSourceEngine(BaseStrategyEngine):
             final_value = portfolio.value().iloc[-1]
             win_rate = portfolio.trades.win_rate() * 100
 
-            # Convert MultiIndex to list of dictionaries if possible
+            # Convert MultiIndex to list of dictionaries
             results_list = []
             for i in range(len(total_return)):
                 results_list.append({
@@ -152,8 +155,10 @@ class OpenSourceEngine(BaseStrategyEngine):
                 })
 
             return {
+                "symbol": symbol,
+                "timeframe": timeframe,
+                "engine_name": self.ENGINE_NAME,
                 "status": "COMPLETED",
-                "engine": "vectorbt-opensource",
                 "is_vectorized": True,
                 "vectorized_results": results_list,
             }
