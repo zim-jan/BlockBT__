@@ -1,7 +1,64 @@
 /**
- * Shared application types for BlockBT Phase 3.
- * Mirrors the backend Pydantic schemas from api.d.ts.
+ * Shared application types for BlockBT.
+ * Mirrors the backend Pydantic schemas (dag.py).
  */
+
+// ───────────────────────────────────────────────
+// Phase 9: DAG Architecture Types
+// ───────────────────────────────────────────────
+
+/** The 5 architectural node categories (must match backend dag.py) */
+export type NodeCategory =
+  | 'DataIngestion'
+  | 'Indicators'
+  | 'LogicOperators'
+  | 'Execution'
+  | 'Meta'
+
+/** Maps React Flow node type strings → backend DAG categories */
+export const NODE_TYPE_CATEGORY_MAP: Record<string, NodeCategory> = {
+  dataNode: 'DataIngestion',
+  indicatorNode: 'Indicators',
+  signalNode: 'LogicOperators',
+  portfolioNode: 'Execution',
+  optimizerNode: 'Meta',
+  wfoNode: 'Meta',
+}
+
+/** Single node in the exported DAG payload */
+export interface DAGNode {
+  id: string
+  type: string
+  category: NodeCategory
+  position: { x: number; y: number }
+  params: Record<string, unknown>
+}
+
+/** Edge in the exported DAG payload */
+export interface DAGEdge {
+  id: string
+  source: string
+  target: string
+  sourceHandle?: string | null
+  targetHandle?: string | null
+}
+
+/** Meta node — references target_nodes by ID */
+export interface DAGMetaNode extends DAGNode {
+  category: 'Meta'
+  target_nodes: string[]
+}
+
+/** Complete DAG graph payload sent to backend */
+export interface DAGGraph {
+  nodes: DAGNode[]
+  edges: DAGEdge[]
+  meta_nodes: DAGMetaNode[]
+}
+
+// ───────────────────────────────────────────────
+// Core types
+// ───────────────────────────────────────────────
 
 export type JobStatus = 'PENDING' | 'RUNNING' | 'COMPLETED' | 'FAILED'
 

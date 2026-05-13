@@ -1,0 +1,64 @@
+{
+  "nodes": [
+    {
+      "id": "data-1",
+      "type": "dataNode",
+      "category": "DataIngestion",
+      "position": { "x": 100, "y": 200 },
+      "params": {
+        "symbol": "AAPL",
+        "timeframe": "1d"
+      }
+    },
+    {
+      "id": "indicator-2",
+      "type": "indicatorNode",
+      "category": "Indicators",
+      "position": { "x": 350, "y": 200 },
+      "params": {
+        "windows": [10, 30]
+      }
+    },
+    {
+      "id": "signal-3",
+      "type": "signalNode",
+      "category": "LogicOperators",
+      "position": { "x": 600, "y": 200 },
+      "params": {
+        "condition": "crossover"
+      }
+    },
+    {
+      "id": "portfolio-4",
+      "type": "portfolioNode",
+      "category": "Execution",
+      "position": { "x": 850, "y": 200 },
+      "params": {
+        "init_cash": 10000.0
+      }
+    }
+  ],
+  "edges": [
+    { "id": "e1", "source": "data-1", "target": "indicator-2" },
+    { "id": "e2", "source": "indicator-2", "target": "signal-3" },
+    { "id": "e3", "source": "signal-3", "target": "portfolio-4" },
+    { "id": "e4", "source": "data-1", "target": "portfolio-4" }
+  ],
+  "meta_nodes": [
+    {
+      "id": "optimizer-5",
+      "type": "optimizerNode",
+      "category": "Meta",
+      "position": { "x": 350, "y": 50 },
+      "params": {
+        "metric": "Total Return [%]",
+        "nTrials": 20,
+        "paramBounds": {
+          "sma_fast": { "min": 5, "max": 20, "type": "int" },
+          "sma_slow": { "min": 25, "max": 50, "type": "int" }
+        }
+      },
+      "target_nodes": ["indicator-2", "signal-3"]
+    }
+  ]
+}

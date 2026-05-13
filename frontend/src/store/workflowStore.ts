@@ -16,6 +16,7 @@ import {
 } from '@xyflow/react'
 import type {
     BacktestMetrics,
+    DAGGraph,
     DataNodeData,
     IndicatorNodeData,
     JobStatus,
@@ -23,6 +24,7 @@ import type {
     PortfolioNodeData,
     WfoNodeData,
 } from '../types/types'
+import { NODE_TYPE_CATEGORY_MAP } from '../types/types'
 
 // ---------------------------------------------------------------------------
 // Initial canvas nodes — empty for testing
@@ -62,6 +64,7 @@ interface WorkflowState {
   resetExecution: () => void
   clearCanvas: () => void
   setWorkflow: (nodes: Node[], edges: Edge[]) => void
+  exportDAG: () => DAGGraph
 }
 
 let nodeCounter = 10
@@ -104,7 +107,7 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
     const baseX = 100 + (get().nodes.length * 80) % 600
     const baseY = 100 + (Math.floor(get().nodes.length / 4) * 120)
 
-    const defaultData: Record<string, unknown> = {
+    const defaultData: Record<string, Record<string, unknown>> = {
       dataNode: { symbol: 'AAPL', dataSource: 'yahoo', startDate: '2023-01-01', endDate: '2025-01-01', timeframe: '1d' },
       indicatorNode: { indicatorType: 'sma_crossover', smaFast: 10, smaSlow: 30, initialCapital: 10000 },
       signalNode: { signalType: 'sma_crossover' },
@@ -123,6 +126,8 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
       },
     }
 
+    const category = NODE_TYPE_CATEGORY_MAP[type] ?? 'DataIngestion'
+
     set((s) => ({
       nodes: [
         ...s.nodes,
@@ -130,7 +135,7 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
           id,
           type,
           position: { x: baseX, y: baseY },
-          data: (defaultData[type] ?? {}) as Record<string, unknown>,
+          data: { ...((defaultData[type] ?? {}) as Record<string, unknown>), category },
         } as Node,
       ],
     }))
@@ -197,4 +202,58 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
         return n
       }),
     })),
+
+  exportDAG: () => {
+    const { nodes, edges } = get()
+    const metaTypes = new Set(['optimizerNode', 'wfoNode'])
+
+    const dagNodes = nodes
+      .filter((n) => !metaTypes.has(n.type ?? ''))
+      .map((n) => {
+        const category = NODE_TYPE_CATEGORY_MAP[n.type ?? ''] ?? 'DataIngestion'
+        const { jobStatus: _js, metrics: _m, jobId: _jid, error: _e, category: _cat, ...params } = n.data as Record<string, unknown>
+        return {
+          id: n.id,
+          type: n.type ?? 'unknown',
+          category,
+          position: n.position,
+          params,
+        }
+      })
+
+    const metaNodes = nodes
+      .filter((n) => metaTypes.has(n.type ?? ''))
+      .map((n) => {
+        // Infer target_nodes: nodes that this meta node connects to via edges
+        const targetIds = edges
+          .filter((e) => e.source === n.id)
+          .map((e) => e.target)
+        const { jobStatus: _js, jobId: _jid, error: _e, category: _cat, ...params } = n.data as Record<string, unknown>
+        return {
+          id: n.id,
+          type: n.type ?? 'unknown',
+          category: 'Meta' as const,
+          position: n.position,
+          params,
+          target_nodes: targetIds,
+        }
+      })
+
+    // Exclude edges from/to meta nodes (they use target_nodes instead)
+    const dagEdges = edges
+      .filter((e) => {
+        const sourceNode = nodes.find((n) => n.id === e.source)
+        const targetNode = nodes.find((n) => n.id === e.target)
+        return !metaTypes.has(sourceNode?.type ?? '') && !metaTypes.has(targetNode?.type ?? '')
+      })
+      .map((e) => ({
+        id: e.id,
+        source: e.source,
+        target: e.target,
+        sourceHandle: (e as any).sourceHandle ?? null,
+        targetHandle: (e as any).targetHandle ?? null,
+      }))
+
+    return { nodes: dagNodes, edges: dagEdges, meta_nodes: metaNodes }
+  },
 }))

@@ -11,6 +11,7 @@ import {Handle, type Node, type NodeProps, Position} from '@xyflow/react'
 import {useWorkflowStore} from '../../../store/workflowStore'
 import type {IndicatorNodeData, IndicatorType} from '../../../types/types'
 import { api } from '../../../services/api'
+import {CategoryBadge} from './CategoryBadge'
 
 export type IndicatorNode = Node<IndicatorNodeData, 'indicatorNode'>
 
@@ -34,6 +35,7 @@ export function IndicatorNode({ id, data }: NodeProps<IndicatorNode>) {
       <div className="rf-node__header react-flow__node-drag-handle">
         <span className="rf-node__icon">📈</span>
         <span className="rf-node__title">Indicator</span>
+        <CategoryBadge category="Indicators" />
       </div>
 
       <div className="rf-node__body">

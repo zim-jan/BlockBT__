@@ -10,6 +10,7 @@ import {useWorkflowStore} from '../../../store/workflowStore'
 import {useWorkflowOptimization} from '../../../hooks/useWorkflowOptimization'
 import type {IndicatorNodeData, OptimizerNodeData, ParameterBound} from '../../../types/types'
 import {OptimizationChart} from './OptimizationChart'
+import {CategoryBadge} from './CategoryBadge'
 
 export type OptimizerNode = Node<OptimizerNodeData, 'optimizerNode'>
 
@@ -90,6 +91,7 @@ export function OptimizerNode({ id, data }: NodeProps<OptimizerNode>) {
       <div className="rf-node__header react-flow__node-drag-handle">
         <span className="rf-node__icon">🧪</span>
         <span className="rf-node__title">Optimizer</span>
+        <CategoryBadge category="Meta" />
       </div>
 
       <div className="rf-node__body">

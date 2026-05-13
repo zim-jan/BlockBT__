@@ -3,6 +3,7 @@ import type {PortfolioNodeData} from '../../../types/types'
 import {useChatStore} from '../../../store/chatStore'
 import {useWorkflowExecution} from '../../../hooks/useWorkflowExecution'
 import Plot from 'react-plotly.js'
+import {CategoryBadge} from './CategoryBadge'
 
 interface Props {
   data: PortfolioNodeData
@@ -44,6 +45,7 @@ export function PortfolioNode({ data }: Props) {
         <div className="flex items-center gap-2">
           <span className="rf-node__icon text-xl">💼</span>
           <span className="rf-node__title font-semibold">Portfolio</span>
+          <CategoryBadge category="Execution" />
         </div>
         {jobStatus && (
           <span className={`rf-status-pill ${

@@ -2,6 +2,7 @@ import {Handle, type Node, type NodeProps, Position} from '@xyflow/react'
 import {useWorkflowStore} from '../../../store/workflowStore'
 import {useWorkflowOptimization} from '../../../hooks/useWorkflowOptimization'
 import type {WfoNodeData} from '../../../types/types'
+import {CategoryBadge} from './CategoryBadge'
 
 export type WfoNode = Node<WfoNodeData, 'wfoNode'>
 
@@ -21,6 +22,7 @@ export function WfoNode({ id, data }: NodeProps<WfoNode>) {
       <div className="rf-node__header react-flow__node-drag-handle">
         <span className="rf-node__icon">🔄</span>
         <span className="rf-node__title">Walk-Forward</span>
+        <CategoryBadge category="Meta" />
         {jobStatus && (
           <span className={`rf-status-pill ${
             isPending ? 'rf-status-pill--pending' :

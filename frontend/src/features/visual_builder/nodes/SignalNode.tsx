@@ -1,6 +1,7 @@
 import {Handle, type Node, type NodeProps, Position} from '@xyflow/react'
 import {useWorkflowStore} from '../../../store/workflowStore'
 import type {SignalNodeData} from '../../../types/types'
+import {CategoryBadge} from './CategoryBadge'
 
 export type SignalNode = Node<SignalNodeData, 'signalNode'>
 
@@ -13,6 +14,7 @@ export function SignalNode({ id, data }: NodeProps<SignalNode>) {
       <div className="rf-node__header react-flow__node-drag-handle">
         <span className="rf-node__icon">⚡</span>
         <span className="rf-node__title">Signal Logic</span>
+        <CategoryBadge category="LogicOperators" />
       </div>
       <div className="rf-node__body">
         <label className="rf-label">Action Type</label>

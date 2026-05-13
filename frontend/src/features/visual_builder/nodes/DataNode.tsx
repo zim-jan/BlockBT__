@@ -10,6 +10,7 @@
 import {Handle, type Node, type NodeProps, Position} from '@xyflow/react'
 import {useWorkflowStore} from '../../../store/workflowStore'
 import type {DataNodeData, DataSourceType} from '../../../types/types'
+import {CategoryBadge} from './CategoryBadge'
 
 const TIMEFRAMES = ['1d', '1h', '5m', '15m', '30m', '1w'] as const
 
@@ -25,6 +26,7 @@ export function DataNode({ id, data }: NodeProps<DataNode>) {
       <div className="rf-node__header react-flow__node-drag-handle">
         <span className="rf-node__icon">📊</span>
         <span className="rf-node__title">Data Source</span>
+        <CategoryBadge category="DataIngestion" />
       </div>
 
       <div className="rf-node__body">
