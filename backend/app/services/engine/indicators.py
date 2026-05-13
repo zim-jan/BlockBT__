@@ -1,19 +1,16 @@
-"""
-Serwis wskaźników (IndicatorService) odpowiedzialny za generowanie sygnałów wejścia i wyjścia.
-W ramach MVP implementuje podstawową logikę opartą na przecięciu dwóch średnich kroczących.
-"""
-
 from typing import Any
 
 import numpy as np
 import pandas as pd
 from loguru import logger
 
+from app.services.engine.indicator_registry import IndicatorRegistry
+
 
 class IndicatorService:
     """
     Service for generating entry and exit signals (entries/exits) based on OHLCV data.
-    Supports native vectorbt vectorization for parameters.
+    Supports native vectorbt vectorization for parameters and dynamic registry.
     """
 
     @staticmethod
@@ -127,6 +124,29 @@ class IndicatorService:
             signal = cls._get_val(params, "macd_signal", 9)
 
             return cls.generate_macd(close, fast, slow, signal, vbt)
+
+        # Check Indicator Registry
+        registered = IndicatorRegistry.get(strategy_type)
+        if registered:
+            logger.info(f"IndicatorService: Executing registry indicator '{strategy_type}'")
+            # Filter params that are in registered['params']
+            call_params = {}
+            for p in registered["params"]:
+                p_name = p["name"]
+                if p_name in params:
+                    call_params[p_name] = cls._get_val(params, p_name, p["default"])
+            
+            # Execute
+            res = IndicatorRegistry.execute(strategy_type, close, **call_params)
+            
+            # Handle results (vbt indicators return an object with signals or just signals)
+            if hasattr(res, "entries") and hasattr(res, "exits"):
+                return res.entries, res.exits
+            if hasattr(res, "signals"):
+                return res.signals, ~res.signals # Fallback
+            
+            # Generic fallback for registry
+            return res, ~res
 
         # Default / Fallback: SMA Crossover
         fast_w = cls._get_val(params, "sma_fast", 10)

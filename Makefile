@@ -21,7 +21,7 @@ docs-serve: ## Start documentation server
 dev: api frontend ## Start both backend and frontend (requires two terminals)
 
 api: ## Start FastAPI backend (dev mode)
-	cd backend && uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
+	cd backend && uv run uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
 
 build-api: ## Build backend docker image
 	docker compose build blockbt-api
@@ -55,11 +55,11 @@ generate-api: ## Regenerate TypeScript API types from backend OpenAPI schema
 # ── Quality ───────────────────────────────────────────────────
 
 lint: ## Run linters (ruff for Python, tsc for TypeScript)
-	ruff check backend/
+	uv run ruff check backend/
 	cd frontend && npx tsc --noEmit
 
 test: ## Run Python test suite
-	python -m pytest backend/tests/ -v --tb=short
+	uv run pytest backend/tests/ -v --tb=short
 
 build-frontend: ## Build frontend for production
 	cd frontend && npm run build

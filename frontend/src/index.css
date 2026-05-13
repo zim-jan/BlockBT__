@@ -180,25 +180,17 @@ html, body {
   position: relative;
 }
 
-.rf-node__header {
-  cursor: grab;
+.easy-connect-active .react-flow__handle {
+  display: none !important;
 }
 
-.rf-node__header:active {
-  cursor: grabbing;
+.easy-connect-active .easy-connect-handle {
+  display: block !important;
+  opacity: 0 !important;
 }
 
 .easy-connect-handle {
-  position: absolute !important;
-  width: 100% !important;
-  height: 100% !important;
-  top: 0 !important;
-  left: 0 !important;
-  transform: none !important;
-  border-radius: var(--radius) !important;
-  opacity: 0 !important;
-  border: none !important;
-  z-index: 1 !important;
+  display: none;
 }
 
 /* Ensure body content and inputs are above the handle so they remain interactive */

@@ -95,9 +95,10 @@ class TestBacktestRunnerIntegration:
     """Tests the integration between the runner and the engines."""
 
     def test_execute_backtest_integration(self, monkeypatch, sample_ohlcv):
-        from app.services.engine.runner import _execute_backtest
-        from app.services.connectors.registry import ConnectorRegistry
         from unittest.mock import MagicMock
+
+        from app.services.connectors.registry import ConnectorRegistry
+        from app.services.engine.runner import _execute_backtest
 
         # Mock the connector to return sample data
         mock_connector = MagicMock()

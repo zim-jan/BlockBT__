@@ -40,6 +40,34 @@ export interface paths {
          * @description Return a single strategy by primary key.
          */
         get: operations["get_strategy_api_strategies__strategy_id__get"];
+        /**
+         * Update a strategy
+         * @description Update an existing strategy in SQLite.
+         */
+        put: operations["update_strategy_api_strategies__strategy_id__put"];
+        post?: never;
+        /**
+         * Delete a strategy
+         * @description Remove a strategy record from SQLite.
+         */
+        delete: operations["delete_strategy_api_strategies__strategy_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/indicators/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List all available indicators
+         * @description Return all technical indicators available in the registry.
+         */
+        get: operations["list_indicators_api_indicators__get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -111,6 +139,26 @@ export interface paths {
          * @description Create an OptimizationJob and enqueue the Optuna study in the background.
          */
         post: operations["trigger_optimization_api_optimizer__post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/optimizer/wfo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Trigger walk-forward optimization
+         * @description Create an OptimizationJob and enqueue the Walk-Forward Optimization in the background.
+         */
+        post: operations["trigger_wfo_api_optimizer_wfo_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -368,6 +416,154 @@ export interface components {
             /** Report */
             report: string;
         };
+        /** ApiResponse[AIAnalysisResponse] */
+        ApiResponse_AIAnalysisResponse_: {
+            /** Success */
+            success: boolean;
+            data?: components["schemas"]["AIAnalysisResponse"] | null;
+            /** Error */
+            error?: string | null;
+        };
+        /** ApiResponse[BacktestJobResponse] */
+        ApiResponse_BacktestJobResponse_: {
+            /** Success */
+            success: boolean;
+            data?: components["schemas"]["BacktestJobResponse"] | null;
+            /** Error */
+            error?: string | null;
+        };
+        /** ApiResponse[ChatMessageResponse] */
+        ApiResponse_ChatMessageResponse_: {
+            /** Success */
+            success: boolean;
+            data?: components["schemas"]["ChatMessageResponse"] | null;
+            /** Error */
+            error?: string | null;
+        };
+        /** ApiResponse[OptimizationJobResponse] */
+        ApiResponse_OptimizationJobResponse_: {
+            /** Success */
+            success: boolean;
+            data?: components["schemas"]["OptimizationJobResponse"] | null;
+            /** Error */
+            error?: string | null;
+        };
+        /** ApiResponse[StrategyResponse] */
+        ApiResponse_StrategyResponse_: {
+            /** Success */
+            success: boolean;
+            data?: components["schemas"]["StrategyResponse"] | null;
+            /** Error */
+            error?: string | null;
+        };
+        /** ApiResponse[SystemPromptResponse] */
+        ApiResponse_SystemPromptResponse_: {
+            /** Success */
+            success: boolean;
+            data?: components["schemas"]["SystemPromptResponse"] | null;
+            /** Error */
+            error?: string | null;
+        };
+        /** ApiResponse[dict] */
+        ApiResponse_dict_: {
+            /** Success */
+            success: boolean;
+            /** Data */
+            data?: {
+                [key: string]: unknown;
+            } | null;
+            /** Error */
+            error?: string | null;
+        };
+        /** ApiResponse[dict[str, Any]] */
+        ApiResponse_dict_str__Any__: {
+            /** Success */
+            success: boolean;
+            /** Data */
+            data?: {
+                [key: string]: unknown;
+            } | null;
+            /** Error */
+            error?: string | null;
+        };
+        /** ApiResponse[dict[str, int]] */
+        ApiResponse_dict_str__int__: {
+            /** Success */
+            success: boolean;
+            /** Data */
+            data?: {
+                [key: string]: number;
+            } | null;
+            /** Error */
+            error?: string | null;
+        };
+        /** ApiResponse[dict[str, str]] */
+        ApiResponse_dict_str__str__: {
+            /** Success */
+            success: boolean;
+            /** Data */
+            data?: {
+                [key: string]: string;
+            } | null;
+            /** Error */
+            error?: string | null;
+        };
+        /** ApiResponse[list[BacktestJobResponse]] */
+        ApiResponse_list_BacktestJobResponse__: {
+            /** Success */
+            success: boolean;
+            /** Data */
+            data?: components["schemas"]["BacktestJobResponse"][] | null;
+            /** Error */
+            error?: string | null;
+        };
+        /** ApiResponse[list[ChatMessageResponse]] */
+        ApiResponse_list_ChatMessageResponse__: {
+            /** Success */
+            success: boolean;
+            /** Data */
+            data?: components["schemas"]["ChatMessageResponse"][] | null;
+            /** Error */
+            error?: string | null;
+        };
+        /** ApiResponse[list[OptimizationJobResponse]] */
+        ApiResponse_list_OptimizationJobResponse__: {
+            /** Success */
+            success: boolean;
+            /** Data */
+            data?: components["schemas"]["OptimizationJobResponse"][] | null;
+            /** Error */
+            error?: string | null;
+        };
+        /** ApiResponse[list[StrategyResponse]] */
+        ApiResponse_list_StrategyResponse__: {
+            /** Success */
+            success: boolean;
+            /** Data */
+            data?: components["schemas"]["StrategyResponse"][] | null;
+            /** Error */
+            error?: string | null;
+        };
+        /** ApiResponse[list[SystemPromptResponse]] */
+        ApiResponse_list_SystemPromptResponse__: {
+            /** Success */
+            success: boolean;
+            /** Data */
+            data?: components["schemas"]["SystemPromptResponse"][] | null;
+            /** Error */
+            error?: string | null;
+        };
+        /** ApiResponse[list[dict]] */
+        ApiResponse_list_dict__: {
+            /** Success */
+            success: boolean;
+            /** Data */
+            data?: {
+                [key: string]: unknown;
+            }[] | null;
+            /** Error */
+            error?: string | null;
+        };
         /** AppSettingUpdate */
         AppSettingUpdate: {
             /** Data Connector */
@@ -383,12 +579,62 @@ export interface components {
             /** Parquet Cache Ttl Hours */
             parquet_cache_ttl_hours?: number | null;
         };
+        /** BacktestJobResponse */
+        BacktestJobResponse: {
+            /** Id */
+            id: number;
+            /** Job Id */
+            job_id: number;
+            /** Strategy Id */
+            strategy_id: number;
+            /** Status */
+            status: string;
+            /** Symbol */
+            symbol: string;
+            /** Timeframe */
+            timeframe?: string | null;
+            /** Start Date */
+            start_date?: string | null;
+            /** End Date */
+            end_date?: string | null;
+            /** Initial Capital */
+            initial_capital: number;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Metrics */
+            metrics?: {
+                [key: string]: unknown;
+            } | null;
+            /** Parameters */
+            parameters?: {
+                [key: string]: unknown;
+            } | null;
+            /** Total Return Pct */
+            total_return_pct?: number | null;
+            /** Sharpe Ratio */
+            sharpe_ratio?: number | null;
+            /** Max Drawdown Pct */
+            max_drawdown_pct?: number | null;
+            /** Num Trades */
+            num_trades?: number | null;
+            /** Final Capital */
+            final_capital?: number | null;
+            /** Equity Curve */
+            equity_curve?: {
+                [key: string]: unknown;
+            }[] | null;
+            /** Error Message */
+            error_message?: string | null;
+        };
         /** BacktestRequest */
         BacktestRequest: {
             /** Strategy Id */
             strategy_id: number;
             /** Symbol */
-            symbol: string;
+            symbol: string | string[];
             /**
              * Data Source
              * @default synthetic
@@ -542,100 +788,6 @@ export interface components {
             /** Choices */
             choices?: unknown[] | null;
         };
-        /** OptimizationJobResponse */
-        OptimizationJobResponse: {
-            /** Id */
-            id: number;
-            /** Job Id */
-            job_id: number;
-            /** Strategy Id */
-            strategy_id: number;
-            /** Status */
-            status: string;
-            /** Symbol */
-            symbol: string;
-            /** Initial Capital */
-            initial_capital: number;
-            /**
-             * Created At
-             * Format: date-time
-             */
-            created_at: string;
-            /** Best Parameters */
-            best_parameters?: {
-                [key: string]: unknown;
-            } | null;
-            /** Best Value */
-            best_value?: number | null;
-            /** Trials Data */
-            trials_data?: {
-                [key: string]: unknown;
-            } | null;
-            /** Error Message */
-            error_message?: string | null;
-            /** Completed At */
-            completed_at?: string | null;
-        };
-        /** OptimizationRequest */
-        OptimizationRequest: {
-            /** Strategy Id */
-            strategy_id: number;
-            /** Symbol */
-            symbol: string;
-            /**
-             * Data Source
-             * @default yahoo
-             */
-            data_source: string;
-            /**
-             * Timeframe
-             * @default 1d
-             */
-            timeframe: string;
-            /** Start Date */
-            start_date?: string | null;
-            /** End Date */
-            end_date?: string | null;
-            /**
-             * Initial Capital
-             * @default 10000
-             */
-            initial_capital: number;
-            /**
-             * Metric
-             * @default Total Return [%]
-             */
-            metric: string;
-            /**
-             * N Trials
-             * @default 20
-             */
-            n_trials: number;
-            /** Param Bounds */
-            param_bounds: {
-                [key: string]: components["schemas"]["ParameterBounds"];
-            };
-            /** Parameters */
-            parameters?: {
-                [key: string]: unknown;
-            } | null;
-        };
-        /** ParameterBounds */
-        ParameterBounds: {
-            /** Min */
-            min: number;
-            /** Max */
-            max: number;
-            /** Step */
-            step?: number | null;
-            /**
-             * Type
-             * @default int
-             */
-            type: string;
-            /** Choices */
-            choices?: unknown[] | null;
-        };
         /** StrategyCreate */
         StrategyCreate: {
             /** Name */
@@ -651,6 +803,29 @@ export interface components {
              * @default
              */
             code_content: string;
+        };
+        /** StrategyResponse */
+        StrategyResponse: {
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
+            /** Description */
+            description?: string | null;
+            /**
+             * Code Content
+             * @default
+             */
+            code_content: string;
+            /** Parameters */
+            parameters?: {
+                [key: string]: unknown;
+            } | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
         };
         /** SystemPromptCreate */
         SystemPromptCreate: {
@@ -692,6 +867,46 @@ export interface components {
             input?: unknown;
             /** Context */
             ctx?: Record<string, never>;
+        };
+        /** WalkForwardRequest */
+        WalkForwardRequest: {
+            /** Strategy Id */
+            strategy_id: number;
+            /** Symbol */
+            symbol: string;
+            /**
+             * Data Source
+             * @default yahoo
+             */
+            data_source: string;
+            /**
+             * Timeframe
+             * @default 1d
+             */
+            timeframe: string;
+            /** Start Date */
+            start_date?: string | null;
+            /** End Date */
+            end_date?: string | null;
+            /**
+             * Initial Capital
+             * @default 10000
+             */
+            initial_capital: number;
+            /**
+             * Window Size
+             * @default 365d
+             */
+            window_size: string;
+            /**
+             * Step Size
+             * @default 90d
+             */
+            step_size: string;
+            /** Parameters */
+            parameters?: {
+                [key: string]: unknown;
+            } | null;
         };
         /** WorkflowCreate */
         WorkflowCreate: {
@@ -752,9 +967,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["ApiResponse_list_StrategyResponse__"];
                 };
             };
         };
@@ -778,9 +991,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["ApiResponse_StrategyResponse_"];
                 };
             };
             /** @description Validation Error */
@@ -811,9 +1022,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["ApiResponse_StrategyResponse_"];
                 };
             };
             /** @description Validation Error */
@@ -823,6 +1032,92 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_strategy_api_strategies__strategy_id__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                strategy_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StrategyCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse_StrategyResponse_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_strategy_api_strategies__strategy_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                strategy_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse_dict_str__str__"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_indicators_api_indicators__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse_list_dict__"];
                 };
             };
         };
@@ -842,9 +1137,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["ApiResponse_list_BacktestJobResponse__"];
                 };
             };
         };
@@ -868,9 +1161,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["ApiResponse_BacktestJobResponse_"];
                 };
             };
             /** @description Validation Error */
@@ -901,9 +1192,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["ApiResponse_BacktestJobResponse_"];
                 };
             };
             /** @description Validation Error */
@@ -932,9 +1221,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    }[];
+                    "application/json": components["schemas"]["ApiResponse_list_OptimizationJobResponse__"];
                 };
             };
         };
@@ -958,9 +1245,40 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["ApiResponse_dict_str__int__"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    trigger_wfo_api_optimizer_wfo_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WalkForwardRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse_dict_str__int__"];
                 };
             };
             /** @description Validation Error */
@@ -991,7 +1309,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["OptimizationJobResponse"];
+                    "application/json": components["schemas"]["ApiResponse_OptimizationJobResponse_"];
                 };
             };
             /** @description Validation Error */
@@ -1020,9 +1338,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["ApiResponse_list_dict__"];
                 };
             };
         };
@@ -1046,9 +1362,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["ApiResponse_dict_"];
                 };
             };
             /** @description Validation Error */
@@ -1079,9 +1393,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["ApiResponse_dict_"];
                 };
             };
             /** @description Validation Error */
@@ -1112,9 +1424,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["ApiResponse_dict_str__Any__"];
                 };
             };
             /** @description Validation Error */
@@ -1145,7 +1455,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["AIAnalysisResponse"];
+                    "application/json": components["schemas"]["ApiResponse_AIAnalysisResponse_"];
                 };
             };
             /** @description Validation Error */
@@ -1176,7 +1486,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ChatMessageResponse"][];
+                    "application/json": components["schemas"]["ApiResponse_list_ChatMessageResponse__"];
                 };
             };
             /** @description Validation Error */
@@ -1211,7 +1521,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ChatMessageResponse"];
+                    "application/json": components["schemas"]["ApiResponse_ChatMessageResponse_"];
                 };
             };
             /** @description Validation Error */
@@ -1240,9 +1550,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: string;
-                    };
+                    "application/json": components["schemas"]["ApiResponse_dict_str__str__"];
                 };
             };
         };
@@ -1266,9 +1574,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: string;
-                    };
+                    "application/json": components["schemas"]["ApiResponse_dict_str__str__"];
                 };
             };
             /** @description Validation Error */
@@ -1297,7 +1603,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["SystemPromptResponse"][];
+                    "application/json": components["schemas"]["ApiResponse_list_SystemPromptResponse__"];
                 };
             };
         };
@@ -1321,7 +1627,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["SystemPromptResponse"];
+                    "application/json": components["schemas"]["ApiResponse_SystemPromptResponse_"];
                 };
             };
             /** @description Validation Error */
@@ -1356,7 +1662,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["SystemPromptResponse"];
+                    "application/json": components["schemas"]["ApiResponse_SystemPromptResponse_"];
                 };
             };
             /** @description Validation Error */
@@ -1416,7 +1722,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["SystemPromptResponse"];
+                    "application/json": components["schemas"]["ApiResponse_SystemPromptResponse_"];
                 };
             };
             /** @description Validation Error */

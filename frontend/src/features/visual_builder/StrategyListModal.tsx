@@ -1,6 +1,6 @@
 import React, {useEffect, useState} from 'react'
 import {api} from '../../services/api'
-import {StrategyData} from '../../types/types'
+import type {StrategyData} from '../../types/types'
 import {useWorkflowStore} from '../../store/workflowStore'
 
 interface StrategyListModalProps {
@@ -16,12 +16,6 @@ export function StrategyListModal({ isOpen, onClose }: StrategyListModalProps) {
   const [tempCode, setTempCode] = useState('')
   const { setWorkflow } = useWorkflowStore()
 
-  useEffect(() => {
-    if (isOpen) {
-      fetchStrategies()
-    }
-  }, [isOpen])
-
   const fetchStrategies = async () => {
     setIsLoading(true)
     try {
@@ -35,6 +29,12 @@ export function StrategyListModal({ isOpen, onClose }: StrategyListModalProps) {
       setIsLoading(false)
     }
   }
+
+  useEffect(() => {
+    if (isOpen) {
+      fetchStrategies()
+    }
+  }, [isOpen])
 
   const handleLoad = (strategy: StrategyData) => {
     const params = strategy.parameters as any
@@ -50,27 +50,6 @@ export function StrategyListModal({ isOpen, onClose }: StrategyListModalProps) {
     e.stopPropagation()
     setEditingCodeId(strategy.id)
     setTempCode(strategy.code_content || '')
-  }
-
-  const handleSaveCode = async () => {
-    if (editingCodeId === null) return
-    const strategy = strategies.find(s => s.id === editingCodeId)
-    if (!strategy) return
-
-    try {
-      const res = await api.strategies.create({ // Using create as a placeholder for update if api.strategies.update is not explicitly defined in api.ts
-        ...strategy,
-        id: undefined, // ensure we don't pass id if it's a create, but wait...
-      } as any)
-      
-      // Actually, I should use the new PUT endpoint. 
-      // Let's check if api.ts has it. Yes, I should probably add it to api.ts if it's not there.
-      
-      // Wait, I updated backend but did I update frontend api.ts? 
-      // Let's check api.ts.
-    } catch (err) {
-      console.error('Failed to save code', err)
-    }
   }
 
   const handleDelete = async (e: React.MouseEvent, id: number) => {

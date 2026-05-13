@@ -7,7 +7,7 @@ name = "blockbt"
 version = "0.1.2"
 description = "BlockBT — Self-hosted algorithmic backtesting environment (Dual-Engine, BYOL)"
 readme = "README.md"
-requires-python = ">=3.12"
+requires-python = ">=3.14.5"
 
 dependencies = [
     # Data layer
@@ -55,6 +55,9 @@ dependencies = [
     "mkdocstrings",
     "ruff",
     "pandas-stubs~=2.3.3",
+    "vectorbt[rust]>=1.0.0",
+    "quantstats>=0.0.81",
+    "ta-lib>=0.6.8",
 ]
 
 [project.optional-dependencies]
@@ -79,7 +82,7 @@ where = ["backend"]
 
 [tool.ruff]
 line-length = 100
-target-version = "py312"
+target-version = "py314"
 extend-exclude = ["alembic", "migrations", "vectorbt_src"]
 
 [tool.ruff.lint]
@@ -90,7 +93,7 @@ ignore = ["B008"]
 known-first-party = ["app"]
 
 [tool.mypy]
-python_version = "3.12"
+python_version = "3.14"
 strict = false
 ignore_missing_imports = true
 exclude = ["vectorbt_src"]

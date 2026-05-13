@@ -9,27 +9,65 @@ from __future__ import annotations
 
 import sys
 from typing import Any
-from pathlib import Path
 
 import numpy as np
 import pandas as pd
+import quantstats as qs
 from loguru import logger
 
 from app.core.config import settings
 from app.services.engine.base import BaseStrategyEngine
 from app.services.engine.indicators import IndicatorService
 
-# Make vendored vectorbt importable before anything else touches it.
+# Make vendored vectorbt importable ONLY if it is not already installed or we want to force it.
 _VENDORED_VBT = settings.PROJECT_ROOT / "vectorbt_src"
-if _VENDORED_VBT.exists() and str(_VENDORED_VBT) not in sys.path:
-    sys.path.insert(0, str(_VENDORED_VBT))
 
+def _setup_vbt() -> Any:
+    """Import vectorbt and configure the engine."""
+    try:
+        import vectorbt as vbt
+        # Check if it's the new version that supports rust
+        v_major = int(getattr(vbt, "__version__", "0.0.0").split(".")[0])
+        if v_major < 1 and _VENDORED_VBT.exists():
+            # Fallback to vendored if installed is too old
+            if str(_VENDORED_VBT) not in sys.path:
+                sys.path.insert(0, str(_VENDORED_VBT))
+            import importlib
+            vbt = importlib.reload(vbt)
+    except ImportError:
+        if _VENDORED_VBT.exists():
+            if str(_VENDORED_VBT) not in sys.path:
+                sys.path.insert(0, str(_VENDORED_VBT))
+            import vectorbt as vbt
+        else:
+            raise ImportError("vectorbt not found (neither installed nor vendored)") from None
+
+    # Configure engine
+    target_engine = settings.VBT_ENGINE.lower()
+    try:
+        if target_engine == "rust":
+            # Verify if rust kernels are actually available
+            # vbt.settings['engine'] = 'rust' might fail later if binaries missing
+            # We try to set it and see if it sticks or if we can detect it.
+            vbt.settings["engine"] = "rust"
+            logger.info("OpenSourceEngine: Using Rust engine.")
+        else:
+            vbt.settings["engine"] = "numba"
+            logger.info("OpenSourceEngine: Using Numba engine.")
+    except Exception as e:
+        logger.warning(
+            "OpenSourceEngine: Failed to set engine '{}', falling back to numba: {}",
+            target_engine,
+            e,
+        )
+        vbt.settings["engine"] = "numba"
+    
+    return vbt
 
 class OpenSourceEngine(BaseStrategyEngine):
     """Backtest engine using the public open-source ``vectorbt`` library.
 
-    It supports fully vectorized execution, but lacks multi-threaded Numba parallel
-    execution and advanced metrics found in vectorbtpro.
+    Supports Numba and Rust engines (since v1.0.0).
     """
 
     ENGINE_NAME = "opensource"
@@ -37,60 +75,48 @@ class OpenSourceEngine(BaseStrategyEngine):
     def __init__(self) -> None:
         """Initialize the OpenSource engine, verifying dependencies are present."""
         super().__init__()
-        self._ensure_vectorbt()
+        self.vbt = _setup_vbt()
 
     def _ensure_vectorbt(self) -> None:
-        """Check if vectorbt can be imported."""
-        try:
-            import vectorbt as vbt  # type: ignore[import]
-
-            self.vbt = vbt
-            logger.debug(
-                "OpenSourceEngine: vectorbt {} loaded successfully.",
-                getattr(vbt, "__version__", "unknown"),
-            )
-        except ImportError as exc:
-            logger.error("OpenSourceEngine: vectorbt could not be loaded: {}", exc)
-            raise RuntimeError("vectorbt library missing. Ensure vendored path is correct.") from exc
+        """Check if vectorbt can be imported (legacy, kept for compatibility)."""
+        pass
 
     def get_engine_info(self) -> dict[str, str]:
         """Return metadata about this engine installation."""
-        try:
-            import vectorbt as vbt
-            version = getattr(vbt, "__version__", "unknown")
-        except ImportError:
-            version = "missing"
-
         return {
             "name": self.ENGINE_NAME,
-            "version": version,
+            "version": getattr(self.vbt, "__version__", "unknown"),
             "mode": "live",
             "library": "vectorbt (open-source)",
-            "vbt_path": str(_VENDORED_VBT) if _VENDORED_VBT.exists() else "not found",
+            "engine": self.vbt.settings.get("engine", "numba"),
+            "vbt_path": str(_VENDORED_VBT) if _VENDORED_VBT.exists() else "installed",
         }
 
     def run_backtest(self, data: pd.DataFrame, params: dict[str, Any]) -> dict[str, Any]:
         """Run a vectorbt-powered backtest.
         Supports both single-run and vectorized (multi-parameter) execution.
         """
-        try:
-            import vectorbt as vbt  # type: ignore[import]
-        except ImportError as exc:
-            raise RuntimeError(
-                "vectorbt is not importable. Ensure the vendored copy is intact "
-                f"at {_VENDORED_VBT}."
-            ) from exc
+        vbt = self.vbt
 
         # Ensure datetime index
         if not isinstance(data.index, pd.DatetimeIndex):
             data.index = pd.to_datetime(data.index)
+
+        # Ensure float data for Rust engine compatibility
+        if not np.issubdtype(data["close"].dtype, np.floating):
+            data = data.copy()
+            data["close"] = data["close"].astype(np.float64)
 
         # Build entries / exits using consolidated IndicatorService
         entries, exits = IndicatorService.generate_signals(data["close"], params, vbt)
 
         # Simulate
         initial_capital = float(params.get("initial_capital", 10000.0))
-        fees = float(params.get("fees", {}).get("commission_pct", 0.001)) if isinstance(params.get("fees"), dict) else float(params.get("fees", 0.001))
+        fees_param = params.get("fees", 0.001)
+        if isinstance(fees_param, dict):
+            fees = float(fees_param.get("commission_pct", 0.001))
+        else:
+            fees = float(fees_param)
 
         is_vectorized = isinstance(entries, pd.DataFrame)
         logger.info(
@@ -119,9 +145,63 @@ class OpenSourceEngine(BaseStrategyEngine):
             total_return = float(portfolio.total_return() * 100)
             sharpe = float(portfolio.sharpe_ratio())
             drawdown = float(portfolio.max_drawdown() * 100)
-            win_rate = float(portfolio.trades.win_rate() * 100) if portfolio.trades.count() > 0 else 0.0
+            
+            if portfolio.trades.count() > 0:
+                win_rate = float(portfolio.trades.win_rate() * 100)
+            else:
+                win_rate = 0.0
+                
             trades_count = int(portfolio.trades.count())
-            final_val = float(portfolio.value().iloc[-1] if len(portfolio.value()) > 0 else initial_capital)
+            
+            if len(portfolio.value()) > 0:
+                final_val = float(portfolio.value().iloc[-1])
+            else:
+                final_val = initial_capital
+
+            # QuantStats integration
+            qs_metrics = {}
+            try:
+                # Get extended metrics from QuantStats directly on the returns
+                qs_report = qs.reports.metrics(portfolio.returns(), display=False)
+                if isinstance(qs_report, pd.Series):
+                    qs_metrics = {
+                        str(k): float(v) if not isinstance(v, (str, type(None))) else v
+                        for k, v in qs_report.to_dict().items()
+                    }
+                elif isinstance(qs_report, pd.DataFrame):
+                    # QuantStats metrics often returns a DataFrame where metrics are 
+                    # index and strategy is column. We want a flat dict.
+                    if "Strategy" in qs_report.columns:
+                        qs_metrics = {
+                            str(k): float(v) if not isinstance(v, (str, type(None))) else v
+                            for k, v in qs_report["Strategy"].to_dict().items()
+                        }
+                    else:
+                        qs_metrics = qs_report.to_dict()
+            except Exception as e:
+                logger.warning("QuantStats failed to generate metrics: {}", e)
+
+            response_metrics = {
+                "Total Return [%]": total_return,
+                "Sharpe Ratio": sharpe,
+                "Max Drawdown [%]": drawdown,
+                "Total Trades": trades_count,
+                "Final Value": final_val,
+                "Win Rate [%]": win_rate,
+            }
+            response_metrics.update(qs_metrics)
+
+            # Format equity curve for frontend
+            equity_curve = []
+            try:
+                if isinstance(portfolio.value(), pd.Series):
+                    curve_series = portfolio.value()
+                    equity_curve = [
+                        {"date": str(idx), "value": float(val)} 
+                        for idx, val in curve_series.items()
+                    ]
+            except Exception as e:
+                logger.warning("Failed to format equity curve: {}", e)
 
             return {
                 "symbol": symbol,
@@ -135,15 +215,8 @@ class OpenSourceEngine(BaseStrategyEngine):
                 "num_trades": trades_count,
                 "initial_capital": initial_capital,
                 "final_capital": final_val,
-                "equity_curve": portfolio.value(),
-                "metrics": {
-                    "Total Return [%]": total_return,
-                    "Sharpe Ratio": sharpe,
-                    "Max Drawdown [%]": drawdown,
-                    "Total Trades": trades_count,
-                    "Final Value": final_val,
-                    "Win Rate [%]": win_rate,
-                },
+                "equity_curve": equity_curve,
+                "metrics": response_metrics,
                 "raw": stats.to_dict() if hasattr(stats, "to_dict") else dict(stats),
             }
         else:
@@ -158,14 +231,26 @@ class OpenSourceEngine(BaseStrategyEngine):
             # Convert MultiIndex to list of dictionaries
             results_list = []
             for i in range(len(total_return)):
+                tr_val = float(total_return.iloc[i])
+                
+                # Sharpe Ratio can be NaN if no trades or zero volatility
+                sr_val = float(sharpe.iloc[i]) if not np.isnan(sharpe.iloc[i]) else 0.0
+                
+                dd_val = float(drawdown.iloc[i])
+                tc_val = int(trades_count.iloc[i])
+                fv_val = float(final_value.iloc[i])
+                
+                # Win Rate can be NaN if no trades
+                wr_val = float(win_rate.iloc[i]) if not np.isnan(win_rate.iloc[i]) else 0.0
+
                 results_list.append({
                     "metrics": {
-                        "Total Return [%]": float(total_return.iloc[i]),
-                        "Sharpe Ratio": float(sharpe.iloc[i]) if not np.isnan(sharpe.iloc[i]) else 0.0,
-                        "Max Drawdown [%]": float(drawdown.iloc[i]),
-                        "Total Trades": int(trades_count.iloc[i]),
-                        "Final Value": float(final_value.iloc[i]),
-                        "Win Rate [%]": float(win_rate.iloc[i]) if not np.isnan(win_rate.iloc[i]) else 0.0,
+                        "Total Return [%]": tr_val,
+                        "Sharpe Ratio": sr_val,
+                        "Max Drawdown [%]": dd_val,
+                        "Total Trades": tc_val,
+                        "Final Value": fv_val,
+                        "Win Rate [%]": wr_val,
                     }
                 })
 

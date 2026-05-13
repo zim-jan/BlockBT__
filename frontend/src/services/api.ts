@@ -95,9 +95,18 @@ export const api = {
     list: () => request<ApiResponse<BacktestJobData[]>>('/api/backtest/'),
   },
 
+  indicators: {
+    list: () => request<ApiResponse<any[]>>('/api/indicators/'),
+  },
+
   optimizer: {
     trigger: (payload: components['schemas']['OptimizationRequest']) =>
       request<ApiResponse<{ job_id: number }>>('/api/optimizer/', {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      }),
+    triggerWfo: (payload: components['schemas']['WalkForwardRequest']) =>
+      request<ApiResponse<{ job_id: number }>>('/api/optimizer/wfo', {
         method: 'POST',
         body: JSON.stringify(payload),
       }),

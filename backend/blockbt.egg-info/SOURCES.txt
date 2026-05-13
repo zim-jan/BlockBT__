@@ -3,6 +3,7 @@ pyproject.toml
 backend/app/main.py
 backend/app/api/__init__.py
 backend/app/api/backtest.py
+backend/app/api/indicators.py
 backend/app/api/optimizer.py
 backend/app/api/results.py
 backend/app/api/settings.py
@@ -28,9 +29,11 @@ backend/app/services/connectors/registry.py
 backend/app/services/connectors/yahoo_finance.py
 backend/app/services/engine/__init__.py
 backend/app/services/engine/base.py
+backend/app/services/engine/indicator_registry.py
 backend/app/services/engine/indicators.py
 backend/app/services/engine/job_service.py
 backend/app/services/engine/loader.py
+backend/app/services/engine/notification_service.py
 backend/app/services/engine/opensource_engine.py
 backend/app/services/engine/optimizer.py
 backend/app/services/engine/pro_engine.py
@@ -58,7 +61,9 @@ backend/tests/test_data/__init__.py
 backend/tests/test_db/__init__.py
 backend/tests/test_engine/__init__.py
 backend/tests/test_engine/test_engines.py
+backend/tests/test_engine/test_indicator_registry.py
 backend/tests/test_engine/test_indicator_service.py
 backend/tests/test_engine/test_optimizer.py
+backend/tests/test_engine/test_wfo.py
 backend/tests/test_mcp/__init__.py
 backend/tests/test_mcp/test_report_builder.py

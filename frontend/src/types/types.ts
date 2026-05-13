@@ -72,7 +72,7 @@ export interface IndicatorNodeData extends Record<string, unknown> {
 }
 
 export interface SignalNodeData extends Record<string, unknown> {
-  signalType: 'sma_crossover'
+  signalType: 'sma_crossover' | 'ranking' | 'mapping' | 'distribution'
 }
 
 export interface ParameterBound {
@@ -105,5 +105,14 @@ export interface PortfolioNodeData extends Record<string, unknown> {
   jobStatus?: JobStatus
   metrics?: BacktestMetrics | null
   jobId?: number
+  error?: string | null
+}
+
+export interface WfoNodeData extends Record<string, unknown> {
+  windowSize: string
+  stepSize: string
+  jobStatus?: JobStatus
+  jobId?: number
+  results?: any
   error?: string | null
 }

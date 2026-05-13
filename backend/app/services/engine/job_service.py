@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 from typing import Any
-from sqlalchemy.orm import Session
-from loguru import logger
 
-from app.models.orm import BacktestJob, OptimizationJob, JobStatus, _utcnow
+from loguru import logger
+from sqlalchemy.orm import Session
+
+from app.models.orm import BacktestJob, JobStatus, OptimizationJob, _utcnow
+
 
 class JobService:
     """Service for managing Backtest and Optimization jobs in the database."""

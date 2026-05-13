@@ -6,8 +6,6 @@ This is the main orchestrator for async background backtesting.
 
 from __future__ import annotations
 
-import sys
-from pathlib import Path
 from typing import Any
 
 import numpy as np
@@ -17,19 +15,19 @@ from loguru import logger
 from app.db.session import get_session
 from app.models.orm import JobStatus
 from app.services.connectors.registry import ConnectorRegistry
-from app.services.engine.loader import EngineLoader
-from app.services.engine.optimizer import OptunaOptimizer
 from app.services.engine.job_service import JobService
+from app.services.engine.loader import EngineLoader
+from app.services.engine.opensource_engine import _setup_vbt
+from app.services.engine.optimizer import OptunaOptimizer, WalkForwardOptimizer
 
-# Ensure the vendored vectorbt directory is importable.
-_VENDORED_VBT = Path(__file__).resolve().parents[4] / "vectorbt_src"
-if _VENDORED_VBT.exists() and str(_VENDORED_VBT) not in sys.path:
-    sys.path.insert(0, str(_VENDORED_VBT))
+# Initialize vbt once
+try:
+    vbt = _setup_vbt()
+except Exception:
+    pass  # Fallback
 
-import vectorbt  # noqa: F401
 
-
-def _fetch_market_data(source: str, symbol: str, start: str, end: str, timeframe: str) -> Any:
+def _fetch_market_data(source: str, symbol: str | list[str], start: str, end: str, timeframe: str) -> Any:
     """Helper to grab market data via Connector Registry."""
     logger.info(f"BacktestRunner: fetching data | source={source} symbol={symbol} {start} → {end} {timeframe}")
     connector = ConnectorRegistry.get(source)
@@ -59,7 +57,11 @@ def _execute_backtest(parameters: dict[str, Any]) -> dict[str, Any]:
     # Extract metrics robustly
     metrics = result.get("metrics", {})
     if not metrics:
-        # Fallback for engines returning flat results
+        # Fallback for engines returning flat results or vectorized
+        if result.get("is_vectorized"):
+            # For vectorized, we might want to return the whole list or a summary
+            return result
+            
         metrics = {
             "Total Return [%]": result.get("total_return_pct"),
             "Sharpe Ratio": result.get("sharpe_ratio"),
@@ -154,5 +156,40 @@ def run_optuna_optimization(
 
     except Exception as e:
         logger.exception(f"OptunaRunner: job_id={job_id} FAILED: {e}")
+        with get_session() as db:
+            JobService.update_optimization_status(db, job_id, JobStatus.FAILED, error_message=str(e))
+
+
+def run_walk_forward(
+    job_id: int,
+    parameters: dict[str, Any],
+    window_size: str,
+    step_size: str,
+) -> None:
+    """Background worker for executing Walk-Forward Optimization."""
+    logger.info(f"WFORunner: starting job_id={job_id} | window={window_size} step={step_size}")
+
+    with get_session() as db:
+        JobService.update_optimization_status(db, job_id, JobStatus.RUNNING)
+
+    try:
+        source = parameters.get("data_source", "yahoo")
+        symbol = parameters.get("symbol", "AAPL")
+        start = parameters.get("start_date")
+        end = parameters.get("end_date")
+        tf = parameters.get("timeframe", "1d")
+
+        df = _fetch_market_data(source, symbol, start, end, tf)
+        engine = EngineLoader.load()
+
+        optimizer = WalkForwardOptimizer(engine)
+        results = optimizer.run_wfo(df, parameters, window_size, step_size)
+
+        with get_session() as db:
+            JobService.update_optimization_status(db, job_id, JobStatus.COMPLETED, results=results)
+        logger.success(f"WFORunner: job_id={job_id} COMPLETED.")
+
+    except Exception as e:
+        logger.exception(f"WFORunner: job_id={job_id} FAILED: {e}")
         with get_session() as db:
             JobService.update_optimization_status(db, job_id, JobStatus.FAILED, error_message=str(e))

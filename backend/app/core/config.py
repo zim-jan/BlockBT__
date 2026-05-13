@@ -63,6 +63,7 @@ class Settings(BaseSettings):
     # ------------------------------------------------------------------
     # Engine
     # ------------------------------------------------------------------
+    VBT_ENGINE: str = "rust"  # 'rust' or 'numba'
     # If vectorbtpro directory exists in the project root, mark as BYOL-available.
     VBTPRO_PATH: Path | None = (
         None  # explicit override via env; otherwise discovered by effective_vbtpro_path()

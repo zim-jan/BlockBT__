@@ -21,7 +21,7 @@ import type {
     JobStatus,
     OptimizerNodeData,
     PortfolioNodeData,
-    SignalNodeData,
+    WfoNodeData,
 } from '../types/types'
 
 // ---------------------------------------------------------------------------
@@ -48,12 +48,17 @@ interface WorkflowState {
   jobStatus: JobStatus | null
   errorMessage: string | null
 
+  // UI state
+  isEasyConnectMode: boolean
+  toggleEasyConnectMode: () => void
+
   // Node data setters
   updateNodeData: (nodeId: string, data: Partial<DataNodeData & IndicatorNodeData & PortfolioNodeData & OptimizerNodeData>) => void
   addNode: (type: string) => void
   setJobState: (isRunning: boolean, jobId: number | null, status: JobStatus | null, error?: string | null) => void
   updatePortfolioResult: (metrics: BacktestMetrics | null, status: JobStatus, jobId: number, error?: string | null) => void
   updateOptimizerResult: (bestParams: Record<string, any> | null, bestValue: number | null, trials: any[] | null, status: JobStatus, jobId: number, error?: string | null) => void
+  updateWfoResult: (results: any, status: JobStatus, jobId: number, error?: string | null) => void
   resetExecution: () => void
   clearCanvas: () => void
   setWorkflow: (nodes: Node[], edges: Edge[]) => void
@@ -78,6 +83,9 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
   activeJobId: null,
   jobStatus: null,
   errorMessage: null,
+
+  isEasyConnectMode: false,
+  toggleEasyConnectMode: () => set((s) => ({ isEasyConnectMode: !s.isEasyConnectMode })),
 
   updateNodeData: (nodeId, data) =>
     set((s) => ({
@@ -108,6 +116,10 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
           sma_fast: { min: 5, max: 20, type: 'int' },
           sma_slow: { min: 25, max: 50, type: 'int' }
         }
+      },
+      wfoNode: {
+        windowSize: '365d',
+        stepSize: '90d'
       },
     }
 
@@ -153,6 +165,19 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
       ),
     })),
 
+  updateWfoResult: (results, status, jobId, error = null) =>
+    set((s) => ({
+      activeJobId: jobId,
+      jobStatus: status,
+      isRunning: false,
+      errorMessage: error ?? null,
+      nodes: s.nodes.map((n) =>
+        n.type === 'wfoNode'
+          ? { ...n, data: { ...n.data as WfoNodeData, jobStatus: status, results, jobId, error } }
+          : n
+      ),
+    })),
+
   resetExecution: () =>
     set((s) => ({
       isRunning: false,
@@ -165,6 +190,9 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
         }
         if (n.type === 'optimizerNode') {
           return { ...n, data: { ...n.data, jobStatus: undefined, bestParameters: undefined, bestValue: undefined, trials: undefined, jobId: undefined, error: undefined } }
+        }
+        if (n.type === 'wfoNode') {
+          return { ...n, data: { ...n.data as WfoNodeData, jobStatus: undefined, results: undefined, jobId: undefined, error: undefined } }
         }
         return n
       }),

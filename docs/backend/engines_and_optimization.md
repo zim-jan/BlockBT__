@@ -17,6 +17,7 @@ Rdzeniem systemu jest abstrakcyjny interfejs `BaseStrategyEngine` (`backend/app/
 ### OpenSourceEngine
 Wykorzystuje publiczną wersję biblioteki `vectorbt`.
 - **Charakterystyka**: W pełni wspiera wektoryzację (przetwarzanie wielu parametrów jednocześnie na tablicach NumPy).
+- **Silnik Rust (Nowość)**: Od wersji 1.0.0, silnik wspiera natywne kernele Rusta. Ustawienie `VBT_ENGINE=rust` pozwala na pominięcie kompilacji JIT (Numba) i natychmiastowe wykonywanie obliczeń z najwyższą wydajnością. W przypadku braku binariów, system automatycznie wraca do silnika Numba.
 - **Zastosowanie**: Domyślny silnik dla instalacji bezlicencyjnych. Zapewnia wysoką wydajność dla standardowych strategii technicznych.
 
 ### ProEngine (BYOL - Bring Your Own License)
@@ -38,6 +39,22 @@ Wykonuje wyczerpujący przegląd kombinacji parametrów (iloczyn kartezjański).
 Integracja z biblioteką **Optuna** dla inteligentnego przeszukiwania przestrzeni parametrów.
 - **Algorytm TPE**: Wykorzystuje optymalizację bayesowską do przewidywania, które parametry mogą przynieść najlepsze rezultaty, zamiast sprawdzać wszystkie możliwe wartości.
 - **Skalowalność**: Idealny dla strategii z dużą liczbą parametrów, gdzie Grid Search byłby zbyt czasochłonny.
+
+### Walk-Forward Optimization (WFO)
+Zaawansowana metoda testowania strategii na oknach przesuwnych.
+- **Mechanizm**: Dzieli dane historyczne na segmenty (okna), trenując optymalizację na jednym i testując na kolejnym. Pomaga to uniknąć przeuczenia (overfittingu) i lepiej ocenić stabilność strategii w czasie.
+- **API**: Dostępne przez dedykowany endpoint `/api/optimizer/wfo` oraz węzeł `WfoNode` na frontendzie.
+
+---
+
+## Rejestr Wskaźników (IndicatorRegistry)
+
+BlockBT posiada dynamiczny rejestr wskaźników (`backend/app/services/engine/indicator_registry.py`), który unifikuje dostęp do bibliotek:
+- **vectorbt**: Natywne, wektoryzowane wskaźniki (np. MA, RSI).
+- **TA-Lib**: Ponad 150 sprawdzonych wskaźników analizy technicznej.
+- **Custom**: Możliwość rejestracji własnych funkcji Pythonowych.
+
+Rejestr automatycznie wystawia metadane (wymagane parametry, typy danych) przez API, co pozwala frontendowi na dynamiczne generowanie formularzy konfiguracyjnych w Visual Builderze.
 
 ---
 

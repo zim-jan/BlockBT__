@@ -3,7 +3,6 @@ from __future__ import annotations
 from typing import Any
 
 from fastapi import APIRouter, BackgroundTasks, HTTPException
-from loguru import logger
 
 from app.db.session import get_session
 from app.models.orm import BacktestJob, JobStatus, Strategy
@@ -87,6 +86,7 @@ def _job_to_schema(job: BacktestJob) -> BacktestJobResponse:
         max_drawdown_pct=job.max_drawdown_pct,
         num_trades=job.num_trades,
         final_capital=job.final_capital,
+        equity_curve=raw_metrics.get("equity_curve"),
     )
 
 

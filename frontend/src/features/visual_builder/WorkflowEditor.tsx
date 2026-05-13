@@ -2,15 +2,17 @@ import {useCallback, useState} from 'react'
 import {ReactFlow, Background, Controls, MiniMap, Panel,} from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
 import {useWorkflowStore} from '../../store/workflowStore'
-import {useWorkflowExecution} from '../../hooks/useWorkflowExecution'
 import {api} from '../../services/api'
 import {StrategyListModal} from './StrategyListModal'
+import FloatingEdge from './edges/FloatingEdge'
+import FloatingConnectionLine from './edges/FloatingConnectionLine'
 
 import DataNode from './nodes/DataNode'
 import IndicatorNode from './nodes/IndicatorNode'
 import {SignalNode} from './nodes/SignalNode'
 import {PortfolioNode} from './nodes/PortfolioNode'
 import OptimizerNode from './nodes/OptimizerNode'
+import {WfoNode} from './nodes/WfoNode'
 
 const nodeTypes: any = {
   dataNode: DataNode,
@@ -18,6 +20,11 @@ const nodeTypes: any = {
   signalNode: SignalNode,
   portfolioNode: PortfolioNode,
   optimizerNode: OptimizerNode,
+  wfoNode: WfoNode,
+}
+
+const edgeTypes: any = {
+  floating: FloatingEdge,
 }
 
 export function WorkflowEditor() {
@@ -29,9 +36,10 @@ export function WorkflowEditor() {
     onConnect,
     addNode,
     clearCanvas,
+    isEasyConnectMode,
+    toggleEasyConnectMode,
   } = useWorkflowStore()
 
-  const { runBacktest, isRunning } = useWorkflowExecution()
   const [isModalOpen, setIsModalOpen] = useState(false)
 
   const onDragOver = useCallback((event: React.DragEvent) => {
@@ -67,7 +75,7 @@ export function WorkflowEditor() {
   }
 
   return (
-    <div style={{ width: '100%', height: '100%' }}>
+    <div style={{ width: '100%', height: '100%' }} className={isEasyConnectMode ? 'easy-connect-active' : ''}>
       <ReactFlow
         nodes={nodes}
         edges={edges}
@@ -75,10 +83,16 @@ export function WorkflowEditor() {
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
         nodeTypes={nodeTypes}
+        edgeTypes={edgeTypes}
         onDragOver={onDragOver}
         deleteKeyCode={['Backspace', 'Delete']}
         fitView
         proOptions={{ hideAttribution: true }}
+        connectionLineComponent={isEasyConnectMode ? FloatingConnectionLine : undefined}
+        defaultEdgeOptions={{
+           type: isEasyConnectMode ? 'floating' : 'default',
+           animated: true
+        }}
       >
         <Background gap={16} />
         <Controls />
@@ -89,23 +103,23 @@ export function WorkflowEditor() {
           <button onClick={() => addNode('signalNode')} className="toolbar-btn">Add Signal Node</button>
           <button onClick={() => addNode('portfolioNode')} className="toolbar-btn">Add Portfolio Node</button>
           <button onClick={() => addNode('optimizerNode')} className="toolbar-btn">Add Optimizer Node</button>
+          <button onClick={() => addNode('wfoNode')} className="toolbar-btn">Add WFO Node</button>
+
+          <div style={{ marginTop: '10px', display: 'flex', alignItems: 'center', gap: '8px', padding: '5px', background: 'rgba(255,255,255,0.05)', borderRadius: '4px' }}>
+             <input 
+               type="checkbox" 
+               id="easy-connect-toggle" 
+               checked={isEasyConnectMode} 
+               onChange={toggleEasyConnectMode} 
+             />
+             <label htmlFor="easy-connect-toggle" style={{ fontSize: '12px', cursor: 'pointer', color: 'white' }}>Easy Connect</label>
+          </div>
         </Panel>
 
         <Panel position="top-right" style={{ display: 'flex', gap: '10px' }}>
           <button onClick={handleSave} className="toolbar-btn" style={{ backgroundColor: '#28a745', color: 'white' }}>SAVE</button>
           <button onClick={() => setIsModalOpen(true)} className="toolbar-btn" style={{ backgroundColor: '#17a2b8', color: 'white' }}>LOAD</button>
           <button onClick={clearCanvas} className="toolbar-btn" style={{ backgroundColor: '#dc3545', color: 'white' }}>CLEAR</button>
-        </Panel>
-
-        <Panel position="top-center" className="workflow-toolbar" style={{ display: 'flex', gap: '10px', background: '#1a1a1a', padding: '10px', borderRadius: '8px', border: '1px solid #333' }}>
-          <button
-            onClick={runBacktest}
-            disabled={isRunning}
-            className="toolbar-btn run-btn"
-            style={{ backgroundColor: isRunning ? '#555' : '#007bff', color: 'white', fontWeight: 'bold', padding: '8px 20px' }}
-          >
-            {isRunning ? 'RUNNING...' : 'RUN BACKTEST'}
-          </button>
         </Panel>
       </ReactFlow>
 

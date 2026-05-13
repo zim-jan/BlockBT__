@@ -66,7 +66,6 @@ export function useWorkflowExecution() {
     const dataSource: string = dData.dataSource ?? 'yahoo'
     const startDate: string = dData.startDate ?? '2023-01-01'
     const endDate: string = dData.endDate ?? '2025-01-01'
-    const timeframe: string = dData.timeframe ?? '1d'
 
     const indicatorType: string = iData.indicatorType ?? 'sma_crossover'
     const smaFast: number = Number(iData.smaFast ?? 10)
@@ -170,6 +169,7 @@ export function useWorkflowExecution() {
               num_trades: jd.num_trades ?? rawMetrics.num_trades ?? 0,
               final_capital: jd.final_capital ?? rawMetrics.final_capital ?? initialCapital,
               win_rate_pct: rawMetrics.win_rate_pct ?? 0,
+              equity_curve: jd.equity_curve || rawMetrics.equity_curve,
             }
             
             console.log('📦 useWorkflowExecution: Formatted metrics for store:', finalMetrics)

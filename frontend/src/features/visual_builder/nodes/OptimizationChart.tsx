@@ -4,7 +4,7 @@
  * Plots Trial Number vs Objective Value.
  */
 
-import {OptunaTrial} from '../../../types/types'
+import type {OptunaTrial} from '../../../types/types'
 
 interface Props {
   trials: OptunaTrial[]

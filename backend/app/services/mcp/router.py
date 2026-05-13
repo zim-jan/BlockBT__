@@ -1,5 +1,5 @@
-import os
 from pathlib import Path
+
 from mcp.server.fastmcp import FastMCP
 
 # Initialize the MCP Server

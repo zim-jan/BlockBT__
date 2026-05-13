@@ -6,16 +6,27 @@
  *   - MACD: Fast / Slow / Signal window periods
  */
 
+import { useEffect, useState } from 'react'
 import {Handle, type Node, type NodeProps, Position} from '@xyflow/react'
 import {useWorkflowStore} from '../../../store/workflowStore'
 import type {IndicatorNodeData, IndicatorType} from '../../../types/types'
+import { api } from '../../../services/api'
 
 export type IndicatorNode = Node<IndicatorNodeData, 'indicatorNode'>
 
 export function IndicatorNode({ id, data }: NodeProps<IndicatorNode>) {
   const updateNodeData = useWorkflowStore((s) => s.updateNodeData)
+  const [availableIndicators, setAvailableIndicators] = useState<any[]>([])
+  
+  useEffect(() => {
+    api.indicators.list().then(res => {
+      if (res.success) setAvailableIndicators(res.data)
+    }).catch(err => console.error("Failed to fetch indicators:", err))
+  }, [])
+
   const isMACD = data.indicatorType === 'macd'
   const isCustom = data.indicatorType === 'custom'
+  const isDynamic = !['sma_crossover', 'macd', 'custom'].includes(data.indicatorType)
 
   return (
     <div className="rf-node rf-node--indicator">
@@ -33,13 +44,35 @@ export function IndicatorNode({ id, data }: NodeProps<IndicatorNode>) {
           onChange={(e) => updateNodeData(id as string, { indicatorType: e.target.value as IndicatorType })}
           className="rf-input"
         >
-          <option value="sma_crossover">SMA Crossover</option>
-          <option value="macd">MACD</option>
+          <option value="sma_crossover">SMA Crossover (Native)</option>
+          <option value="macd">MACD (Native)</option>
           <option value="custom">Custom Code</option>
+          <optgroup label="Registry Indicators">
+            {availableIndicators.map(ind => (
+              <option key={ind.name} value={ind.name}>{ind.name} ({ind.library})</option>
+            ))}
+          </optgroup>
         </select>
 
+        {/* Dynamic Parameters from Registry */}
+        {isDynamic && (
+          <div className="rf-dynamic-params">
+             {availableIndicators.find(i => i.name === data.indicatorType)?.params.map((p: any) => (
+               <div key={p.name}>
+                 <label className="rf-label">{p.name}</label>
+                 <input
+                   type={p.type === 'int' ? 'number' : 'text'}
+                   value={data[p.name] ?? p.default}
+                   onChange={(e) => updateNodeData(id as string, { [p.name]: p.type === 'int' ? Number(e.target.value) : e.target.value })}
+                   className="rf-input"
+                 />
+               </div>
+             ))}
+          </div>
+        )}
+
         {/* SMA Crossover parameters */}
-        {!isMACD && !isCustom && (
+        {data.indicatorType === 'sma_crossover' && (
           <>
             <label className="rf-label">Fast SMA</label>
             <input

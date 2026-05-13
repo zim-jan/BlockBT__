@@ -1,18 +1,11 @@
-from typing import Any
 import uuid
 from datetime import UTC, datetime
+from typing import Any
 
 from fastapi import APIRouter
 
 from app.schemas.base import ApiResponse
-from app.schemas.workflows import WorkflowCreate, WorkflowResponse
-
-"""
-Workflows routes — Phase 1 MVP (mock, in-memory store).
-
-Workflows represent React Flow graph definitions saved by the frontend.
-"""
-
+from app.schemas.workflows import WorkflowCreate
 
 router = APIRouter()
 

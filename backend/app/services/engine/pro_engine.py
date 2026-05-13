@@ -8,7 +8,6 @@ from loguru import logger
 
 from app.core.config import settings
 from app.services.engine.base import BaseStrategyEngine
-from app.services.engine.indicators import IndicatorService
 
 """
 ProEngine — BYOL (Bring Your Own License) engine backed by vectorbtpro.

@@ -84,8 +84,9 @@ async def analyze_simulation_result(job_id: int) -> ApiResponse[AIAnalysisRespon
         prompt = payload.to_prompt()
         
         # Fetch the default system prompt, or fallback to the hardcoded default
-        from app.models.orm import SystemPrompt
         from sqlalchemy import select
+
+        from app.models.orm import SystemPrompt
         from app.services.mcp.llm_client import _SYSTEM_PROMPT
         
         system_prompt = db.execute(

@@ -29,6 +29,20 @@ class OptimizationRequest(BaseModel):
     parameters: dict[str, Any] | None = None
 
 
+class WalkForwardRequest(BaseModel):
+    strategy_id: int
+    symbol: str
+    data_source: str = "yahoo"
+    timeframe: str = "1d"
+    start_date: str | None = None
+    end_date: str | None = None
+    initial_capital: float = 10000.0
+    
+    window_size: str = "365d"
+    step_size: str = "90d"
+    parameters: dict[str, Any] | None = None
+
+
 class OptimizationJobResponse(BaseModel):
     id: int
     job_id: int

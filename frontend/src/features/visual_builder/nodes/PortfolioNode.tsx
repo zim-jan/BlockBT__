@@ -1,6 +1,8 @@
 import {Handle, Position} from '@xyflow/react'
 import type {PortfolioNodeData} from '../../../types/types'
 import {useChatStore} from '../../../store/chatStore'
+import {useWorkflowExecution} from '../../../hooks/useWorkflowExecution'
+import Plot from 'react-plotly.js'
 
 interface Props {
   data: PortfolioNodeData
@@ -23,6 +25,7 @@ function fmt(n: number | null | undefined, decimals = 2, suffix = ''): string {
 export function PortfolioNode({ data }: Props) {
   const { jobStatus, metrics, error, jobId } = data
   const openChat = useChatStore(state => state.openChat)
+  const { runBacktest, isRunning: isExecutionRunning } = useWorkflowExecution()
 
   const isPending = jobStatus === 'PENDING'
   const isRunning = jobStatus === 'RUNNING'
@@ -58,7 +61,17 @@ export function PortfolioNode({ data }: Props) {
       </div>
       <div className="rf-node__body">
         {!jobStatus && (
-          <p className="rf-hint rf-hint--center italic">Run backtest to see results</p>
+          <div className="flex flex-col items-center gap-3 py-2">
+            <p className="rf-hint rf-hint--center italic">Ready for analysis</p>
+            <button 
+              onClick={runBacktest}
+              disabled={isExecutionRunning}
+              className="rf-btn rf-btn-primary w-full"
+              style={{ position: 'relative', zIndex: 10 }}
+            >
+              {isExecutionRunning ? 'Running...' : 'Run Backtest'}
+            </button>
+          </div>
         )}
         {(isPending || isRunning) && (
           <div className="rf-spinner-wrap flex flex-col items-center justify-center py-4">
@@ -88,6 +101,37 @@ export function PortfolioNode({ data }: Props) {
               label="Final Capital"
               value={metrics.final_capital != null ? `$${Number(metrics.final_capital).toLocaleString('en-US', { maximumFractionDigits: 0 })}` : '—'}
             />
+
+            {metrics.equity_curve && metrics.equity_curve.length > 0 && (
+              <div className="rf-chart mt-4 border rounded overflow-hidden bg-white" style={{ height: '150px' }}>
+                <Plot
+                  data={[
+                    {
+                      x: metrics.equity_curve.map(d => d.date),
+                      y: metrics.equity_curve.map(d => d.value),
+                      type: 'scatter',
+                      mode: 'lines',
+                      marker: { color: '#3b82f6' },
+                      fill: 'tozeroy',
+                      fillcolor: 'rgba(59, 130, 246, 0.1)',
+                    },
+                  ]}
+                  layout={{
+                    autosize: true,
+                    margin: { l: 0, r: 0, b: 0, t: 0 },
+                    xaxis: { visible: false },
+                    yaxis: { visible: false },
+                    showlegend: false,
+                    paper_bgcolor: 'rgba(0,0,0,0)',
+                    plot_bgcolor: 'rgba(0,0,0,0)',
+                  }}
+                  config={{ displayModeBar: false, responsive: true }}
+                  style={{ width: '100%', height: '100%' }}
+                  useResizeHandler
+                />
+              </div>
+            )}
+
             <div className="rf-action-row mt-4 flex justify-center">
               <button
                 onClick={() => {

@@ -1,4 +1,4 @@
-# BlockBT (Local Algorithmic Backtesting MVP)
+# BlockBT (Local Algorithmic Backtesting)
 
 Projekt **BlockBT** to profesjonalne, w pełni lokalne środowisko do przeprowadzania backtestingu strategii algorytmicznych. Składa się z nowoczesnego interfejsu **React** (Vite) oraz szybkiego i asynchronicznego serwera **FastAPI**.
 
@@ -9,7 +9,7 @@ System jest tworzony zgodnie z zasadą "Air-Gapped": wszystkie Twoje dane giełd
 *   **Frontend**: React 18, TypeScript, Vite, Tailwind CSS, **React Flow 12 (@xyflow/react)**.
 *   **Backend**: Python 3.12+, FastAPI, Pydantic, SQLAlchemy. Zarządzanie zależnościami przy użyciu `uv`.
 *   **Silnik (Engine)**: Dwusilnikowa (Dual-Engine Ready) struktura z domyślnym silnikiem opartym na wektoryzowanym `vectorbt`.
-*   **Baza i Dane**: SQLite (MVP: paradygmat Wipe and Recreate) i lokalne pliki Parquet w katalogu `local_data/`.
+*   **Baza i Dane**: SQLite i lokalne pliki Parquet w katalogu `local_data/`.
 *   **Dokumentacja**: MkDocs (dostępna w `docs/` i budowana przez mkdocs-material).
 
 ## Narzędzia Makefile

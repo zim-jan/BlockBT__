@@ -77,7 +77,7 @@ def init_db() -> None:
 
 
 @contextmanager
-def get_session() -> Generator[Session, None, None]:
+def get_session() -> Generator[Session]:
     """Provide a transactional session scope."""
     session: Session = _SessionLocal()
     try:

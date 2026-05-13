@@ -6,7 +6,7 @@ from pydantic import BaseModel
 
 class BacktestRequest(BaseModel):
     strategy_id: int
-    symbol: str
+    symbol: str | list[str]
     data_source: str = "synthetic"
     timeframe: str | None = None
     start_date: str | None = None
@@ -39,4 +39,5 @@ class BacktestJobResponse(BaseModel):
     max_drawdown_pct: float | None = None
     num_trades: int | None = None
     final_capital: float | None = None
+    equity_curve: list[dict[str, Any]] | None = None
     error_message: str | None = None

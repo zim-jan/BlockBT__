@@ -15,10 +15,10 @@ from pathlib import Path
 
 # Ensure the project src is on the Python path
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
-SRC_DIR = PROJECT_ROOT / "src"
-sys.path.insert(0, str(SRC_DIR))
+BACKEND_DIR = PROJECT_ROOT / "backend"
+sys.path.insert(0, str(BACKEND_DIR))
 
-from blockbt.api.main import app  # noqa: E402
+from app.main import app  # noqa: E402
 
 OUTPUT_PATH = PROJECT_ROOT / "frontend" / "openapi.json"
 

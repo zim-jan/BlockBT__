@@ -7,8 +7,8 @@ from fastapi import APIRouter, BackgroundTasks, HTTPException
 from app.db.session import get_session
 from app.models.orm import JobStatus, OptimizationJob, Strategy
 from app.schemas.base import ApiResponse
-from app.schemas.optimizer import OptimizationJobResponse, OptimizationRequest
-from app.services.engine.runner import run_optuna_optimization
+from app.schemas.optimizer import OptimizationJobResponse, OptimizationRequest, WalkForwardRequest
+from app.services.engine.runner import run_optuna_optimization, run_walk_forward
 
 """
 Optimization routes — Phase 4.
@@ -89,6 +89,61 @@ def trigger_optimization(
         bounds_dict,
         payload.n_trials,
         payload.metric,
+    )
+
+    return ApiResponse(success=True, data={"job_id": job_id})
+
+
+@router.post("/wfo", summary="Trigger walk-forward optimization", status_code=202, response_model=ApiResponse[dict[str, int]])
+def trigger_wfo(
+    payload: WalkForwardRequest,
+    background_tasks: BackgroundTasks,
+) -> ApiResponse[dict[str, int]]:
+    """Create an OptimizationJob and enqueue the Walk-Forward Optimization in the background."""
+    with get_session() as db:
+        strategy = db.get(Strategy, payload.strategy_id)
+        if not strategy:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Strategy id={payload.strategy_id} not found",
+            )
+
+        # Build parameters snapshot
+        params: dict[str, Any] = dict(strategy.parameters)
+        params.update(
+            {
+                "symbol": payload.symbol,
+                "data_source": payload.data_source,
+                "timeframe": payload.timeframe,
+                "initial_capital": payload.initial_capital,
+                "window_size": payload.window_size,
+                "step_size": payload.step_size,
+            }
+        )
+        if payload.start_date:
+            params["start_date"] = payload.start_date
+        if payload.end_date:
+            params["end_date"] = payload.end_date
+        if payload.parameters:
+            params.update(payload.parameters)
+
+        job = OptimizationJob(
+            strategy_id=strategy.id,
+            status=JobStatus.PENDING,
+            parameters_snapshot=params,
+            bounds_definition={"window_size": payload.window_size, "step_size": payload.step_size},
+        )
+        db.add(job)
+        db.flush()
+        job_id = job.id
+
+    # Schedule background task
+    background_tasks.add_task(
+        run_walk_forward,
+        job_id,
+        params,
+        payload.window_size,
+        payload.step_size,
     )
 
     return ApiResponse(success=True, data={"job_id": job_id})

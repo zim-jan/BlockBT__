@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Any
 
 import pandas as pd
 from loguru import logger
@@ -70,7 +71,6 @@ class AlpacaConnector(BaseDataConnector):
         try:
             from alpaca.data.historical import StockHistoricalDataClient  # type: ignore[import]
             from alpaca.data.requests import StockBarsRequest  # type: ignore[import]
-            from alpaca.data.timeframe import TimeFrame, TimeFrameUnit  # type: ignore[import]
         except ImportError as exc:
             raise ImportError(
                 "alpaca-py is not installed. Install the optional extra: "
@@ -145,7 +145,7 @@ class AlpacaConnector(BaseDataConnector):
             )
 
     @staticmethod
-    def _map_timeframe(timeframe: str) -> TimeFrame:  # type: ignore[name-defined]
+    def _map_timeframe(timeframe: str) -> Any:
         """Map BlockBT timeframe strings to Alpaca SDK TimeFrame objects."""
         from alpaca.data.timeframe import TimeFrame, TimeFrameUnit  # type: ignore[import]
 

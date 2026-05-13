@@ -54,36 +54,38 @@ class YahooFinanceConnector(BaseDataConnector):
 
     def _download(
         self,
-        symbol: str,
+        symbol: str | list[str],
         start: str,
         end: str,
         timeframe: str = "1d",
     ) -> pd.DataFrame:
         try:
-            import yfinance as yf  # type: ignore[import]
+            import vectorbt as vbt
         except ImportError as exc:
-            raise RuntimeError("yfinance is not installed. Run: pip install yfinance") from exc
+            raise RuntimeError("vectorbt is not installed.") from exc
 
         interval = self._map_timeframe(timeframe)
-        logger.debug("yfinance.download({}, {}, {}, {})", symbol, start, end, interval)
+        logger.debug("vbt.YFData.download({}, {}, {}, {})", symbol, start, end, interval)
 
-        df: pd.DataFrame = yf.download(
-            tickers=symbol,
-            start=start,
-            end=end,
-            interval=interval,
-            auto_adjust=True,  # adjust for splits/dividends
-            progress=False,
-            threads=False,
-        )
+        try:
+            # vbt.YFData.download handles single symbol or list of symbols
+            # It also handles caching and conversion to standard OHLCV format
+            data = vbt.YFData.download(
+                symbol,
+                start=start,
+                end=end,
+                interval=interval,
+            )
+            df = data.get()  # Returns a combined DataFrame
+        except Exception as e:
+            logger.error("vbt.YFData failed to download data for {}: {}", symbol, e)
+            return pd.DataFrame()
 
         if df.empty:
-            logger.warning("yfinance returned no data for {} ({} → {})", symbol, start, end)
+            logger.warning("vbt.YFData returned no data for {} ({} → {})", symbol, start, end)
 
-        # yfinance multi-level columns when downloading a single ticker
-        if isinstance(df.columns, pd.MultiIndex):
-            df.columns = df.columns.get_level_values(0)
-
+        # Handle columns. YFData usually returns a multi-indexed DataFrame if multiple symbols
+        # or single-indexed if one symbol.
         return df
 
     # ------------------------------------------------------------------
