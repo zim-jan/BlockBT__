@@ -1,4 +1,3 @@
-import React from 'react'
 import '@testing-library/jest-dom'
 import { vi } from 'vitest'
 
@@ -28,18 +27,18 @@ class DOMMatrixReadOnly {
 }
 
 // Apply mocks to global object
-global.ResizeObserver = ResizeObserver
-global.DOMMatrixReadOnly = DOMMatrixReadOnly as any
+globalThis.ResizeObserver = ResizeObserver
+globalThis.DOMMatrixReadOnly = DOMMatrixReadOnly as any
 
 // Mock offsetHeight/Width which JSDOM returns as 0
-Object.defineProperties(global.HTMLElement.prototype, {
+Object.defineProperties(globalThis.HTMLElement.prototype, {
   offsetHeight: { get() { return parseFloat(this.style.height) || 1 } },
   offsetWidth: { get() { return parseFloat(this.style.width) || 1 } },
 })
 
 // Mock SVG getBBox
-if (!global.SVGElement.prototype.getBBox) {
-  global.SVGElement.prototype.getBBox = () => ({
+if (!(globalThis.SVGElement.prototype as any).getBBox) {
+  ;(globalThis.SVGElement.prototype as any).getBBox = () => ({
     x: 0,
     y: 0,
     width: 0,
@@ -54,5 +53,5 @@ if (!global.SVGElement.prototype.getBBox) {
 
 // Mock Plotly (react-plotly.js) since it requires a real DOM/WebGL
 vi.mock('react-plotly.js', () => ({
-  default: () => <div data-testid="mock-plotly" />,
+  default: () => null,
 }))

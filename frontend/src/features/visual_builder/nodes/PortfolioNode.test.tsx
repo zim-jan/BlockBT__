@@ -12,18 +12,23 @@ vi.mock('../../../hooks/useWorkflowExecution', () => ({
   }),
 }))
 
+// Mock chat store
+vi.mock('../../../store/chatStore', () => ({
+  useChatStore: () => vi.fn(),
+}))
+
 describe('PortfolioNode', () => {
   const defaultData = {
-    jobStatus: null,
-    metrics: null,
-    jobId: null,
-    error: null,
+    jobStatus: undefined,
+    metrics: undefined,
+    jobId: undefined,
+    error: undefined,
   }
 
   it('renders "Run Backtest" button when no jobStatus', () => {
     render(
       <ReactFlowProvider>
-        <PortfolioNode data={defaultData} id="test-id" type="portfolioNode" selected={false} zIndex={0} isConnectable={true} />
+        <PortfolioNode data={defaultData} />
       </ReactFlowProvider>
     )
     
@@ -40,6 +45,13 @@ describe('PortfolioNode', () => {
       ...defaultData,
       jobStatus: 'COMPLETED' as const,
       metrics: {
+        engine: 'vectorbt',
+        symbol: 'AAPL',
+        sma_fast: 10,
+        sma_slow: 50,
+        n_days: 252,
+        initial_capital: 10000,
+        win_rate_pct: 55,
         total_return_pct: 15.5,
         sharpe_ratio: 1.8,
         max_drawdown_pct: -5.2,
@@ -51,7 +63,7 @@ describe('PortfolioNode', () => {
 
     render(
       <ReactFlowProvider>
-        <PortfolioNode data={dataWithMetrics} id="test-id" type="portfolioNode" selected={false} zIndex={0} isConnectable={true} />
+        <PortfolioNode data={dataWithMetrics} />
       </ReactFlowProvider>
     )
     
