@@ -17,11 +17,11 @@ backend/app/db/session.py
 backend/app/models/orm.py
 backend/app/schemas/backtest.py
 backend/app/schemas/base.py
+backend/app/schemas/dag.py
 backend/app/schemas/optimizer.py
 backend/app/schemas/results.py
 backend/app/schemas/settings.py
 backend/app/schemas/strategies.py
-backend/app/schemas/workflows.py
 backend/app/services/connectors/__init__.py
 backend/app/services/connectors/alpaca.py
 backend/app/services/connectors/base.py
@@ -67,3 +67,4 @@ backend/tests/test_engine/test_optimizer.py
 backend/tests/test_engine/test_wfo.py
 backend/tests/test_mcp/__init__.py
 backend/tests/test_mcp/test_report_builder.py
+backend/tests/test_schemas/test_dag.py

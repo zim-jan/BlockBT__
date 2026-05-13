@@ -5,7 +5,7 @@ from typing import Any
 from fastapi import APIRouter
 
 from app.schemas.base import ApiResponse
-from app.schemas.workflows import WorkflowCreate
+from app.schemas.dag import WorkflowCreate
 
 router = APIRouter()
 
