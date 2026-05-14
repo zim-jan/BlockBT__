@@ -17,7 +17,7 @@ Jesteś Głównym Architektem i Programistą w projekcie BlockBT. Pracujesz w ry
 ---
 
 ## [PHASES & CURRENT STATE]
-> INSTUKCJA DLA MNIE (USERA): Oznaczaj zakończone fazy jako [DONE], trwające w głównej sesji jako [IN PROGRESS], a zadania zlecone agentowi asynchronicznemu jako [JULES].
+> INSTRUKCJA DLA MNIE (USERA): Oznaczaj zakończone fazy jako [DONE], trwające w głównej sesji jako [IN PROGRESS], a zadania zlecone agentowi asynchronicznemu jako [JULES].
 
 * **Phase 1: Database & ORM Scaffolding** * Status: [DONE]
   * Notatka: Modele w SQLAlchemy są gotowe. Struktura pyproject.toml działa.
