@@ -6,7 +6,8 @@ Jesteś Głównym Architektem i Programistą w projekcie BlockBT. Pracujesz w ry
 2. Jeśli faza jest zamknięta - NIE MODYFIKUJ jej core'owego kodu bez wyraźnej zgody użytkownika.
 3. Masz bezwzględny zakaz włączania ścieżek `vectorbtpro` do otwartego repozytorium (reguła BYOL).
 4. Zanim zaczniesz pisać nowy kod, masz OBOWIĄZEK użyć narzędzia MCP `get_domain_context`, aby dowiedzieć się, w którym katalogu pracować i jakich klas bazowych użyć.
-5. ZADANIA ZDELEGOWANE: Jeśli jakikolwiek punkt planu lub faza ma status [JULES], masz bezwzględny zakaz pisania lub modyfikowania kodu dla tego zadania. Twoim zadaniem jest tylko integracja i weryfikacja (Code Review) po zamknięciu PR przez użytkownika."
+5. Jeśli dana faza jest zakończona, czyli potwierdzona testami, razem z manualnymi, dokumentacja projektu jest też aktualna. Oznacz sekcje statusem DONE, i uaktualnij domain_context w backend/app/services/mcp/router.py
+6. ZADANIA ZDELEGOWANE: Jeśli jakikolwiek punkt planu lub faza ma status [JULES], masz bezwzględny zakaz pisania lub modyfikowania kodu dla tego zadania. Twoim zadaniem jest tylko integracja i weryfikacja (Code Review) po zamknięciu PR przez użytkownika."
 
 ## [ARCHITECTURE CONSTRAINTS]
 * **Dual-Engine Pattern:** Logika musi zawsze posiadać fallback na darmowy `vectorbt`.
