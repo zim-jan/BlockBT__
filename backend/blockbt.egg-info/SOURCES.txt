@@ -11,6 +11,7 @@ backend/app/api/strategies.py
 backend/app/api/workflows.py
 backend/app/core/config.py
 backend/app/core/utils/__init__.py
+backend/app/core/utils/graph_parser.py
 backend/app/core/utils/logging.py
 backend/app/core/utils/parquet.py
 backend/app/db/session.py
@@ -68,3 +69,4 @@ backend/tests/test_engine/test_wfo.py
 backend/tests/test_mcp/__init__.py
 backend/tests/test_mcp/test_report_builder.py
 backend/tests/test_schemas/test_dag.py
+backend/tests/test_utils/test_graph_parser.py

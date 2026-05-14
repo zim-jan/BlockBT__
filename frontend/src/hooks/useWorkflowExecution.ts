@@ -19,7 +19,7 @@ const POLL_INTERVAL_MS = 2500
 const MAX_POLL_ATTEMPTS = 120 // 5-minute hard cap
 
 export function useWorkflowExecution() {
-  const { nodes, edges, isRunning, setJobState, updatePortfolioResult, resetExecution } = useWorkflowStore()
+  const { nodes, edges, isRunning, setJobState, updatePortfolioResult, resetExecution, exportDAG } = useWorkflowStore()
   const pollTimer = useRef<ReturnType<typeof setInterval> | null>(null)
 
   const stopPolling = useCallback(() => {
@@ -92,42 +92,22 @@ export function useWorkflowExecution() {
         strategyName = `${symbol} SMA(${smaFast}/${smaSlow})`
       }
 
+      const dagPayload = exportDAG()
+
       const stratRes = await api.strategies.create({
         code_content: codeContent,
-        name: `${strategyName} — ${new Date().toLocaleTimeString()}`,
-        description: `Created from WorkflowEditor [${dataSource}]`,
-        parameters: {
-          symbol,
-          data_source: dataSource,
-          strategy_type: indicatorType,
-          sma_fast: smaFast,
-          sma_slow: smaSlow,
-          initial_capital: initialCapital,
-        }
+        name: `${strategyName} — ${new Date().toLocaleTimeString()} (DAG)`,
+        description: `Created from WorkflowEditor [${dataSource}] with DAG`,
+        parameters: dagPayload as Record<string, unknown>
       })
       const strategyId = (stratRes.data as { id: number }).id
 
-      // 3. Trigger backtest with all parameters
-      const triggerPayload: components['schemas']['BacktestRequest'] = {
+      // 3. Trigger backtest using DAG endpoint
+      const jobRes = await api.backtest.triggerDag({
         strategy_id: strategyId,
-        symbol,
-        data_source: dataSource,
-        start_date: startDate,
-        end_date: endDate,
-        strategy_type: indicatorType,
-        sma_fast: smaFast,
-        sma_slow: smaSlow,
-        initial_capital: initialCapital,
-      }
-
-      // Add MACD params if applicable
-      if (indicatorType === 'macd') {
-        triggerPayload.sma_fast = Number(iData.macdFast ?? 12)
-        triggerPayload.sma_slow = Number(iData.macdSlow ?? 26)
-        triggerPayload.macd_signal = Number(iData.macdSignal ?? 9)
-      }
-
-      const jobRes = await api.backtest.trigger(triggerPayload)
+        dag: dagPayload
+      })
+      
       const jobId = jobRes.data.job_id
       setJobState(true, jobId, 'PENDING')
 

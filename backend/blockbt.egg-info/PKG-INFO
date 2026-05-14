@@ -2,7 +2,7 @@ Metadata-Version: 2.4
 Name: blockbt
 Version: 0.1.2
 Summary: BlockBT — Self-hosted algorithmic backtesting environment (Dual-Engine, BYOL)
-Requires-Python: >=3.12
+Requires-Python: >=3.14.5
 Description-Content-Type: text/markdown
 Requires-Dist: pandas<3.0,>=2.0
 Requires-Dist: pyarrow>=18.0

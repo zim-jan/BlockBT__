@@ -262,3 +262,115 @@ class OpenSourceEngine(BaseStrategyEngine):
                 "is_vectorized": True,
                 "vectorized_results": results_list,
             }
+
+    def run_dag_backtest(self, data: pd.DataFrame, dag: dict[str, Any]) -> dict[str, Any]:
+        """Execute a vectorbt backtest driven directly by the DAG schema."""
+        vbt = self.vbt
+
+        if not isinstance(data.index, pd.DatetimeIndex):
+            data.index = pd.to_datetime(data.index)
+
+        if not np.issubdtype(data["close"].dtype, np.floating):
+            data = data.copy()
+            data["close"] = data["close"].astype(np.float64)
+
+        nodes = dag.get("nodes", [])
+        data_node = next((n for n in nodes if n.get("category") == "DataIngestion"), {})
+        ind_node = next((n for n in nodes if n.get("category") == "Indicators"), {})
+        exec_node = next((n for n in nodes if n.get("category") == "Execution"), {})
+
+        ind_params = ind_node.get("params", {})
+        exec_params = exec_node.get("params", {})
+        data_params = data_node.get("params", {})
+
+        symbol = data_params.get("symbol", "UNKNOWN")
+        timeframe = data_params.get("timeframe", "1d")
+
+        # Map DAG indicator parameters to IndicatorService format
+        flat_params = {
+            "strategy_type": ind_params.get("indicatorType", "sma_crossover"),
+            "sma_fast": ind_params.get("smaFast", 10),
+            "sma_slow": ind_params.get("smaSlow", 30),
+            "macd_fast": ind_params.get("macdFast", 12),
+            "macd_slow": ind_params.get("macdSlow", 26),
+            "macd_signal": ind_params.get("macdSignal", 9),
+            "code_content": ind_params.get("codeContent", "")
+        }
+
+        # Indicators & LogicOperators
+        entries, exits = IndicatorService.generate_signals(data["close"], flat_params, vbt)
+
+        # Execution
+        initial_capital = float(exec_params.get("init_cash", exec_params.get("initialCapital", 10000.0)))
+        
+        portfolio = vbt.Portfolio.from_signals(
+            data["close"],
+            entries,
+            exits,
+            init_cash=initial_capital,
+            fees=0.001,
+            freq="D"
+        )
+
+        stats = portfolio.stats()
+        total_return = float(portfolio.total_return() * 100)
+        sharpe = float(portfolio.sharpe_ratio())
+        drawdown = float(portfolio.max_drawdown() * 100)
+        
+        if portfolio.trades.count() > 0:
+            win_rate = float(portfolio.trades.win_rate() * 100)
+        else:
+            win_rate = 0.0
+            
+        trades_count = int(portfolio.trades.count())
+        if len(portfolio.value()) > 0:
+            final_val = float(portfolio.value().iloc[-1])
+        else:
+            final_val = initial_capital
+
+        qs_metrics = {}
+        try:
+            qs_report = qs.reports.metrics(portfolio.returns(), display=False)
+            if isinstance(qs_report, pd.Series):
+                qs_metrics = {str(k): float(v) if not isinstance(v, (str, type(None))) else v for k, v in qs_report.to_dict().items()}
+            elif isinstance(qs_report, pd.DataFrame):
+                if "Strategy" in qs_report.columns:
+                    qs_metrics = {str(k): float(v) if not isinstance(v, (str, type(None))) else v for k, v in qs_report["Strategy"].to_dict().items()}
+                else:
+                    qs_metrics = qs_report.to_dict()
+        except Exception as e:
+            logger.warning("QuantStats failed: {}", e)
+
+        response_metrics = {
+            "Total Return [%]": total_return,
+            "Sharpe Ratio": sharpe,
+            "Max Drawdown [%]": drawdown,
+            "Total Trades": trades_count,
+            "Final Value": final_val,
+            "Win Rate [%]": win_rate,
+        }
+        response_metrics.update(qs_metrics)
+
+        equity_curve = []
+        try:
+            if isinstance(portfolio.value(), pd.Series):
+                equity_curve = [{"date": str(idx), "value": float(val)} for idx, val in portfolio.value().items()]
+        except Exception as e:
+            logger.warning("Failed equity curve: {}", e)
+
+        return {
+            "symbol": symbol,
+            "timeframe": timeframe,
+            "engine_name": self.ENGINE_NAME,
+            "status": "COMPLETED",
+            "total_return_pct": total_return,
+            "sharpe_ratio": sharpe,
+            "max_drawdown_pct": drawdown,
+            "win_rate_pct": win_rate,
+            "num_trades": trades_count,
+            "initial_capital": initial_capital,
+            "final_capital": final_val,
+            "equity_curve": equity_curve,
+            "metrics": response_metrics,
+            "raw": stats.to_dict() if hasattr(stats, "to_dict") else dict(stats),
+        }

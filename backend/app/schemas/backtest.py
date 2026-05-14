@@ -3,6 +3,8 @@ from typing import Any
 
 from pydantic import BaseModel
 
+from app.schemas.dag import DAGGraph
+
 
 class BacktestRequest(BaseModel):
     strategy_id: int
@@ -19,6 +21,11 @@ class BacktestRequest(BaseModel):
     macd_slow: int | None = None
     macd_signal: int | None = None
     parameters: dict[str, Any] | None = None
+
+
+class DAGBacktestRequest(BaseModel):
+    strategy_id: int
+    dag: DAGGraph
 
 
 class BacktestJobResponse(BaseModel):

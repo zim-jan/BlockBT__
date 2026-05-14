@@ -90,6 +90,11 @@ export const api = {
         method: 'POST',
         body: JSON.stringify(payload),
       }),
+    triggerDag: (payload: { strategy_id: number; dag: any }) =>
+      request<ApiResponse<BacktestJobData>>('/api/backtest/dag', {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      }),
     status: (jobId: number) =>
       request<ApiResponse<BacktestJobData>>(`/api/backtest/${jobId}`),
     list: () => request<ApiResponse<BacktestJobData[]>>('/api/backtest/'),
