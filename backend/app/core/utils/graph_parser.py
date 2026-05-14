@@ -9,7 +9,7 @@ class GraphValidationError(Exception):
 class GraphParser:
     COMPATIBILITY_MATRIX = {
         "DataIngestion": ["Indicators", "Execution"],
-        "Indicators": ["LogicOperators"],
+        "Indicators": ["LogicOperators", "Execution"],
         "LogicOperators": ["Execution"],
         "Execution": [],
         "Meta": []

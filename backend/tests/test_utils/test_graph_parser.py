@@ -58,6 +58,21 @@ def test_valid_graph():
     parser.validate()  # Should not raise
 
 
+def test_valid_graph_shortcut_indicators_to_execution():
+    """3-node flow: Data → Indicator → Execution (skipping LogicOperators)."""
+    nodes = [
+        make_node("n1", "DataIngestion"),
+        make_node("n2", "Indicators"),
+        make_node("n3", "Execution"),
+    ]
+    edges = [
+        make_edge("e1", "n1", "n2"),
+        make_edge("e2", "n2", "n3"),  # Indicators -> Execution is valid
+    ]
+    parser = GraphParser(nodes, edges)
+    parser.validate()  # Should not raise
+
+
 def test_no_execution_node():
     nodes = [
         make_node("n1", "DataIngestion"),
