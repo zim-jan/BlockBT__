@@ -58,6 +58,42 @@ Aby wygenerować i przeczytać profesjonalną dokumentację MkDocs w języku pol
 uv run mkdocs serve
 ```
 
+## Architektura DAG (Phase 9)
+
+BlockBT używa skierowanego grafu acyklicznego (DAG) do opisu strategii backtestingowych. Frontend Visual Builder eksportuje graf jako JSON i wysyła go do backendu.
+
+### Endpoint: `POST /api/backtest/dag`
+
+Przyjmuje strukturę `DAGBacktestRequest`:
+```json
+{
+  "strategy_id": 1,
+  "dag": {
+    "nodes": [...],
+    "edges": [...],
+    "meta_nodes": [...]
+  }
+}
+```
+
+### Kategorie Węzłów
+
+| Kategoria | Rola | Dozwolone połączenia wychodzące |
+|-----------|------|-------------------------------|
+| **DataIngestion** | Źródło danych (vbt.YFData) | Indicators, Execution |
+| **Indicators** | Transformacje (SMA, MACD) | LogicOperators, Execution |
+| **LogicOperators** | Maski logiczne (entries/exits) | Execution |
+| **Execution** | Portfel (vbt.Portfolio.from_signals) | — |
+| **Meta** | Optymalizatory (parametry) | — (via target_nodes) |
+
+### Walidacja
+
+Backend `GraphParser` automatycznie sprawdza:
+- Brak cykli (algorytm Kahna)
+- Zgodność typów portów (COMPATIBILITY_MATRIX)
+- Dokładnie jeden węzeł Execution
+- Brak osieroconych węzłów (wszystkie ścieżki prowadzą do Execution)
+
 ## Wytyczne Deweloperskie (Skrót)
 - Piszemy komentarze i docstringi po polsku (API i klucze JSON pozostają w języku angielskim).
 - Utrzymujemy ścisłą walidację schematów Pydantic dla API FastAPI.

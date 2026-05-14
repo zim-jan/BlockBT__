@@ -32,7 +32,7 @@ export function useWorkflowExecution() {
   const runBacktest = useCallback(async () => {
     if (isRunning) return
 
-    // 1. Extract and validate nodes and connections
+    // 1. Extract and validate nodes
     const dataNode = nodes.find((n) => n.type === 'dataNode')
     const indicatorNode = nodes.find((n) => n.type === 'indicatorNode')
     const portfolioNode = nodes.find((n) => n.type === 'portfolioNode')
@@ -42,20 +42,9 @@ export function useWorkflowExecution() {
       return
     }
 
-    // Validate connections
-    const isDataConnected = edges.some(e => 
-      e.source === dataNode.id && e.target === indicatorNode.id
-    )
-    const isIndicatorConnected = edges.some(e => 
-      e.source === indicatorNode.id && e.target === portfolioNode.id
-    )
-
-    if (!isDataConnected) {
-      alert('Data node must be connected to the Indicator node.')
-      return
-    }
-    if (!isIndicatorConnected) {
-      alert('Indicator node must be connected to the Portfolio node.')
+    // Edge validation is delegated to backend GraphParser via /api/backtest/dag
+    if (edges.length === 0) {
+      alert('Nodes must be connected. Use edges to link Data → Indicator → Portfolio.')
       return
     }
 
