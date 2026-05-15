@@ -10,7 +10,7 @@ class GraphParser:
     COMPATIBILITY_MATRIX = {
         "DataIngestion": ["Indicators", "Execution"],
         "Indicators": ["LogicOperators", "Execution"],
-        "LogicOperators": ["Execution"],
+        "LogicOperators": ["LogicOperators", "Execution"],
         "Execution": [],
         "Meta": []
     }
@@ -146,17 +146,17 @@ class GraphParser:
         if has_meta and not has_cv:
             raise GraphValidationError("Overfitting Trap: Optymalizacja (Meta Node) wymaga węzła Cross-Validation.")
 
+        # 2. Look-ahead Bias: Execution Node wymaga TimeShift Node
+        execution_node = next((node for node in self.nodes.values() if node.category == "Execution"), None)
+        if execution_node:
+            predecessors = [edge.source for edge in self.edges if edge.target == execution_node.id]
+            has_time_shift = False
+            for pred_id in predecessors:
+                pred_node = self.nodes[pred_id]
+                if pred_node.category == "LogicOperators" and getattr(pred_node.params, "operator_type", "") == "time_shift":
+                    has_time_shift = True
+                    break
 
-    execution_node = next((node for node in self.nodes.values() if node.category == "Execution"), None)
-    if execution_node:
-        predecessors = [edge.source for edge in self.edges if edge.target == execution_node.id]
-        has_time_shift = False
-        for pred_id in predecessors:
-            pred_node = self.nodes[pred_id]
-            if pred_node.category == "LogicOperators" and getattr(pred_node.params, "operator_type", "") == "time_shift":
-                has_time_shift = True
-                break
-
-        if not has_time_shift:
-            raise GraphValidationError(
-                "Look-ahead Bias: Węzeł Execution wymaga bezpośrednio poprzedzającego węzła TimeShift (fshift).")
+            if not has_time_shift:
+                raise GraphValidationError(
+                    "Look-ahead Bias: Węzeł Execution wymaga bezpośrednio poprzedzającego węzła TimeShift (fshift).")

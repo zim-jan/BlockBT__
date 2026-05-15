@@ -302,14 +302,11 @@ class OpenSourceEngine(BaseStrategyEngine):
 
         # Execution
         initial_capital = float(exec_params.get("init_cash", exec_params.get("initialCapital", 10000.0)))
-        
-        portfolio = vbt.Portfolio.from_signals(
-            data["close"],
-            entries,
-            exits,
-            init_cash=initial_capital,
-            fees=0.001,
-            freq="D"
+        portfolio = self.execute_dag_portfolio(
+            price_data=data["close"],
+            entries=entries,
+            exits=exits,
+            params=exec_params
         )
 
         stats = portfolio.stats()
