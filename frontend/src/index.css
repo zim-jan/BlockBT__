@@ -112,6 +112,7 @@ html, body {
 .rf-node--data { border-top: 3px solid #3b82f6; }
 .rf-node--indicator { border-top: 3px solid #10b981; }
 .rf-node--signal { border-top: 3px solid #f59e0b; }
+.rf-node--timeshift { border-top: 3px solid #d97706; background: linear-gradient(to bottom, rgba(217, 119, 6, 0.08), var(--bg-card)); }
 .rf-node--portfolio { border-top: 3px solid #8b5cf6; }
 .rf-node--optimizer { border-top: 3px solid #38bdf8; }
 
@@ -284,6 +285,7 @@ html, body {
 .react-flow__node-dataNode,
 .react-flow__node-indicatorNode,
 .react-flow__node-signalNode,
+.react-flow__node-timeShiftNode,
 .react-flow__node-portfolioNode {
   width: 280px !important;
   display: block !important;

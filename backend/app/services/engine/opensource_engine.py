@@ -300,6 +300,16 @@ class OpenSourceEngine(BaseStrategyEngine):
         # Indicators & LogicOperators
         entries, exits = IndicatorService.generate_signals(data["close"], flat_params, vbt)
 
+        # Apply TimeShift if LogicOperators node with time_shift present (Look-ahead Bias prevention)
+        logic_nodes = [n for n in nodes if n.get("category") == "LogicOperators"]
+        for logic_node in logic_nodes:
+            lp = logic_node.get("params", {})
+            if lp.get("operator_type") == "time_shift":
+                shift = int(lp.get("shift_periods", 1))
+                entries = self.apply_time_shift(entries, shift)
+                exits = self.apply_time_shift(exits, shift)
+                logger.info(f"Applied fshift({shift}) for Look-ahead Bias prevention.")
+
         # Execution
         initial_capital = float(exec_params.get("init_cash", exec_params.get("initialCapital", 10000.0)))
         portfolio = self.execute_dag_portfolio(

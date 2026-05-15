@@ -51,6 +51,11 @@ class IndicatorService:
         Generate signals based on MACD strategy.
         Supports vectorization.
         """
+        # Defensive defaults — frontend may send None when fields weren't filled
+        fast = fast if fast is not None else 12
+        slow = slow if slow is not None else 26
+        signal = signal if signal is not None else 9
+
         logger.debug(f"IndicatorService: Generating MACD signals (fast={fast}, slow={slow}, signal={signal})")
 
         macd = vbt.MACD.run(close, fast_window=fast, slow_window=slow, signal_window=signal)

@@ -132,6 +132,10 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
         operator_type: 'time_shift', // NOWE (Domyślnie wymuszamy shift)
         shift_periods: 1
       },
+      timeShiftNode: {
+        operator_type: 'time_shift',
+        shift_periods: 1
+      },
       portfolioNode: {
         init_cash: 10000,
         fees: 0.001,     // NOWE (Wymuszone przez backend)
