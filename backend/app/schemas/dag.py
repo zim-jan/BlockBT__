@@ -14,6 +14,8 @@ class BaseNode(BaseModel):
 class DataIngestionParams(BaseModel):
     symbol: str
     timeframe: str
+    # Prewencja Survivorship Bias
+    point_in_time_enforcement: bool = Field(default=True, description="Wymusza dane Point-in-Time")
     dataSource: str | None = None
     startDate: str | None = None
     endDate: str | None = None
@@ -43,7 +45,10 @@ class IndicatorsNode(BaseNode):
 
 class LogicOperatorsParams(BaseModel):
     signalType: str
-
+    # Rozszerzenie dla TimeShift, TypingCast i CrossValidation
+    operator_type: Literal["crossover", "crossunder", "time_shift", "typing_cast", "cross_validation"] = "crossover"
+    shift_periods: int = Field(default=1, ge=1, description="Dla TimeShiftNode")
+    cast_type: str = Field(default="float64", description="Dla TypingCastNode")
 
 class LogicOperatorsNode(BaseNode):
     category: Literal["LogicOperators"] = "LogicOperators"
@@ -53,6 +58,8 @@ class LogicOperatorsNode(BaseNode):
 class ExecutionParams(BaseModel):
     initialCapital: float = 10000.0
     init_cash: float = 10000.0
+    fees: float = Field(..., gt=0.0, description="Prowizja transakcyjna")
+    slippage: float = Field(..., gt=0.0, description="Poślizg cenowy")
 
 
 class ExecutionNode(BaseNode):

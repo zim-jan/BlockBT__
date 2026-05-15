@@ -374,3 +374,47 @@ class OpenSourceEngine(BaseStrategyEngine):
             "metrics": response_metrics,
             "raw": stats.to_dict() if hasattr(stats, "to_dict") else dict(stats),
         }
+
+    def apply_typing_cast(self, tensor: pd.Series | pd.DataFrame, cast_type: str = "float64") -> np.ndarray:
+        """
+        Prewencja Numba Typing Errors.
+        Rzutuje dane wejściowe na jednorodny typ przed kompilacją JIT.
+        """
+        try:
+            if cast_type == "float64":
+                return np.asarray(tensor, dtype=np.float64)
+            elif cast_type == "bool":
+                return np.asarray(tensor, dtype=np.bool_)
+            return np.asarray(tensor)
+        except Exception as e:
+            logger.error(f"Typing Cast Error: {e}")
+            raise ValueError(f"Nie można zrzutować tensora na typ {cast_type}. Numba JIT zablokowana.")
+
+    def apply_time_shift(self, signal_tensor: pd.Series | pd.DataFrame, periods: int = 1) -> pd.Series | pd.DataFrame:
+        """
+        Prewencja Look-ahead Bias.
+        Przesuwa maskę logiczną o N okresów do przodu używając natywnego vbt.fshift.
+        """
+        logger.debug(f"Aplikowanie fshift({periods}) na tensorze sygnałów.")
+        return signal_tensor.vbt.fshift(periods)
+
+    def execute_dag_portfolio(self, price_data: pd.Series, entries: pd.Series, exits: pd.Series, params: dict) -> Any:
+        """
+        Egzekucja portfela z wymuszonymi parametrami kosztowymi (Zero-Cost Fallacy).
+        """
+        fees = float(params.get("fees", 0.001))
+        slippage = float(params.get("slippage", 0.001))
+        init_cash = float(params.get("init_cash", 10000.0))
+
+        if fees <= 0 or slippage <= 0:
+            raise ValueError("Zero-Cost Fallacy: Fees i Slippage muszą być > 0.")
+
+        return self.vbt.Portfolio.from_signals(
+            close=price_data,
+            entries=entries,
+            exits=exits,
+            init_cash=init_cash,
+            fees=fees,
+            slippage=slippage,
+            freq="D"
+        )

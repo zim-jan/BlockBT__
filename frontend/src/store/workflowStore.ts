@@ -122,10 +122,21 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
     const baseY = 100 + (Math.floor(get().nodes.length / 4) * 120)
 
     const defaultData: Record<string, Record<string, unknown>> = {
-      dataNode: { symbol: 'AAPL', dataSource: 'yahoo', startDate: '2023-01-01', endDate: '2025-01-01', timeframe: '1d' },
+      dataNode: {
+        symbol: 'AAPL', dataSource: 'yahoo', startDate: '2023-01-01', endDate: '2025-01-01', timeframe: '1d',
+        point_in_time_enforcement: true // NOWE
+      },
       indicatorNode: { indicatorType: 'sma_crossover', smaFast: 10, smaSlow: 30, initialCapital: 10000 },
-      signalNode: { signalType: 'sma_crossover' },
-      portfolioNode: {},
+      signalNode: {
+        signalType: 'sma_crossover',
+        operator_type: 'time_shift', // NOWE (Domyślnie wymuszamy shift)
+        shift_periods: 1
+      },
+      portfolioNode: {
+        init_cash: 10000,
+        fees: 0.001,     // NOWE (Wymuszone przez backend)
+        slippage: 0.001  // NOWE (Wymuszone przez backend)
+      },
       optimizerNode: { 
         metric: 'Total Return [%]', 
         nTrials: 20, 
