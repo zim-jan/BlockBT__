@@ -43,7 +43,7 @@ class IndicatorsNode(BaseNode):
 
 
 class LogicOperatorsParams(BaseModel):
-    signalType: str
+    signalType: str | None = None  # Only used by SignalNode, not TimeShiftNode
     operator_type: Literal["crossover", "crossunder", "time_shift", "typing_cast", "cross_validation"] = "time_shift"
     shift_periods: int = 1
     cast_type: str = "float64"

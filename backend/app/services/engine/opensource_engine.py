@@ -401,9 +401,13 @@ class OpenSourceEngine(BaseStrategyEngine):
         """
         Prewencja Look-ahead Bias.
         Przesuwa maskę logiczną o N okresów do przodu używając natywnego vbt.fshift.
+        Rust engine wymaga float64 — castujemy bool→float64→fshift→bool.
         """
         logger.debug(f"Aplikowanie fshift({periods}) na tensorze sygnałów.")
-        return signal_tensor.vbt.fshift(periods)
+        # Rust engine: bool → float64 → fshift → bool
+        float_tensor = signal_tensor.astype("float64")
+        shifted = float_tensor.vbt.fshift(periods)
+        return shifted.fillna(0.0).astype(bool)
 
     def execute_dag_portfolio(self, price_data: pd.Series, entries: pd.Series, exits: pd.Series, params: dict) -> Any:
         """

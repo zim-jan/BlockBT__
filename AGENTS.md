@@ -165,12 +165,14 @@ Jesteś Głównym Architektem i Programistą w projekcie BlockBT. Pracujesz w ry
   * Cel: Rozwiązanie znalezionych problemów z easyconnect
     * Opis: Po włączeniu opcji easyconnect 
 
-* **Faza 9.3: Poprawki 3:**
-  * Status: [PENDING]
-  * Cel: Zaimplementuj przebudowę przepływu danych i logiki w systemie BlockBT, aby osiągnąć 1:1 mapowanie wizualnego grafu na natywne wywołania vectorbt. Proces musi przebiegać zgodnie z paradygmatem TDD (najpierw testy, potem kod).
-  * Krok 1: 
-  * Krok 2: 
-  * Krok 3: 
+* **Faza 9.3: Stabilizacja Pipeline DAG (Filar 0)**
+  * Status: [DONE]
+  * Cel: Eliminacja błędów wykonawczych i zapewnienie kompatybilności z silnikiem Rust.
+  * Kamienie Milowe:
+    1. **Pydantic Validation Fix:** Naprawiono błąd 422 poprzez opcjonalność `signalType` w `LogicOperatorsParams` (wymagane dla TimeShift). [DONE]
+    2. **Rust Engine Compatibility:** Wdrożono jawne rzutowanie `bool -> float64` w operacjach `fshift` (TimeShift) oraz w progach RSI, eliminując błędy castingu w backendzie Rust. [DONE]
+    3. **Indicator Bridges:** Zaimplementowano mosty dla `vbt_MA` i `vbt_RSI`, umożliwiające poprawne mapowanie parametrów DAG na natywne wywołania `vectorbt` i konwersję na sygnały logiczne. [DONE]
+    4. **TDD Verification:** Wszystkie 60 testów backendowych przechodzi, weryfikacja manualna potwierdza stabilność przepływu Data -> Indicator -> Signal -> TimeShift -> Portfolio. [DONE]
 
 * **Faza 10: Broadcasting i Multi-wymiarowość (Filar 1)**
     Cel: Macierze. Brak pętli. Szybkość.

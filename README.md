@@ -7,7 +7,7 @@ System jest tworzony zgodnie z zasadą "Air-Gapped": wszystkie Twoje dane giełd
 ## Stos Technologiczny
 
 *   **Frontend**: React 18, TypeScript, Vite, Tailwind CSS, **React Flow 12 (@xyflow/react)**.
-*   **Backend**: Python 3.12+, FastAPI, Pydantic, SQLAlchemy. Zarządzanie zależnościami przy użyciu `uv`.
+*   **Backend**: Python 3.14+, FastAPI, Pydantic, SQLAlchemy. Zarządzanie zależnościami przy użyciu `uv`.
 *   **Silnik (Engine)**: Dwusilnikowa (Dual-Engine Ready) struktura z domyślnym silnikiem opartym na wektoryzowanym `vectorbt`.
 *   **Baza i Dane**: SQLite i lokalne pliki Parquet w katalogu `local_data/`.
 *   **Dokumentacja**: MkDocs (dostępna w `docs/` i budowana przez mkdocs-material).
@@ -82,7 +82,7 @@ Przyjmuje strukturę `DAGBacktestRequest`:
 |-----------|------|-------------------------------|
 | **DataIngestion** | Źródło danych (vbt.YFData) | Indicators, Execution |
 | **Indicators** | Transformacje (SMA, MACD) | LogicOperators, Execution |
-| **LogicOperators** | Maski logiczne (entries/exits) | Execution |
+| **LogicOperators** | Maski logiczne (entries/exits) oraz **TimeShift** (prewencja Look-ahead bias) | Execution |
 | **Execution** | Portfel (vbt.Portfolio.from_signals) | — |
 | **Meta** | Optymalizatory (parametry) | — (via target_nodes) |
 
