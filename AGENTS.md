@@ -166,7 +166,7 @@ Jesteś Głównym Architektem i Programistą w projekcie BlockBT. Pracujesz w ry
     * Opis: Po włączeniu opcji easyconnect 
 
 * **Faza 9.3: Poprawki 3:**
-  * Status: [DRAFT]
+  * Status: [PENDING]
   * Cel: Zaimplementuj przebudowę przepływu danych i logiki w systemie BlockBT, aby osiągnąć 1:1 mapowanie wizualnego grafu na natywne wywołania vectorbt. Proces musi przebiegać zgodnie z paradygmatem TDD (najpierw testy, potem kod).
   * Krok 1: 
   * Krok 2: 
