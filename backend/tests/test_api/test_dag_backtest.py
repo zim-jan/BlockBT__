@@ -47,13 +47,13 @@ def _valid_dag() -> dict:
                 "id": "n3",
                 "type": "signalNode",
                 "category": "LogicOperators",
-                "params": {"condition": "crossover"},
+                "params": {"signalType": "sma_crossover"},
             },
             {
                 "id": "n4",
                 "type": "portfolioNode",
                 "category": "Execution",
-                "params": {"init_cash": 10000.0},
+                "params": {"initialCapital": 10000.0},
             },
         ],
         "edges": [
@@ -109,13 +109,13 @@ def test_trigger_dag_backtest_invalid_connection(db_session):
                 "id": "n3",
                 "type": "signalNode",
                 "category": "LogicOperators",
-                "params": {"condition": "crossover"},
+                "params": {"signalType": "sma_crossover"},
             },
             {
                 "id": "n4",
                 "type": "portfolioNode",
                 "category": "Execution",
-                "params": {"init_cash": 10000.0},
+                "params": {"initialCapital": 10000.0},
             },
         ],
         "edges": [

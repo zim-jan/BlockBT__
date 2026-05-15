@@ -156,6 +156,7 @@ export interface OptimizerNodeData extends Record<string, unknown> {
   bestValue?: number
   trials?: OptunaTrial[]
   error?: string | null
+  isOutdated?: boolean
 }
 
 export interface PortfolioNodeData extends Record<string, unknown> {
@@ -163,6 +164,7 @@ export interface PortfolioNodeData extends Record<string, unknown> {
   metrics?: BacktestMetrics | null
   jobId?: number
   error?: string | null
+  isOutdated?: boolean
 }
 
 export interface WfoNodeData extends Record<string, unknown> {
@@ -172,4 +174,5 @@ export interface WfoNodeData extends Record<string, unknown> {
   jobId?: number
   results?: any
   error?: string | null
+  isOutdated?: boolean
 }

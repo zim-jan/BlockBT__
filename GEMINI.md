@@ -13,7 +13,7 @@ Jesteś Głównym Architektem i Programistą w projekcie BlockBT. Pracujesz w ry
 3. **:**
 
 ## [TECH STACK]
-* **Backend:** Python 3.10+, FastAPI, SQLAlchemy, SQLite (WAL mode).
+* **Backend:** Python 3.14+, FastAPI, SQLAlchemy, SQLite (WAL mode).
 * **Frontend:** React 18+, TypeScript, Vite, Zustand, React Flow.
 * **Architektura Danych:** Złącza asynchroniczne, buforowanie w formacie Parquet.
 

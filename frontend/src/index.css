@@ -187,6 +187,25 @@ html, body {
 .easy-connect-active .easy-connect-handle {
   display: block !important;
   opacity: 0 !important;
+  width: 40px !important;
+  height: 40px !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+}
+
+/* Ensure handle is centered on the edge regardless of position */
+.easy-connect-active .react-flow__handle-right {
+  right: -20px !important;
+  top: 50% !important;
+  transform: translateY(-50%) !important;
+  margin: 0 !important;
+}
+
+.easy-connect-active .react-flow__handle-left {
+  left: -20px !important;
+  top: 50% !important;
+  transform: translateY(-50%) !important;
+  margin: 0 !important;
 }
 
 .easy-connect-handle {
@@ -208,6 +227,7 @@ html, body {
 /* Specific fix for Portfolio Node handles and padding */
 .rf-node--portfolio .react-flow__handle {
   top: 50% !important; /* Center the target handle vertically */
+  transform: translateY(-50%) !important;
 }
 
 /* Make inputs look a little more robust inside nodes */
@@ -283,4 +303,25 @@ html, body {
   box-sizing: border-box;
   width: 100%;
   margin-bottom: 8px;
+}
+
+/* Krok 5: Easy Click Handles */
+.react-flow__handle {
+  width: 20px !important;
+  height: 20px !important;
+  min-width: 20px !important;
+  min-height: 20px !important;
+  border-radius: 50% !important;
+  border: 2px solid white !important;
+  background: var(--accent-cyan) !important;
+  pointer-events: all !important;
+  cursor: crosshair !important;
+}
+
+.react-flow__handle-right {
+  right: -10px !important;
+}
+
+.react-flow__handle-left {
+  left: -10px !important;
 }

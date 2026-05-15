@@ -113,6 +113,65 @@ Jesteś Głównym Architektem i Programistą w projekcie BlockBT. Pracujesz w ry
         Usunięto hardkodowaną walidację krawędzi z frontendu (delegacja do GraphParser).
         Zaktualizowano README z dokumentacją DAG.
 
+* **Faza 9.1: Poprawki:**
+  * Status: [DONE]
+  * Cel: Rozwiązanie znalezionych problemów
+    * Krok 1: Brak możliwości ponownego wywołania backtestu, dodanie resetu węzła portfolioNode by po zmianie parametrów moć ponownie wykonać backtest [DONE]
+      *  2. Reset Stanu Portfolio (isOutdated)
+    * Krok 2: BUG: przy DAG {{DataNode --> IndicatorNode --> SignalNode --> PortfolioNode}} pojawia się błąd [DONE]
+    ```
+    ❌ API Error 422: POST /api/backtest/dag {"detail":[{"type":"missing","loc":["body","dag","nodes",2,"LogicOperators","params","condition"],"msg":"Field required","input":{"signalType":"sma_crossover"}}]} api.ts:38:17
+    request api.ts:38
+    💥 API Request Failed: POST /api/backtest/dag Error: API 422: {"detail":[{"type":"missing","loc":["body","dag","nodes",2,"LogicOperators","params","condition"],"msg":"Field required","input":{"signalType":"sma_crossover"}}]}
+    request api.ts:40
+    api.ts:55:15
+    request api.ts:55
+    ```
+    * Krok 3: Upewnienie się, czy w bazie zapisują się strategie wg nowego standardu DAG w formacie json [DONE]
+    * Krok 4: Usunięcie logiki legacy [DONE]
+    * Krok 5: Powiększenie uchwytów w węzłach do połączeń dla ułatwienia trafienia myszką [FAIL] 
+    * ```
+        3. Optymalizacja UX (Handles)
+      Powiększono obszar trafienia uchwytów easy-connect-handle do 40px.
+
+       1 /* frontend/src/index.css */
+       2
+        3 .easy-connect-active .easy-connect-handle {
+        4   display: block !important;
+        5   opacity: 0 !important;
+       6   width: 40px !important;
+       7    height: 40px !important;
+       8   border-radius: 50% !important;
+       9   right: -20px !important;
+           10   z-index: 50 !important;
+         11 }
+
+      ```
+      * To, co się generuje, to wygląda następująco w przeglądarce: 
+      * connectionRadius number - The radius around a handle where you drop a connection line to create a new edge. - 20
+      * https://reactflow.dev/api-reference/react-flow#reconnectradius
+      ``` 
+      react-flow__handle react-flow__handle-right nodrag nopan easy-connect-handle source connectable connectablestart connectableend connectionindicator
+      react-flow__handle {
+      position: absolute;
+      pointer-events: none;
+      min-width: 20px; <--  tyle wystarczy 
+      min-height: 20px; <-- tyle wystarczy
+      width: 6px;
+      height: 6px;
+      ```
+* **Faza 9.2: Poprawki 2:**
+  * Status: [DRAFT] 
+  * Cel: Rozwiązanie znalezionych problemów z easyconnect
+    * Opis: Po włączeniu opcji easyconnect 
+
+* **Faza 9.3: Poprawki 3:**
+  * Status: [DRAFT]
+  * Cel: Zaimplementuj przebudowę przepływu danych i logiki w systemie BlockBT, aby osiągnąć 1:1 mapowanie wizualnego grafu na natywne wywołania vectorbt. Proces musi przebiegać zgodnie z paradygmatem TDD (najpierw testy, potem kod).
+  * Krok 1: 
+  * Krok 2: 
+  * Krok 3: 
+
 * **Faza 10: Broadcasting i Multi-wymiarowość (Filar 1)**
     Cel: Macierze. Brak pętli. Szybkość.
     Testy: Wydajność tensorów. Poprawność sortowania MultiIndex.
@@ -140,6 +199,10 @@ Jesteś Głównym Architektem i Programistą w projekcie BlockBT. Pracujesz w ry
   Testy: Sprawdzić, czy aktualizacja vectorbt (np. pip install vectorbt --upgrade) automatycznie dodaje nowe węzły w UI bez zmiany kodu BlockBT.
   Dokumentacja: Opis struktury JSON z /registry.
   Respond terse like smart caveman. All technical substance stay. Only fluff die.
+
+* **Faza xx: Konteneryzacja, docker i docker compose**
+  * STATUS : [PENDING]
+
     
 
 Rules:

@@ -17,13 +17,22 @@ def test_data_ingestion_node():
         "id": "1",
         "type": "dataSource",
         "category": "DataIngestion",
-        "params": {"symbol": "BTC/USD", "timeframe": "1d"}
+        "params": {
+            "symbol": "BTC/USD",
+            "timeframe": "1d",
+            "dataSource": "binance",
+            "startDate": "2023-01-01",
+            "endDate": "2023-12-31"
+        }
     }
     node = DataIngestionNode(**data)
     assert node.id == "1"
     assert node.category == "DataIngestion"
     assert node.params.symbol == "BTC/USD"
     assert node.params.timeframe == "1d"
+    assert node.params.dataSource == "binance"
+    assert node.params.startDate == "2023-01-01"
+    assert node.params.endDate == "2023-12-31"
 
 def test_data_ingestion_missing_params():
     data = {
@@ -43,16 +52,41 @@ def test_indicators_node_defaults():
     }
     node = IndicatorsNode(**data)
     assert node.params.windows == [14]
+    assert node.params.indicatorType == "sma_crossover"
+
+def test_indicators_node_complex():
+    data = {
+        "id": "2",
+        "type": "indicator",
+        "category": "Indicators",
+        "params": {
+            "indicatorType": "macd",
+            "macdFast": 12,
+            "macdSlow": 26,
+            "macdSignal": 9,
+            "initialCapital": 5000.0,
+            "codeContent": "print('hello')",
+            "windows": [10, 20]
+        }
+    }
+    node = IndicatorsNode(**data)
+    assert node.params.indicatorType == "macd"
+    assert node.params.macdFast == 12
+    assert node.params.macdSlow == 26
+    assert node.params.macdSignal == 9
+    assert node.params.initialCapital == 5000.0
+    assert node.params.codeContent == "print('hello')"
+    assert node.params.windows == [10, 20]
 
 def test_logic_operators_node():
     data = {
         "id": "3",
         "type": "logic",
         "category": "LogicOperators",
-        "params": {"condition": "a > b"}
+        "params": {"signalType": "and"}
     }
     node = LogicOperatorsNode(**data)
-    assert node.params.condition == "a > b"
+    assert node.params.signalType == "and"
 
 def test_execution_node_defaults():
     data = {
@@ -61,7 +95,7 @@ def test_execution_node_defaults():
         "category": "Execution"
     }
     node = ExecutionNode(**data)
-    assert node.params.init_cash == 10000.0
+    assert node.params.initialCapital == 10000.0
 
 def test_meta_node():
     data = {
@@ -99,7 +133,7 @@ def test_dag_graph_polymorphism():
                 "id": "n2",
                 "type": "logic",
                 "category": "LogicOperators",
-                "params": {"condition": "a > b"}
+                "params": {"signalType": "and"}
             }
         ],
         "edges": [
@@ -130,13 +164,13 @@ def test_dag_graph_allows_cycles():
                 "id": "n1",
                 "type": "logic",
                 "category": "LogicOperators",
-                "params": {"condition": "a > b"}
+                "params": {"signalType": "and"}
             },
             {
                 "id": "n2",
                 "type": "logic",
                 "category": "LogicOperators",
-                "params": {"condition": "b > a"}
+                "params": {"signalType": "or"}
             }
         ],
         "edges": [

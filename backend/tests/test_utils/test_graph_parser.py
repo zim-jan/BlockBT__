@@ -26,7 +26,7 @@ def make_node(id: str, category: str, target_nodes: list[str] | None = None) -> 
         return IndicatorsNode(id=id, type="indicatorNode", params=IndicatorsParams())
     elif category == "LogicOperators":
         return LogicOperatorsNode(
-            id=id, type="signalNode", params=LogicOperatorsParams(condition="crossover")
+            id=id, type="signalNode", params=LogicOperatorsParams(signalType="sma_crossover")
         )
     elif category == "Execution":
         return ExecutionNode(id=id, type="portfolioNode", params=ExecutionParams())

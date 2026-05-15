@@ -14,6 +14,9 @@ class BaseNode(BaseModel):
 class DataIngestionParams(BaseModel):
     symbol: str
     timeframe: str
+    dataSource: str | None = None
+    startDate: str | None = None
+    endDate: str | None = None
 
 
 class DataIngestionNode(BaseNode):
@@ -22,6 +25,14 @@ class DataIngestionNode(BaseNode):
 
 
 class IndicatorsParams(BaseModel):
+    indicatorType: str = "sma_crossover"
+    smaFast: int | None = None
+    smaSlow: int | None = None
+    initialCapital: float | None = None
+    macdFast: int | None = None
+    macdSlow: int | None = None
+    macdSignal: int | None = None
+    codeContent: str | None = None
     windows: list[int] = Field(default_factory=lambda: [14])
 
 
@@ -31,7 +42,7 @@ class IndicatorsNode(BaseNode):
 
 
 class LogicOperatorsParams(BaseModel):
-    condition: str
+    signalType: str
 
 
 class LogicOperatorsNode(BaseNode):
@@ -40,6 +51,7 @@ class LogicOperatorsNode(BaseNode):
 
 
 class ExecutionParams(BaseModel):
+    initialCapital: float = 10000.0
     init_cash: float = 10000.0
 
 

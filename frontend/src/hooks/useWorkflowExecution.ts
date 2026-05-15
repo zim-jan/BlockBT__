@@ -12,7 +12,7 @@
 import {useCallback, useEffect, useRef} from 'react'
 import {useWorkflowStore} from '../store/workflowStore'
 import {api} from '../services/api'
-import type {components} from '../services/api.d'
+// import type {components} from '../services/api.d'
 import type {BacktestMetrics, DataNodeData, IndicatorNodeData, JobStatus} from '../types/types'
 
 const POLL_INTERVAL_MS = 2500
@@ -53,8 +53,8 @@ export function useWorkflowExecution() {
 
     const symbol: string = dData.symbol ?? 'AAPL'
     const dataSource: string = dData.dataSource ?? 'yahoo'
-    const startDate: string = dData.startDate ?? '2023-01-01'
-    const endDate: string = dData.endDate ?? '2025-01-01'
+    // const startDate: string = dData.startDate ?? '2023-01-01'
+    // const endDate: string = dData.endDate ?? '2025-01-01'
 
     const indicatorType: string = iData.indicatorType ?? 'sma_crossover'
     const smaFast: number = Number(iData.smaFast ?? 10)
@@ -87,7 +87,7 @@ export function useWorkflowExecution() {
         code_content: codeContent,
         name: `${strategyName} — ${new Date().toLocaleTimeString()} (DAG)`,
         description: `Created from WorkflowEditor [${dataSource}] with DAG`,
-        parameters: dagPayload as Record<string, unknown>
+        // parameters: dagPayload as Record<string, unknown>
       })
       const strategyId = (stratRes.data as { id: number }).id
 

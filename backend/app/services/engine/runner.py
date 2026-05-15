@@ -44,6 +44,7 @@ def _execute_backtest(parameters: dict[str, Any]) -> dict[str, Any]:
     if "dag" in parameters:
         return _execute_dag_backtest(engine, parameters["dag"])
 
+    logger.warning("Using legacy non-DAG backtest path. This is deprecated and will be removed in future versions.")
     source = parameters.get("data_source", "yahoo")
     symbol = parameters.get("symbol", "AAPL")
     start = parameters.get("start_date", "2020-01-01")

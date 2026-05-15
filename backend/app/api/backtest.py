@@ -96,7 +96,7 @@ def _job_to_schema(job: BacktestJob) -> BacktestJobResponse:
 # ---------------------------------------------------------------------------
 
 
-@router.post("/", summary="Wyzwalanie backtestu", status_code=202, response_model=ApiResponse[BacktestJobResponse])
+@router.post("/", summary="Wyzwalanie backtestu", status_code=202, response_model=ApiResponse[BacktestJobResponse], deprecated=True)
 def trigger_backtest(
     payload: BacktestRequest,
     background_tasks: BackgroundTasks,
