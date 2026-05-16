@@ -17,6 +17,11 @@ vi.mock('../../../store/chatStore', () => ({
   useChatStore: () => vi.fn(),
 }))
 
+// Mock workflow store
+vi.mock('../../../store/workflowStore', () => ({
+  useWorkflowStore: () => vi.fn(),
+}))
+
 describe('PortfolioNode', () => {
   const defaultData = {
     jobStatus: undefined,
@@ -28,7 +33,7 @@ describe('PortfolioNode', () => {
   it('renders "Run Backtest" button when no jobStatus', () => {
     render(
       <ReactFlowProvider>
-        <PortfolioNode data={defaultData} />
+        <PortfolioNode id="portfolio-1" data={defaultData} />
       </ReactFlowProvider>
     )
     
@@ -63,7 +68,7 @@ describe('PortfolioNode', () => {
 
     render(
       <ReactFlowProvider>
-        <PortfolioNode data={dataWithMetrics} />
+        <PortfolioNode id="portfolio-2" data={dataWithMetrics} />
       </ReactFlowProvider>
     )
     
@@ -71,3 +76,4 @@ describe('PortfolioNode', () => {
     expect(screen.getByText(/1.80/)).toBeInTheDocument()
   })
 })
+

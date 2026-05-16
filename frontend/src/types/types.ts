@@ -20,6 +20,7 @@ export const NODE_TYPE_CATEGORY_MAP: Record<string, NodeCategory> = {
   dataNode: 'DataIngestion',
   indicatorNode: 'Indicators',
   signalNode: 'LogicOperators',
+  timeShiftNode: 'LogicOperators',
   portfolioNode: 'Execution',
   optimizerNode: 'Meta',
   wfoNode: 'Meta',
@@ -132,6 +133,11 @@ export interface SignalNodeData extends Record<string, unknown> {
   signalType: 'sma_crossover' | 'ranking' | 'mapping' | 'distribution'
 }
 
+export interface TimeShiftNodeData extends Record<string, unknown> {
+  operator_type: 'time_shift'
+  shift_periods: number
+}
+
 export interface ParameterBound {
   min: number
   max: number
@@ -156,13 +162,18 @@ export interface OptimizerNodeData extends Record<string, unknown> {
   bestValue?: number
   trials?: OptunaTrial[]
   error?: string | null
+  isOutdated?: boolean
 }
 
 export interface PortfolioNodeData extends Record<string, unknown> {
+  init_cash?: number
+  fees?: number
+  slippage?: number
   jobStatus?: JobStatus
   metrics?: BacktestMetrics | null
   jobId?: number
   error?: string | null
+  isOutdated?: boolean
 }
 
 export interface WfoNodeData extends Record<string, unknown> {
@@ -172,4 +183,5 @@ export interface WfoNodeData extends Record<string, unknown> {
   jobId?: number
   results?: any
   error?: string | null
+  isOutdated?: boolean
 }

@@ -1,5 +1,5 @@
 
-from app.schemas.dag import AnyNode, BaseNode, DAGEdge
+from app.schemas.dag import BaseNode, DAGEdge
 
 
 class GraphValidationError(Exception):
@@ -9,8 +9,8 @@ class GraphValidationError(Exception):
 class GraphParser:
     COMPATIBILITY_MATRIX = {
         "DataIngestion": ["Indicators", "Execution"],
-        "Indicators": ["LogicOperators"],
-        "LogicOperators": ["Execution"],
+        "Indicators": ["LogicOperators", "Execution"],
+        "LogicOperators": ["LogicOperators", "Execution"],
         "Execution": [],
         "Meta": []
     }
@@ -36,6 +36,7 @@ class GraphParser:
         self._validate_meta_targets()
         self._validate_no_cycles()
         self._validate_reachability()
+        self._validate_financial_traps()
 
     def _validate_execution_count(self) -> None:
         """Max one Execution node per graph."""
@@ -133,3 +134,29 @@ class GraphParser:
                 raise GraphValidationError(
                     f"Node {node_id} is an orphan or cannot reach the Execution node."
                 )
+
+    def _validate_financial_traps(self) -> None:
+        """Wymusza zasady inżynierii finansowej (Prewencja Pułapek)."""
+        # 1. Overfitting Trap: Meta Node wymaga Cross-Validation Node
+        has_meta = any(node.category == "Meta" for node in self.nodes.values())
+        has_cv = any(
+            node.category == "LogicOperators" and getattr(node.params, "operator_type", "") == "cross_validation"
+            for node in self.nodes.values()
+        )
+        if has_meta and not has_cv:
+            raise GraphValidationError("Overfitting Trap: Optymalizacja (Meta Node) wymaga węzła Cross-Validation.")
+
+        # 2. Look-ahead Bias: Execution Node wymaga TimeShift Node
+        execution_node = next((node for node in self.nodes.values() if node.category == "Execution"), None)
+        if execution_node:
+            predecessors = [edge.source for edge in self.edges if edge.target == execution_node.id]
+            has_time_shift = False
+            for pred_id in predecessors:
+                pred_node = self.nodes[pred_id]
+                if pred_node.category == "LogicOperators" and getattr(pred_node.params, "operator_type", "") == "time_shift":
+                    has_time_shift = True
+                    break
+
+            if not has_time_shift:
+                raise GraphValidationError(
+                    "Look-ahead Bias: Węzeł Execution wymaga bezpośrednio poprzedzającego węzła TimeShift (fshift).")

@@ -38,6 +38,13 @@ def _fetch_market_data(source: str, symbol: str | list[str], start: str, end: st
 
 def _execute_backtest(parameters: dict[str, Any]) -> dict[str, Any]:
     """Internal execution logic for a single backtest run."""
+    # Get Engine (BYOL adapter)
+    engine = EngineLoader.load()
+    
+    if "dag" in parameters:
+        return _execute_dag_backtest(engine, parameters["dag"])
+
+    logger.warning("Using legacy non-DAG backtest path. This is deprecated and will be removed in future versions.")
     source = parameters.get("data_source", "yahoo")
     symbol = parameters.get("symbol", "AAPL")
     start = parameters.get("start_date", "2020-01-01")
@@ -48,9 +55,6 @@ def _execute_backtest(parameters: dict[str, Any]) -> dict[str, Any]:
     if df.empty:
         raise ValueError(f"No data returned for {symbol} from {source}.")
 
-    # Get Engine (BYOL adapter)
-    engine = EngineLoader.load()
-    
     logger.debug(f"BacktestRunner: executing strategy via {engine.__class__.__name__}...")
     result = engine.run_backtest(df, parameters)
     
@@ -74,6 +78,65 @@ def _execute_backtest(parameters: dict[str, Any]) -> dict[str, Any]:
              metrics.update(result["raw"])
 
     # Convert numeric types to basic python floats/ints for JSON serialization
+    safe_metrics = {}
+    for k, v in metrics.items():
+        try:
+            if isinstance(v, (np.ndarray, pd.Series)):
+                val = v.iloc[0] if hasattr(v, "iloc") else v[0]
+                safe_metrics[k] = float(val)
+            elif isinstance(v, (np.integer, int)):
+                safe_metrics[k] = int(v)
+            elif isinstance(v, (np.floating, float)):
+                if np.isnan(v) or np.isinf(v):
+                    safe_metrics[k] = None
+                else:
+                    safe_metrics[k] = float(v)
+            else:
+                safe_metrics[k] = float(v)
+        except (TypeError, ValueError):
+            safe_metrics[k] = v if isinstance(v, (str, type(None))) else str(v)
+
+    return safe_metrics
+
+
+def _execute_dag_backtest(engine, dag_dict: dict[str, Any]) -> dict[str, Any]:
+    nodes = dag_dict.get("nodes", [])
+    data_node = next((n for n in nodes if n.get("category") == "DataIngestion"), None)
+    if not data_node:
+        raise ValueError("No DataIngestion node found in DAG.")
+    
+    params = data_node.get("params", {})
+    source = params.get("dataSource", params.get("data_source", "yahoo"))
+    symbol = params.get("symbol", "AAPL")
+    start = params.get("startDate", params.get("start_date", "2020-01-01"))
+    end = params.get("endDate", params.get("end_date", "2023-01-01"))
+    timeframe = params.get("timeframe", "1d")
+
+    df = _fetch_market_data(source, symbol, start, end, timeframe)
+    if df.empty:
+        raise ValueError(f"No data returned for {symbol} from {source}.")
+
+    logger.debug(f"BacktestRunner: executing DAG strategy via {engine.__class__.__name__}...")
+    
+    # We must assume the engine has a run_dag_backtest method implemented.
+    if not hasattr(engine, "run_dag_backtest"):
+        raise NotImplementedError(f"{engine.__class__.__name__} does not support run_dag_backtest")
+        
+    result = engine.run_dag_backtest(df, dag_dict)
+    
+    # Extract metrics safely
+    metrics = result.get("metrics", {})
+    if not metrics:
+        metrics = {
+            "Total Return [%]": result.get("total_return_pct"),
+            "Sharpe Ratio": result.get("sharpe_ratio"),
+            "Max Drawdown [%]": result.get("max_drawdown_pct"),
+            "Total Trades": result.get("num_trades"),
+            "Final Value": result.get("final_capital"),
+        }
+        if not any(v is not None for v in metrics.values()) and "raw" in result:
+             metrics.update(result["raw"])
+
     safe_metrics = {}
     for k, v in metrics.items():
         try:

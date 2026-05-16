@@ -43,6 +43,9 @@ clean: ## Clean up temporary files, caches and leaked resources
 frontend: ## Start Vite frontend (dev mode)
 	cd frontend && npm run dev
 
+rebuild-front: ## cd frontend && npx tsc --noEmit && npm run build && npm run dev
+	cd frontend && npx tsc --noEmit && npm run build && npm run dev
+
 # ── Code Generation ───────────────────────────────────────────
 
 generate-api: ## Regenerate TypeScript API types from backend OpenAPI schema

@@ -1,11 +1,13 @@
 import {Handle, Position} from '@xyflow/react'
 import type {PortfolioNodeData} from '../../../types/types'
 import {useChatStore} from '../../../store/chatStore'
+import {useWorkflowStore} from '../../../store/workflowStore'
 import {useWorkflowExecution} from '../../../hooks/useWorkflowExecution'
 import Plot from 'react-plotly.js'
 import {CategoryBadge} from './CategoryBadge'
 
 interface Props {
+  id: string
   data: PortfolioNodeData
 }
 
@@ -23,9 +25,10 @@ function fmt(n: number | null | undefined, decimals = 2, suffix = ''): string {
   return `${n.toFixed(decimals)}${suffix}`
 }
 
-export function PortfolioNode({ data }: Props) {
+export function PortfolioNode({ id, data }: Props) {
   const { jobStatus, metrics, error, jobId } = data
   const openChat = useChatStore(state => state.openChat)
+  const updateNodeData = useWorkflowStore((s) => s.updateNodeData)
   const { runBacktest, isRunning: isExecutionRunning } = useWorkflowExecution()
 
   const isPending = jobStatus === 'PENDING'
@@ -62,6 +65,34 @@ export function PortfolioNode({ data }: Props) {
         )}
       </div>
       <div className="rf-node__body">
+        {/* Transaction Cost Controls — always visible */}
+        <div className="rf-cost-controls" style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
+          <div style={{ flex: 1 }}>
+            <label className="rf-label" style={{ fontSize: '11px' }}>Fees (%)</label>
+            <input
+              type="number"
+              min={0.0001}
+              step={0.0001}
+              value={data.fees ?? 0.001}
+              onChange={(e) => updateNodeData(id, { fees: Math.max(0.0001, parseFloat(e.target.value) || 0.001) } as any)}
+              className="rf-input"
+              style={{ fontSize: '12px' }}
+            />
+          </div>
+          <div style={{ flex: 1 }}>
+            <label className="rf-label" style={{ fontSize: '11px' }}>Slippage (%)</label>
+            <input
+              type="number"
+              min={0.0001}
+              step={0.0001}
+              value={data.slippage ?? 0.001}
+              onChange={(e) => updateNodeData(id, { slippage: Math.max(0.0001, parseFloat(e.target.value) || 0.001) } as any)}
+              className="rf-input"
+              style={{ fontSize: '12px' }}
+            />
+          </div>
+        </div>
+
         {!jobStatus && (
           <div className="flex flex-col items-center gap-3 py-2">
             <p className="rf-hint rf-hint--center italic">Ready for analysis</p>

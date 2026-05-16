@@ -51,6 +51,11 @@ class IndicatorService:
         Generate signals based on MACD strategy.
         Supports vectorization.
         """
+        # Defensive defaults — frontend may send None when fields weren't filled
+        fast = fast if fast is not None else 12
+        slow = slow if slow is not None else 26
+        signal = signal if signal is not None else 9
+
         logger.debug(f"IndicatorService: Generating MACD signals (fast={fast}, slow={slow}, signal={signal})")
 
         macd = vbt.MACD.run(close, fast_window=fast, slow_window=slow, signal_window=signal)
@@ -125,28 +130,49 @@ class IndicatorService:
 
             return cls.generate_macd(close, fast, slow, signal, vbt)
 
-        # Check Indicator Registry
+        # --- Bridge: vbt_MA → SMA crossover using DAG params ---
+        if strategy_type == "vbt_ma":
+            fast_w = cls._get_val(params, "sma_fast", 10)
+            slow_w = cls._get_val(params, "sma_slow", 30)
+            logger.info(f"IndicatorService: vbt_MA bridge → SMA crossover (fast={fast_w}, slow={slow_w})")
+            import vectorbt as vbt_mod
+            return cls.generate_sma_crossover(close, fast_w, slow_w, vbt_mod)
+
+        # --- Bridge: vbt_RSI → threshold-based entries/exits ---
+        if strategy_type == "vbt_rsi":
+            window = cls._get_val(params, "window", 14)
+            oversold = float(cls._get_val(params, "oversold", 30))
+            overbought = float(cls._get_val(params, "overbought", 70))
+            logger.info(f"IndicatorService: vbt_RSI bridge → threshold (win={window}, OS={oversold}, OB={overbought})")
+            import vectorbt as vbt_mod
+            rsi = vbt_mod.RSI.run(close, window=window).rsi.astype("float64")
+            entries = rsi.vbt.crossed_below(oversold)  # Buy when RSI < oversold
+            exits = rsi.vbt.crossed_above(overbought)   # Sell when RSI > overbought
+            return entries, exits
+
+        # Check Indicator Registry (generic path)
         registered = IndicatorRegistry.get(strategy_type)
         if registered:
             logger.info(f"IndicatorService: Executing registry indicator '{strategy_type}'")
-            # Filter params that are in registered['params']
             call_params = {}
             for p in registered["params"]:
                 p_name = p["name"]
                 if p_name in params:
                     call_params[p_name] = cls._get_val(params, p_name, p["default"])
             
-            # Execute
             res = IndicatorRegistry.execute(strategy_type, close, **call_params)
             
-            # Handle results (vbt indicators return an object with signals or just signals)
             if hasattr(res, "entries") and hasattr(res, "exits"):
                 return res.entries, res.exits
             if hasattr(res, "signals"):
-                return res.signals, ~res.signals # Fallback
+                return res.signals, ~res.signals
             
-            # Generic fallback for registry
-            return res, ~res
+            # Safety: if result is not bool-like, raise clear error
+            logger.warning(f"Registry indicator '{strategy_type}' returned non-signal object: {type(res)}")
+            raise TypeError(
+                f"Registry indicator '{strategy_type}' returned {type(res).__name__}, "
+                f"not entries/exits. Add explicit bridge in IndicatorService."
+            )
 
         # Default / Fallback: SMA Crossover
         fast_w = cls._get_val(params, "sma_fast", 10)

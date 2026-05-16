@@ -1,13 +1,13 @@
 from __future__ import annotations
 
-from unittest.mock import patch
+from unittest.mock import patch, MagicMock
 
 import numpy as np
 import pandas as pd
 
 """
 Tests for YahooFinanceConnector — Parquet caching round-trip.
-(No live network calls — uses patched yfinance download.)
+(No live network calls — uses patched _download method.)
 """
 
 
@@ -30,13 +30,17 @@ def _make_ohlcv(n: int = 50) -> pd.DataFrame:
 
 
 class TestYahooFinanceConnector:
+    """Tests mock at the _download boundary — the lowest-level method that
+    calls vbt.YFData.download. This avoids fragile sys.modules patching
+    and correctly tests the base-class caching/normalisation logic."""
+
     def test_fetch_downloads_and_caches(self, tmp_path):
         from app.services.connectors.yahoo_finance import YahooFinanceConnector
 
         mock_df = _make_ohlcv()
         connector = YahooFinanceConnector(cache_dir=tmp_path)
 
-        with patch("yfinance.download", return_value=mock_df) as mock_dl:
+        with patch.object(connector, "_download", return_value=mock_df) as mock_dl:
             df = connector.fetch("AAPL", "2022-01-01", "2022-03-01", use_cache=True)
 
         assert not df.empty
@@ -51,13 +55,13 @@ class TestYahooFinanceConnector:
         mock_df = _make_ohlcv()
         connector = YahooFinanceConnector(cache_dir=tmp_path)
 
-        with patch("yfinance.download", return_value=mock_df) as mock_dl:
+        with patch.object(connector, "_download", return_value=mock_df) as mock_dl:
             connector.fetch("MSFT", "2022-01-01", "2022-03-01")
             # Override TTL to ensure it's considered fresh
             connector._cache_ttl_hours = 1000
             connector.fetch("MSFT", "2022-01-01", "2022-03-01")
 
-        # Should only download once
+        # Should only download once — second call hits Parquet cache
         assert mock_dl.call_count == 1
 
     def test_columns_are_normalised_to_lowercase(self, tmp_path):
@@ -66,7 +70,7 @@ class TestYahooFinanceConnector:
         mock_df = _make_ohlcv()
         connector = YahooFinanceConnector(cache_dir=tmp_path)
 
-        with patch("yfinance.download", return_value=mock_df):
+        with patch.object(connector, "_download", return_value=mock_df):
             df = connector.fetch("GOOG", "2022-01-01", "2022-03-01", use_cache=False)
 
         assert all(c == c.lower() for c in df.columns)

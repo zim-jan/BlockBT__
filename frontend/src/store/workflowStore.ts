@@ -91,11 +91,25 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
   toggleEasyConnectMode: () => set((s) => ({ isEasyConnectMode: !s.isEasyConnectMode })),
 
   updateNodeData: (nodeId, data) =>
-    set((s) => ({
-      nodes: s.nodes.map((n) =>
-        n.id === nodeId ? { ...n, data: { ...n.data, ...data } } : n
-      ),
-    })),
+    set((s) => {
+      const updatedNode = s.nodes.find((n) => n.id === nodeId)
+      const isDependencyNode = updatedNode && ['dataNode', 'indicatorNode', 'signalNode'].includes(updatedNode.type ?? '')
+      
+      return {
+        nodes: s.nodes.map((n) => {
+          if (n.id === nodeId) {
+            return { ...n, data: { ...n.data, ...data } }
+          }
+          // If a dependency node was updated, reset execution nodes completely
+          if (isDependencyNode && ['portfolioNode', 'optimizerNode', 'wfoNode'].includes(n.type ?? '')) {
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+            const { jobStatus, metrics, jobId, error, isOutdated, results, bestParameters, bestValue, trials, ...restData } = n.data as any;
+            return { ...n, data: restData }
+          }
+          return n
+        }),
+      }
+    }),
 
   clearCanvas: () => set({ nodes: [], edges: [] }),
 
@@ -108,10 +122,25 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
     const baseY = 100 + (Math.floor(get().nodes.length / 4) * 120)
 
     const defaultData: Record<string, Record<string, unknown>> = {
-      dataNode: { symbol: 'AAPL', dataSource: 'yahoo', startDate: '2023-01-01', endDate: '2025-01-01', timeframe: '1d' },
+      dataNode: {
+        symbol: 'AAPL', dataSource: 'yahoo', startDate: '2023-01-01', endDate: '2025-01-01', timeframe: '1d',
+        point_in_time_enforcement: true // NOWE
+      },
       indicatorNode: { indicatorType: 'sma_crossover', smaFast: 10, smaSlow: 30, initialCapital: 10000 },
-      signalNode: { signalType: 'sma_crossover' },
-      portfolioNode: {},
+      signalNode: {
+        signalType: 'sma_crossover',
+        operator_type: 'time_shift', // NOWE (Domyślnie wymuszamy shift)
+        shift_periods: 1
+      },
+      timeShiftNode: {
+        operator_type: 'time_shift',
+        shift_periods: 1
+      },
+      portfolioNode: {
+        init_cash: 10000,
+        fees: 0.001,     // NOWE (Wymuszone przez backend)
+        slippage: 0.001  // NOWE (Wymuszone przez backend)
+      },
       optimizerNode: { 
         metric: 'Total Return [%]', 
         nTrials: 20, 
@@ -152,7 +181,7 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
       errorMessage: error ?? null,
       nodes: s.nodes.map((n) =>
         n.type === 'portfolioNode'
-          ? { ...n, data: { ...n.data, jobStatus: status, metrics, jobId, error } satisfies PortfolioNodeData }
+          ? { ...n, data: { ...n.data, jobStatus: status, metrics, jobId, error, isOutdated: false } satisfies PortfolioNodeData }
           : n
       ),
     })),
@@ -165,7 +194,7 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
       errorMessage: error ?? null,
       nodes: s.nodes.map((n) =>
         n.type === 'optimizerNode'
-          ? { ...n, data: { ...n.data as OptimizerNodeData, jobStatus: status, bestParameters: bestParams ?? undefined, bestValue: bestValue ?? undefined, trials: trials ?? undefined, jobId, error } }
+          ? { ...n, data: { ...n.data as OptimizerNodeData, jobStatus: status, bestParameters: bestParams ?? undefined, bestValue: bestValue ?? undefined, trials: trials ?? undefined, jobId, error, isOutdated: false } }
           : n
       ),
     })),
@@ -178,7 +207,7 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
       errorMessage: error ?? null,
       nodes: s.nodes.map((n) =>
         n.type === 'wfoNode'
-          ? { ...n, data: { ...n.data as WfoNodeData, jobStatus: status, results, jobId, error } }
+          ? { ...n, data: { ...n.data as WfoNodeData, jobStatus: status, results, jobId, error, isOutdated: false } }
           : n
       ),
     })),

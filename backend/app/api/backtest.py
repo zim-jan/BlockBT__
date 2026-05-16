@@ -6,9 +6,10 @@ from fastapi import APIRouter, BackgroundTasks, HTTPException
 
 from app.db.session import get_session
 from app.models.orm import BacktestJob, JobStatus, Strategy
-from app.schemas.backtest import BacktestJobResponse, BacktestRequest
+from app.schemas.backtest import BacktestJobResponse, BacktestRequest, DAGBacktestRequest
 from app.schemas.base import ApiResponse
 from app.services.engine.runner import run_vectorbt_backtest
+from app.core.utils.graph_parser import GraphParser, GraphValidationError
 
 """Trasy obsługujące backtestowanie — Faza 2.
 
@@ -95,7 +96,7 @@ def _job_to_schema(job: BacktestJob) -> BacktestJobResponse:
 # ---------------------------------------------------------------------------
 
 
-@router.post("/", summary="Wyzwalanie backtestu", status_code=202, response_model=ApiResponse[BacktestJobResponse])
+@router.post("/", summary="Wyzwalanie backtestu", status_code=202, response_model=ApiResponse[BacktestJobResponse], deprecated=True)
 def trigger_backtest(
     payload: BacktestRequest,
     background_tasks: BackgroundTasks,
@@ -129,6 +130,47 @@ def trigger_backtest(
 
     # Enqueue the engine — runs in FastAPI's background thread pool
     background_tasks.add_task(run_vectorbt_backtest, job.id, params)
+
+    return ApiResponse(success=True, data=data)
+
+
+@router.post("/dag", summary="Wyzwalanie backtestu na podstawie grafu DAG", status_code=202, response_model=ApiResponse[BacktestJobResponse])
+def trigger_dag_backtest(
+    payload: DAGBacktestRequest,
+    background_tasks: BackgroundTasks,
+) -> ApiResponse[BacktestJobResponse]:
+    """Waliduje graf DAG i przekazuje go do wykonania."""
+    try:
+        parser = GraphParser(nodes=payload.dag.nodes, edges=payload.dag.edges)
+        parser.validate()
+    except GraphValidationError as e:
+        raise HTTPException(status_code=422, detail=str(e))
+
+    with get_session() as db:
+        strategy = db.get(Strategy, payload.strategy_id)
+        if not strategy:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Strategy id={payload.strategy_id} not found",
+            )
+
+        # Update strategy parameters to store the DAG structure
+        # In a real system, you might not overwrite strategy params directly
+        # but for this DAG test, the DAG is the strategy.
+        dag_dict = payload.dag.model_dump()
+        strategy.parameters = dag_dict
+        db.add(strategy)
+        
+        job = BacktestJob(
+            strategy_id=strategy.id,
+            status=JobStatus.PENDING,
+            parameters_snapshot={"dag": dag_dict},
+        )
+        db.add(job)
+        db.flush()
+        data = _job_to_schema(job)
+
+    background_tasks.add_task(run_vectorbt_backtest, job.id, {"dag": dag_dict})
 
     return ApiResponse(success=True, data=data)
 

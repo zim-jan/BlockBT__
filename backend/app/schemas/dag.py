@@ -14,6 +14,10 @@ class BaseNode(BaseModel):
 class DataIngestionParams(BaseModel):
     symbol: str
     timeframe: str
+    dataSource: str | None = None
+    startDate: str | None = None
+    endDate: str | None = None
+    point_in_time_enforcement: bool = True
 
 
 class DataIngestionNode(BaseNode):
@@ -22,6 +26,14 @@ class DataIngestionNode(BaseNode):
 
 
 class IndicatorsParams(BaseModel):
+    indicatorType: str = "sma_crossover"
+    smaFast: int | None = None
+    smaSlow: int | None = None
+    initialCapital: float | None = None
+    macdFast: int | None = None
+    macdSlow: int | None = None
+    macdSignal: int | None = None
+    codeContent: str | None = None
     windows: list[int] = Field(default_factory=lambda: [14])
 
 
@@ -31,8 +43,10 @@ class IndicatorsNode(BaseNode):
 
 
 class LogicOperatorsParams(BaseModel):
-    condition: str
-
+    signalType: str | None = None  # Only used by SignalNode, not TimeShiftNode
+    operator_type: Literal["crossover", "crossunder", "time_shift", "typing_cast", "cross_validation"] = "time_shift"
+    shift_periods: int = 1
+    cast_type: str = "float64"
 
 class LogicOperatorsNode(BaseNode):
     category: Literal["LogicOperators"] = "LogicOperators"
@@ -40,7 +54,10 @@ class LogicOperatorsNode(BaseNode):
 
 
 class ExecutionParams(BaseModel):
+    initialCapital: float = 10000.0
     init_cash: float = 10000.0
+    fees: float = Field(default=0.001, gt=0.0)
+    slippage: float = Field(default=0.001, gt=0.0)
 
 
 class ExecutionNode(BaseNode):
