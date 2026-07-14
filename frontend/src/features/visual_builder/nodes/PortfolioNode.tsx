@@ -137,6 +137,84 @@ export function PortfolioNode({ id, data }: Props) {
           </div>
         </div>
 
+        {/* Risk Controls — Stop Loss / Take Profit / Position Size (Faza 12) */}
+        {/* UI pokazuje SL/TP w %, ale store i DAG JSON trzymają ułamek 0..1 (backend ExecutionParams.sl_stop/tp_stop) */}
+        <div className="rf-risk-controls" style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
+          <div style={{ flex: 1 }}>
+            <label htmlFor={`${id}-sl`} className="rf-label" style={{ fontSize: '11px' }}>Stop Loss [%]</label>
+            <input
+              id={`${id}-sl`}
+              type="number"
+              min={0}
+              max={100}
+              step={0.1}
+              placeholder="brak"
+              value={data.sl_stop != null ? data.sl_stop * 100 : ''}
+              onChange={(e) => {
+                const raw = e.target.value
+                if (raw === '') {
+                  updateNodeData(id, { sl_stop: undefined } as any)
+                  return
+                }
+                const pct = parseFloat(raw)
+                if (!Number.isFinite(pct)) return
+                const clamped = Math.min(100, Math.max(0, pct))
+                updateNodeData(id, { sl_stop: clamped / 100 } as any)
+              }}
+              className="rf-input"
+              style={{ fontSize: '12px' }}
+            />
+          </div>
+          <div style={{ flex: 1 }}>
+            <label htmlFor={`${id}-tp`} className="rf-label" style={{ fontSize: '11px' }}>Take Profit [%]</label>
+            <input
+              id={`${id}-tp`}
+              type="number"
+              min={0}
+              max={100}
+              step={0.1}
+              placeholder="brak"
+              value={data.tp_stop != null ? data.tp_stop * 100 : ''}
+              onChange={(e) => {
+                const raw = e.target.value
+                if (raw === '') {
+                  updateNodeData(id, { tp_stop: undefined } as any)
+                  return
+                }
+                const pct = parseFloat(raw)
+                if (!Number.isFinite(pct)) return
+                const clamped = Math.min(100, Math.max(0, pct))
+                updateNodeData(id, { tp_stop: clamped / 100 } as any)
+              }}
+              className="rf-input"
+              style={{ fontSize: '12px' }}
+            />
+          </div>
+          <div style={{ flex: 1 }}>
+            <label htmlFor={`${id}-size`} className="rf-label" style={{ fontSize: '11px' }}>Position Size</label>
+            <input
+              id={`${id}-size`}
+              type="number"
+              min={0.0001}
+              step={0.01}
+              placeholder="brak"
+              value={data.size ?? ''}
+              onChange={(e) => {
+                const raw = e.target.value
+                if (raw === '') {
+                  updateNodeData(id, { size: undefined } as any)
+                  return
+                }
+                const val = parseFloat(raw)
+                if (!Number.isFinite(val) || val <= 0) return
+                updateNodeData(id, { size: val } as any)
+              }}
+              className="rf-input"
+              style={{ fontSize: '12px' }}
+            />
+          </div>
+        </div>
+
         {!jobStatus && (
           <div className="flex flex-col items-center gap-3 py-2">
             <p className="rf-hint rf-hint--center italic">Ready for analysis</p>
