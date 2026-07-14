@@ -193,10 +193,15 @@ Jesteś Głównym Architektem i Programistą w projekcie BlockBT. Pracujesz w ry
   Testy: Kompilacja JIT (@njit). Izolacja kodu (bezpieczeństwo eval/exec). [DONE] — 48 testów sandboxa.
   Dokumentacja: Poradnik pisania własnych wskaźników w UI. [DONE] — `docs/frontend/custom_indicators.md` + ADR-0002.
 
-* **Faza 12: Advanced Portfolio i Risk Management (Filar 4)**
-  Cel: Złożona egzekucja. Symulacja zdarzeniowa.
-  Testy: Logika from_orders. Logika from_order_func.
-  Dokumentacja: Opis trybów portfela i zarządzania ryzykiem.
+* **Faza 12: Advanced Portfolio i Risk Management (Filar 4)** [DONE]
+  Cel: Złożona egzekucja. Symulacja zdarzeniowa. [DONE]
+    1. **Schema ryzyka:** `ExecutionParams` (`schemas/dag.py`) — `sl_stop`/`tp_stop` (0..1), `sl_trail` (bool), `size` (>0), `size_type` (`amount|value|percent`). [DONE]
+    2. **Egzekucja:** `execute_dag_portfolio` przekazuje parametry do `vbt.Portfolio.from_signals` tylko gdy ustawione (zero regresji Faz 10/11); `size_type` przyjęty jako string wprost (vbt 1.0.0). [DONE]
+    3. **Wymóg Indicators:** `run_dag_backtest` rzuca `GraphValidationError`, gdy DAG nie ma węzła Indicators (bez sygnału SL/TP nie ma na czym zadziałać). [DONE]
+    4. **Surfacing SL/TP:** vbt nie eksponuje liczników wyjść SL/TP w `stats()`/enumie w sposób niezależny od wersji — `_count_stop_exits` klasyfikuje zamknięte transakcje po cenie wyjścia vs poziom stopu (long/short, `eps=1e-3`); trafia do `raw` tylko gdy dany stop ustawiony. Multi-symbol surfacing poza zakresem. [DONE]
+    5. **Frontend:** pola Stop Loss/Take Profit/Position Size w `PortfolioNode.tsx` (UI w %, zapis jako frakcja 0..1). [DONE]
+  Testy: Logika from_orders (odłożona, poza zakresem — patrz ADR-0003). Logika stopów `from_signals` zielona (zamrożony RED test przebudowany za zgodą Janka: wymóg Indicators wymusił dodanie węzła custom-indicator generującego wejście). [DONE]
+  Dokumentacja: Opis trybów portfela i zarządzania ryzykiem. [DONE] — `docs/backend/risk_management.md` + ADR-0003.
 
 * **Faza 13: QSAdapter Analytics (Raportowanie)**
   Cel: Profesjonalne łzy (Tearsheets). Wykresy.

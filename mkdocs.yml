@@ -51,6 +51,7 @@ nav:
       - Connectors: backend/connectors.md
       - Engines & Optimization: backend/engines_and_optimization.md
       - Optymalizacja wielu tickerów: backend/multi_ticker_optimization.md
+      - Zarządzanie ryzykiem (SL/TP/Sizing): backend/risk_management.md
       - API & Agents: backend/api_and_agents.md
   - Frontend:
       - Architecture: frontend/architecture.md
@@ -59,3 +60,4 @@ nav:
   - Decyzje architektoniczne (ADR):
       - ADR-0001 Broadcasting multi-symbol: adr/0001-broadcasting-multi-symbol.md
       - ADR-0002 Custom Factory + sandbox + Numba: adr/0002-custom-factory-sandbox-numba.md
+      - ADR-0003 Advanced Portfolio + Risk: adr/0003-advanced-portfolio-risk.md
