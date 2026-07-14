@@ -1,0 +1,6 @@
+# graphify detection excludes (gitignore syntax)
+# site/ is the mkdocs-generated static build output - it 1:1 duplicates
+# docs/*.md (already in the graph) plus a vendored mkdocs-material JS bundle
+# and the bundled Lunr.js search library. Zero unique information, so it's
+# excluded entirely at detect time instead of extracted-then-pruned every run.
+site/
