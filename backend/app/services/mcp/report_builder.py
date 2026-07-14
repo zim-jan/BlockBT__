@@ -130,6 +130,13 @@ class ReportBuilder:
         if equity is None or len(equity) == 0:
             return []
 
+        # Faza 10: multi-symbol equity_curve = {symbol: [punkty...]} — raportowanie multi
+        # odroczone; pomijamy bez błędu (early-return), by nie wywrócić budowania raportu.
+        if isinstance(equity, dict) and equity and all(
+            isinstance(v, list) for v in equity.values()
+        ):
+            return []
+
         # If it's a list of dicts or list of floats
         if isinstance(equity, list):
             n = len(equity)

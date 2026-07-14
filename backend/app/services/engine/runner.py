@@ -27,6 +27,39 @@ except Exception:
     pass  # Fallback
 
 
+def _serialize_metric_value(v: Any) -> Any:
+    """Faza 10: pojedyncza metryka → typ JSON-safe (skalar/np/pd → python; NaN/inf → None)."""
+    try:
+        if isinstance(v, (np.ndarray, pd.Series)):
+            val = v.iloc[0] if hasattr(v, "iloc") else v[0]
+            return float(val)
+        if isinstance(v, (np.integer, int)):
+            return int(v)
+        if isinstance(v, (np.floating, float)):
+            if np.isnan(v) or np.isinf(v):
+                return None
+            return float(v)
+        return float(v)
+    except (TypeError, ValueError):
+        return v if isinstance(v, (str, type(None))) else str(v)
+
+
+def _serialize_metrics(metrics: dict[str, Any]) -> dict[str, Any]:
+    """Faza 10: serializacja metryk z rekursją 1 poziom.
+
+    Gdy wartość jest słownikiem (nested per-symbol, np. ``{"AAPL": {...}}``) — serializuje
+    jego wartości wewnętrzne, ZACHOWUJĄC zagnieżdżenie (nie spłaszcza multi-symbol).
+    W przeciwnym razie serializuje skalar.
+    """
+    out: dict[str, Any] = {}
+    for k, v in metrics.items():
+        if isinstance(v, dict):
+            out[k] = {ik: _serialize_metric_value(iv) for ik, iv in v.items()}
+        else:
+            out[k] = _serialize_metric_value(v)
+    return out
+
+
 def _fetch_market_data(source: str, symbol: str | list[str], start: str, end: str, timeframe: str) -> Any:
     """Helper to grab market data via Connector Registry."""
     logger.info(f"BacktestRunner: fetching data | source={source} symbol={symbol} {start} → {end} {timeframe}")
@@ -78,25 +111,7 @@ def _execute_backtest(parameters: dict[str, Any]) -> dict[str, Any]:
              metrics.update(result["raw"])
 
     # Convert numeric types to basic python floats/ints for JSON serialization
-    safe_metrics = {}
-    for k, v in metrics.items():
-        try:
-            if isinstance(v, (np.ndarray, pd.Series)):
-                val = v.iloc[0] if hasattr(v, "iloc") else v[0]
-                safe_metrics[k] = float(val)
-            elif isinstance(v, (np.integer, int)):
-                safe_metrics[k] = int(v)
-            elif isinstance(v, (np.floating, float)):
-                if np.isnan(v) or np.isinf(v):
-                    safe_metrics[k] = None
-                else:
-                    safe_metrics[k] = float(v)
-            else:
-                safe_metrics[k] = float(v)
-        except (TypeError, ValueError):
-            safe_metrics[k] = v if isinstance(v, (str, type(None))) else str(v)
-
-    return safe_metrics
+    return _serialize_metrics(metrics)
 
 
 def _execute_dag_backtest(engine, dag_dict: dict[str, Any]) -> dict[str, Any]:
@@ -137,25 +152,15 @@ def _execute_dag_backtest(engine, dag_dict: dict[str, Any]) -> dict[str, Any]:
         if not any(v is not None for v in metrics.values()) and "raw" in result:
              metrics.update(result["raw"])
 
-    safe_metrics = {}
-    for k, v in metrics.items():
-        try:
-            if isinstance(v, (np.ndarray, pd.Series)):
-                val = v.iloc[0] if hasattr(v, "iloc") else v[0]
-                safe_metrics[k] = float(val)
-            elif isinstance(v, (np.integer, int)):
-                safe_metrics[k] = int(v)
-            elif isinstance(v, (np.floating, float)):
-                if np.isnan(v) or np.isinf(v):
-                    safe_metrics[k] = None
-                else:
-                    safe_metrics[k] = float(v)
-            else:
-                safe_metrics[k] = float(v)
-        except (TypeError, ValueError):
-            safe_metrics[k] = v if isinstance(v, (str, type(None))) else str(v)
+    safe_metrics = _serialize_metrics(metrics)
 
-    return safe_metrics
+    # Faza 10: przenieś pola multi-symbol / krzywą kapitału z wyniku silnika (nie gub ich).
+    payload: dict[str, Any] = dict(safe_metrics)
+    for key in ("equity_curve", "is_multi_symbol", "symbols"):
+        if key in result:
+            payload[key] = result[key]
+
+    return payload
 
 
 def run_vectorbt_backtest(job_id: int, parameters: dict[str, Any]) -> None:
