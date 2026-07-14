@@ -26,17 +26,55 @@ class IndicatorService:
             return val
 
     @staticmethod
+    def _is_param_list(*params: Any) -> bool:
+        """Faza 10: wykrywa wektoryzację parametrów (lista/tablica okien)."""
+        return any(isinstance(p, (list, np.ndarray, pd.Series)) for p in params)
+
+    @staticmethod
+    def _guard_multi_symbol_params(close: pd.Series | pd.DataFrame, *params: Any) -> bool:
+        """
+        Faza 10: zwraca True, gdy close reprezentuje wiele symboli (DataFrame — kolumny=symbole).
+        Blokuje jednoczesną wektoryzację parametrów i symboli (poza zakresem Fazy 10).
+        """
+        is_multi_symbol = isinstance(close, pd.DataFrame)
+        if is_multi_symbol and IndicatorService._is_param_list(*params):
+            raise ValueError(
+                "Faza 10 nie wspiera jednoczesnej wektoryzacji parametrów i symboli "
+                "(lista okien + wiele tickerów)."
+            )
+        return is_multi_symbol
+
+    @staticmethod
+    def _align_to_symbols(
+        indicator: pd.Series | pd.DataFrame, close: pd.Series | pd.DataFrame
+    ) -> pd.Series | pd.DataFrame:
+        """
+        Faza 10: przy DataFrame wieloma symbolami vbt dokleja poziom parametru (np. 'ma_window')
+        do kolumn wskaźnika. Sprowadzamy kolumny z powrotem do czystych symboli (close.columns),
+        aby crossed_above/portfel operowały na jednoznacznych kluczach per ticker.
+        """
+        if isinstance(close, pd.DataFrame) and isinstance(indicator, pd.DataFrame):
+            aligned = indicator.copy()
+            aligned.columns = close.columns
+            return aligned
+        return indicator
+
+    @staticmethod
     def generate_sma_crossover(
         close: pd.Series, fast_window: Any, slow_window: Any, vbt: Any
     ) -> tuple[pd.Series | pd.DataFrame, pd.Series | pd.DataFrame]:
         """
         Generate signals based on SMA Crossover strategy.
         Supports vectorization (fast_window and slow_window can be lists).
+        Faza 10: obsługuje też DataFrame wielu symboli (broadcasting po kolumnach).
         """
         logger.debug(f"IndicatorService: Generating SMA signals (fast={fast_window}, slow={slow_window})")
 
-        fast_ma = vbt.MA.run(close, window=fast_window).ma
-        slow_ma = vbt.MA.run(close, window=slow_window).ma
+        IndicatorService._guard_multi_symbol_params(close, fast_window, slow_window)
+
+        align = IndicatorService._align_to_symbols
+        fast_ma = align(vbt.MA.run(close, window=fast_window).ma, close)
+        slow_ma = align(vbt.MA.run(close, window=slow_window).ma, close)
 
         entries = fast_ma.vbt.crossed_above(slow_ma)
         exits = fast_ma.vbt.crossed_below(slow_ma)
@@ -58,10 +96,14 @@ class IndicatorService:
 
         logger.debug(f"IndicatorService: Generating MACD signals (fast={fast}, slow={slow}, signal={signal})")
 
-        macd = vbt.MACD.run(close, fast_window=fast, slow_window=slow, signal_window=signal)
+        IndicatorService._guard_multi_symbol_params(close, fast, slow, signal)
 
-        entries = macd.macd.vbt.crossed_above(macd.signal)
-        exits = macd.macd.vbt.crossed_below(macd.signal)
+        macd = vbt.MACD.run(close, fast_window=fast, slow_window=slow, signal_window=signal)
+        macd_line = IndicatorService._align_to_symbols(macd.macd, close)
+        signal_line = IndicatorService._align_to_symbols(macd.signal, close)
+
+        entries = macd_line.vbt.crossed_above(signal_line)
+        exits = macd_line.vbt.crossed_below(signal_line)
 
         return entries, exits
 
@@ -145,7 +187,9 @@ class IndicatorService:
             overbought = float(cls._get_val(params, "overbought", 70))
             logger.info(f"IndicatorService: vbt_RSI bridge → threshold (win={window}, OS={oversold}, OB={overbought})")
             import vectorbt as vbt_mod
+            cls._guard_multi_symbol_params(close, window)
             rsi = vbt_mod.RSI.run(close, window=window).rsi.astype("float64")
+            rsi = cls._align_to_symbols(rsi, close)
             entries = rsi.vbt.crossed_below(oversold)  # Buy when RSI < oversold
             exits = rsi.vbt.crossed_above(overbought)   # Sell when RSI > overbought
             return entries, exits

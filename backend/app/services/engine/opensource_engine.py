@@ -263,16 +263,70 @@ class OpenSourceEngine(BaseStrategyEngine):
                 "vectorized_results": results_list,
             }
 
+    @staticmethod
+    def _find_close_level(columns: pd.MultiIndex) -> int:
+        """Faza 10: poziom kolumnowego MultiIndex z polem 'close' (case-insensitive)."""
+        for lvl in range(columns.nlevels):
+            values = {str(v).lower() for v in columns.get_level_values(lvl)}
+            if "close" in values:
+                return lvl
+        raise ValueError("Kolumnowy MultiIndex nie zawiera pola 'close'.")
+
+    def _prepare_close(self, data: pd.DataFrame) -> pd.Series | pd.DataFrame:
+        """
+        Faza 10: przygotowuje ceny zamknięcia do wektoryzacji broadcastingiem.
+
+        - Wierszowy 2-poziomowy MultiIndex [symbol, date] (format LONG z konektorów i testu red)
+          → pivot do WIDE: index=daty, kolumny=symbole (broadcasting po kolumnach, bez pętli).
+        - Kolumnowy MultiIndex (styl vbt.YFData: pola OHLCV × symbole) → wybór pola 'close'.
+        - Zwykły single-symbol DataFrame → Series 'close' (zachowanie z faz 1–9).
+
+        Wyrównanie NaN różnych kalendarzy: ffill + dropna(how='any') (udokumentowane uproszczenie).
+        Rust engine wymaga float64. Zastępuje pd.to_datetime(index), które crashowało na MultiIndex.
+        """
+        # 1) Wierszowy MultiIndex [symbol, date] → WIDE (kolumny = symbole)
+        if isinstance(data.index, pd.MultiIndex) and data.index.nlevels >= 2:
+            if "close" not in data.columns:
+                raise ValueError("Wejście multi-symbol wymaga kolumny 'close'.")
+            index_names = list(data.index.names or [])
+            level: Any = "symbol" if "symbol" in index_names else 0
+            wide = data["close"].sort_index().unstack(level=level)
+            if not isinstance(wide.index, pd.DatetimeIndex):
+                wide.index = pd.to_datetime(wide.index)
+            # daty rosnąco + deterministyczna kolejność symboli
+            wide = wide.sort_index().sort_index(axis=1)
+            wide = wide.ffill().dropna(how="any").astype(np.float64)
+            return wide
+
+        # 2) Kolumnowy MultiIndex (pola × symbole) → wybór 'close'
+        if isinstance(data.columns, pd.MultiIndex):
+            close_wide = data.xs("close", axis=1, level=self._find_close_level(data.columns))
+            if not isinstance(close_wide.index, pd.DatetimeIndex):
+                close_wide.index = pd.to_datetime(close_wide.index)
+            close_wide = close_wide.sort_index().sort_index(axis=1)
+            close_wide = close_wide.ffill().dropna(how="any").astype(np.float64)
+            return close_wide
+
+        # 3) Single-symbol → Series (dotychczasowe zachowanie)
+        if not isinstance(data.index, pd.DatetimeIndex):
+            data = data.copy()
+            data.index = pd.to_datetime(data.index)
+        close = data["close"]
+        if not np.issubdtype(close.dtype, np.floating):
+            close = close.astype(np.float64)
+        return close
+
     def run_dag_backtest(self, data: pd.DataFrame, dag: dict[str, Any]) -> dict[str, Any]:
-        """Execute a vectorbt backtest driven directly by the DAG schema."""
+        """Execute a vectorbt backtest driven directly by the DAG schema.
+
+        Faza 10: wykrywa wejście multi-symbol (MultiIndex) i wektoryzuje backtest po kolumnach,
+        zwracając metryki oraz krzywe kapitału zgrupowane per ticker.
+        """
         vbt = self.vbt
 
-        if not isinstance(data.index, pd.DatetimeIndex):
-            data.index = pd.to_datetime(data.index)
-
-        if not np.issubdtype(data["close"].dtype, np.floating):
-            data = data.copy()
-            data["close"] = data["close"].astype(np.float64)
+        # Faza 10: pivot LONG→WIDE (multi) albo Series (single); zastępuje crashujący pd.to_datetime
+        close = self._prepare_close(data)
+        is_multi = isinstance(close, pd.DataFrame)
 
         nodes = dag.get("nodes", [])
         data_node = next((n for n in nodes if n.get("category") == "DataIngestion"), {})
@@ -297,8 +351,8 @@ class OpenSourceEngine(BaseStrategyEngine):
             "code_content": ind_params.get("codeContent", "")
         }
 
-        # Indicators & LogicOperators
-        entries, exits = IndicatorService.generate_signals(data["close"], flat_params, vbt)
+        # Indicators & LogicOperators (close: Series single lub DataFrame multi-symbol)
+        entries, exits = IndicatorService.generate_signals(close, flat_params, vbt)
 
         # Apply TimeShift if LogicOperators node with time_shift present (Look-ahead Bias prevention)
         logic_nodes = [n for n in nodes if n.get("category") == "LogicOperators"]
@@ -313,11 +367,15 @@ class OpenSourceEngine(BaseStrategyEngine):
         # Execution
         initial_capital = float(exec_params.get("init_cash", exec_params.get("initialCapital", 10000.0)))
         portfolio = self.execute_dag_portfolio(
-            price_data=data["close"],
+            price_data=close,
             entries=entries,
             exits=exits,
             params=exec_params
         )
+
+        # Faza 10: gałąź multi-symbol — metryki i krzywe kapitału per ticker z wektorowych Series.
+        if is_multi:
+            return self._build_multi_symbol_result(portfolio, close, timeframe)
 
         stats = portfolio.stats()
         total_return = float(portfolio.total_return() * 100)
@@ -382,6 +440,60 @@ class OpenSourceEngine(BaseStrategyEngine):
             "raw": stats.to_dict() if hasattr(stats, "to_dict") else dict(stats),
         }
 
+    @staticmethod
+    def _finite_or_zero(value: Any) -> float:
+        """Faza 10: guard NaN/inf → 0.0 (stała cena → 0 trade → Sharpe=inf, Win Rate=NaN)."""
+        try:
+            fval = float(value)
+        except (TypeError, ValueError):
+            return 0.0
+        return fval if np.isfinite(fval) else 0.0
+
+    def _build_multi_symbol_result(
+        self, portfolio: Any, close: pd.DataFrame, timeframe: str
+    ) -> dict[str, Any]:
+        """
+        Faza 10: wynik multi-symbol z wektorowych metryk vbt (Series indeksowane symbolem).
+        Pomija stats()/QuantStats (single-column-oriented w OSS vbt) — metryki liczone wprost, per ticker.
+        Pętla jedynie serializuje wyniki do JSON (obliczenia pozostają zwektoryzowane).
+        """
+        symbols = [str(s) for s in close.columns]
+
+        total_return = portfolio.total_return() * 100
+        sharpe = portfolio.sharpe_ratio()
+        drawdown = portfolio.max_drawdown() * 100
+        trades_count = portfolio.trades.count()
+        win_rate = portfolio.trades.win_rate() * 100
+        value = portfolio.value()  # DataFrame: index=daty, kolumny=symbole
+        final_value = value.iloc[-1]
+
+        metrics: dict[str, dict[str, float]] = {}
+        equity_curve: dict[str, list[dict[str, Any]]] = {}
+        for sym in symbols:
+            metrics[sym] = {
+                "Total Return [%]": self._finite_or_zero(total_return.get(sym)),
+                "Sharpe Ratio": self._finite_or_zero(sharpe.get(sym)),
+                "Max Drawdown [%]": self._finite_or_zero(drawdown.get(sym)),
+                "Total Trades": int(self._finite_or_zero(trades_count.get(sym))),
+                "Final Value": self._finite_or_zero(final_value.get(sym)),
+                "Win Rate [%]": self._finite_or_zero(win_rate.get(sym)),
+            }
+            col = value[sym]
+            equity_curve[sym] = [
+                {"date": str(idx), "value": float(val)} for idx, val in col.items()
+            ]
+
+        return {
+            "symbol": symbols,
+            "symbols": symbols,
+            "is_multi_symbol": True,
+            "timeframe": timeframe,
+            "engine_name": self.ENGINE_NAME,
+            "status": "COMPLETED",
+            "metrics": metrics,
+            "equity_curve": equity_curve,
+        }
+
     def apply_typing_cast(self, tensor: pd.Series | pd.DataFrame, cast_type: str = "float64") -> np.ndarray:
         """
         Prewencja Numba Typing Errors.
@@ -409,9 +521,16 @@ class OpenSourceEngine(BaseStrategyEngine):
         shifted = float_tensor.vbt.fshift(periods)
         return shifted.fillna(0.0).astype(bool)
 
-    def execute_dag_portfolio(self, price_data: pd.Series, entries: pd.Series, exits: pd.Series, params: dict) -> Any:
+    def execute_dag_portfolio(
+        self,
+        price_data: pd.Series | pd.DataFrame,
+        entries: pd.Series | pd.DataFrame,
+        exits: pd.Series | pd.DataFrame,
+        params: dict,
+    ) -> Any:
         """
         Egzekucja portfela z wymuszonymi parametrami kosztowymi (Zero-Cost Fallacy).
+        Faza 10: przy DataFrame (wiele symboli) from_signals broadcastuje po kolumnach.
         """
         fees = float(params.get("fees", 0.001))
         slippage = float(params.get("slippage", 0.001))
