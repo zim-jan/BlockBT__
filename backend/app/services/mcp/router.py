@@ -65,7 +65,14 @@ def get_domain_context(domain: str) -> str:
             "guarded with np.isfinite -> 0.0; result carries `is_multi_symbol`, `symbols`, per-ticker `metrics` "
             "and `equity_curve`. Single-symbol output stays flat (backward compatible).\n"
             "- `IndicatorService._align_to_symbols` strips the `ma_window` column level vbt adds; combining a "
-            "parameter list with multiple symbols raises ValueError (out of scope)."
+            "parameter list with multiple symbols raises ValueError (out of scope).\n"
+            "- Faza 11 (custom indicators): `IndicatorService.compile_custom_indicator(code)` validates code via "
+            "`_validate_code_safety` (AST allowlist deny-by-default), execs in a closed namespace, njit-compiles "
+            "the 1D core (contract: 1D np.ndarray -> 1D np.ndarray, lazy compile on first `.run()`), and wraps it "
+            "in `vbt.IndicatorFactory`. `generate_custom` (DAG `indicatorType=='custom'`) is hardened the same way "
+            "(AST validation + closed `__builtins__`); user code defines `entries`/`exits`. Sandbox blocks "
+            "imports/eval/exec/getattr/os/sys, dunder + frame attrs, and file-write attrs (to_csv/tofile/...) -> "
+            "raises ValueError('Unsafe code detected: ...'). No external deps (Air-Gapped)."
         ),
         "api_layer": (
             "Domain: API Layer\n"

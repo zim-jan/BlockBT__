@@ -55,5 +55,7 @@ nav:
   - Frontend:
       - Architecture: frontend/architecture.md
       - Visual Builder: frontend/visual_builder.md
+      - Pisanie własnych wskaźników: frontend/custom_indicators.md
   - Decyzje architektoniczne (ADR):
       - ADR-0001 Broadcasting multi-symbol: adr/0001-broadcasting-multi-symbol.md
+      - ADR-0002 Custom Factory + sandbox + Numba: adr/0002-custom-factory-sandbox-numba.md

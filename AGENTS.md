@@ -184,10 +184,14 @@ Jesteś Głównym Architektem i Programistą w projekcie BlockBT. Pracujesz w ry
     Testy: Wydajność tensorów. Poprawność sortowania MultiIndex. [DONE] — `test_broadcasting.py` (9 testów) + `test_broadcasting_perf.py` (2 testy), 71 backend pass.
     Dokumentacja: Instrukcja optymalizacji wielu tickerów naraz. [DONE] — patrz `docs/backend/multi_ticker_optimization.md` + ADR-0001.
 
-* **Faza 11: Custom Factory i Numba JIT (Filary 2 i 3)**
-  Cel: Własna matematyka. Prędkość C.
-  Testy: Kompilacja JIT (@njit). Izolacja kodu (bezpieczeństwo eval/exec).
-  Dokumentacja: Poradnik pisania własnych wskaźników w UI.
+* **Faza 11: Custom Factory i Numba JIT (Filary 2 i 3)** [DONE]
+  Cel: Własna matematyka. Prędkość C. [DONE]
+    1. **Sandbox AST (deny-by-default):** `IndicatorService._validate_code_safety` — allowlista węzłów (`_ALLOWED_AST_NODES`), denylista nazw (`_FORBIDDEN_NAMES`) i atrybutów (`_FORBIDDEN_ATTRIBUTES`: dunder + ramki + `ctypes`/`tobytes` + serializatory `to_csv`/`tofile`/... + `system`/`popen`). Naruszenie → `ValueError("Unsafe code detected: ...")`. Zero zależności zewnętrznych (Air-Gapped/BYOL). [DONE]
+    2. **`compile_custom_indicator` + Numba `@njit`:** kontrakt funkcji 1D `np.ndarray → np.ndarray`, kompilacja `@njit` leniwa (pierwszy `.run()`), wektoryzacja per kolumnę w `apply_func`, opakowanie w `vbt.IndicatorFactory` → klasa z `.run()`. „Prędkość C". [DONE]
+    3. **Hardening `generate_custom`:** ścieżka DAG `indicatorType=="custom"` — walidacja AST + zamknięte `__builtins__` (`_safe_builtins`) przed `exec`; użytkownik definiuje `entries`/`exits` (dostępne: `close`, `vbt`, `np`, `pd`). [DONE]
+    4. **Frontend:** węzeł Indicators tryb „Custom Code" (`IndicatorNode.tsx`) — textarea + hint o sandboxie + wyświetlanie błędu walidacji (`data.error`). [DONE]
+  Testy: Kompilacja JIT (@njit). Izolacja kodu (bezpieczeństwo eval/exec). [DONE] — 48 testów sandboxa.
+  Dokumentacja: Poradnik pisania własnych wskaźników w UI. [DONE] — `docs/frontend/custom_indicators.md` + ADR-0002.
 
 * **Faza 12: Advanced Portfolio i Risk Management (Filar 4)**
   Cel: Złożona egzekucja. Symulacja zdarzeniowa.
