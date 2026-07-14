@@ -12,8 +12,17 @@ wskaźniki pozwalają:
 - prototypować logikę, dla której nie ma gotowego węzła,
 - policzyć rdzeń liczbowy z **prędkością C** (kompilacja Numba `@njit`).
 
-Kod użytkownika biegnie w **sandboxie** (deny-by-default) — Air-Gapped, bez
-dostępu do systemu, sieci ani dysku.
+Kod użytkownika przechodzi **statyczną walidację AST** (deny-by-default) blokującą
+importy, `eval`/`exec` i dostęp do dunderów.
+
+!!! warning "To NIE jest twarda granica bezpieczeństwa"
+    Walidator to warstwa higieny kodu (defense-in-depth), a nie pełny sandbox.
+    Udostępniamy realne moduły `np`/`pd`/`vbt`, więc zdeterminowany kod może obejść
+    denylistę (np. odczyt/zapis pliku przez mniej znane funkcje numpy/pandas,
+    `pd.read_pickle` = potencjalne RCE). Aplikacja jest **lokalna i jednoosobowa** —
+    piszesz własny kod na własnej maszynie, więc w normalnym użyciu to bezpieczne.
+    **Nie uruchamiaj jednak wskaźników/strategii importowanych z niezaufanych
+    źródeł.** Szczegóły i model zagrożeń: [ADR-0002](../adr/0002-custom-factory-sandbox-numba.md).
 
 ## Tryb Custom Code w węźle Indicators
 
@@ -78,7 +87,9 @@ Złamanie którejkolwiek reguły przerywa kompilację komunikatem
 z kodu użytkownika pełną klasę wskaźnika `vbt.IndicatorFactory` z metodą `.run()`.
 
 **Kontrakt funkcji rdzenia:** kod definiuje funkcję, która przyjmuje
-**1-wymiarową** tablicę NumPy (`close`) i zwraca **1-wymiarową** tablicę. Wrapper
+**1-wymiarową** tablicę NumPy (`close`) i zwraca **1-wymiarową** tablicę.
+Jeśli zdefiniujesz kilka funkcji, rdzeniem wskaźnika jest **pierwsza** funkcja
+najwyższego poziomu (kolejne traktowane są jako pomocnicze). Wrapper
 (`apply_func`) mapuje ją per kolumnę na realny 2D z vectorbt — dzięki temu piszesz
 prostą funkcję jednowymiarową, a **wektoryzacja po symbolach** dzieje się
 automatycznie.

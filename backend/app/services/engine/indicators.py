@@ -145,7 +145,7 @@ class IndicatorService:
         Kompilacja numba jest leniwa (następuje przy pierwszym `.run()`), więc
         samo zbudowanie fabryki nie wymaga, by kod był w pełni numba-zgodny.
         """
-        cls._validate_code_safety(code)
+        tree = cls._validate_code_safety(code)
 
         import vectorbt as vbt_mod
         from numba import njit
@@ -162,12 +162,18 @@ class IndicatorService:
                 f"Unsafe code detected: błąd wykonania kodu wskaźnika ({exc})."
             ) from exc
 
-        funcs = [obj for obj in local_ns.values() if callable(obj)]
-        if not funcs:
+        # Kontrakt: PIERWSZA funkcja najwyższego poziomu = rdzeń wskaźnika,
+        # kolejne (jeśli są) traktujemy jako pomocnicze. Wybór po AST (kolejność
+        # źródłowa) jest deterministyczny i udokumentowany — inaczej niż wcześniejsze
+        # `funcs[-1]`, które przy funkcji-helperze na końcu liczyło zły rdzeń.
+        func_names = [n.name for n in tree.body if isinstance(n, ast.FunctionDef)]
+        if not func_names:
             raise ValueError(
                 "Kod wskaźnika musi definiować funkcję (np. 'def custom_oscillator(close): ...')."
             )
-        user_fn = funcs[-1]  # ostatnia zdefiniowana funkcja = główny rdzeń
+        user_fn = local_ns.get(func_names[0])
+        if not callable(user_fn):
+            raise ValueError("Nie udało się pobrać funkcji wskaźnika z kodu użytkownika.")
 
         # Kontrakt dla użytkownika: funkcja przyjmuje 1-wymiarową serię cen
         # (numpy) i zwraca 1-wymiarowy wynik. Rdzeń liczbowy kompilujemy @njit

@@ -85,3 +85,25 @@ def test_njit_faster_than_pure_python():
 
     # Konserwatywny próg — JIT powinien być wyraźnie szybszy niż pętla Pythona.
     assert t_jit < t_py, f"JIT ({t_jit:.4f}s) nie szybszy niż Python ({t_py:.4f}s)"
+
+
+# Kontrakt wyboru funkcji (Faza 11, #8 z code review): przy wielu funkcjach
+# rdzeniem jest PIERWSZA funkcja najwyższego poziomu, kolejne są pomocnicze.
+MULTI_FUNC_CODE = """
+def main_indicator(close):
+    return close * 2.0
+
+def helper(close):
+    return close + 999.0
+"""
+
+
+def test_first_function_is_the_core_not_last():
+    """Regresja #8: dawniej brano ostatnią funkcję (`funcs[-1]`) → zły rdzeń."""
+    factory = IndicatorService.compile_custom_indicator(MULTI_FUNC_CODE)
+    close = np.array([1.0, 2.0, 3.0], dtype=np.float64)
+
+    out = np.asarray(factory.run(close).out).ravel()
+
+    # main_indicator → *2 = [2,4,6]; błąd (helper) dałby [1000,1001,1002].
+    np.testing.assert_allclose(out, [2.0, 4.0, 6.0], rtol=1e-9)
