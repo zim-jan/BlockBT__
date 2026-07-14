@@ -147,8 +147,13 @@ export function IndicatorNode({ id, data }: NodeProps<IndicatorNode>) {
             />
             <div className="rf-hint">
               Available: <code>close</code>, <code>vbt</code>, <code>np</code>, <code>pd</code>.<br/>
-              Must define <code>entries</code> and <code>exits</code>.
+              Must define <code>entries</code> and <code>exits</code>.<br/>
+              🔒 Kod jest uruchamiany w sandboxie: importy oraz dostęp do systemu (<code>os</code>, <code>sys</code>, <code>eval</code>, <code>exec</code>, <code>open</code>) są blokowane i spowodują błąd walidacji.<br/>
+              Zobacz poradnik: <code>docs/frontend/custom_indicators.md</code>.
             </div>
+            {data.error && (
+              <p className="rf-hint rf-hint--error text-center mt-2">{data.error}</p>
+            )}
           </>
         )}
 
