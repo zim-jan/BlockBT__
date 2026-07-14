@@ -13,7 +13,7 @@ import {useCallback, useEffect, useRef} from 'react'
 import {useWorkflowStore} from '../store/workflowStore'
 import {api} from '../services/api'
 // import type {components} from '../services/api.d'
-import type {BacktestMetrics, DataNodeData, IndicatorNodeData, JobStatus} from '../types/types'
+import type {BacktestMetrics, DataNodeData, IndicatorNodeData, JobStatus, MultiBacktestResult} from '../types/types'
 
 const POLL_INTERVAL_MS = 2500
 const MAX_POLL_ATTEMPTS = 120 // 5-minute hard cap
@@ -122,6 +122,19 @@ export function useWorkflowExecution() {
             
             // Map metrics safely, ensuring we pull from both root and nested object
             const jd = jobData as any
+
+            // Faza 10: multi-symbol — backend zwraca metrics/equity_curve jako słowniki keyed po symbolu
+            if (jd.is_multi_symbol === true) {
+              const multiResult: MultiBacktestResult = {
+                is_multi_symbol: true,
+                symbols: jd.symbols ?? Object.keys(jd.metrics ?? {}),
+                metrics: jd.metrics ?? {},
+                equity_curve: jd.equity_curve ?? {},
+              }
+              updatePortfolioResult(multiResult, 'COMPLETED', jobId)
+              return
+            }
+
             const rawMetrics = (jd.metrics || {}) as Record<string, any>
             const finalMetrics: BacktestMetrics = {
               engine: jd.parameters?.engine ?? 'vectorbt',

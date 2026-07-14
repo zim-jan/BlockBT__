@@ -20,6 +20,7 @@ import type {
     DataNodeData,
     IndicatorNodeData,
     JobStatus,
+    MultiBacktestResult,
     OptimizerNodeData,
     PortfolioNodeData,
     WfoNodeData,
@@ -58,7 +59,7 @@ interface WorkflowState {
   updateNodeData: (nodeId: string, data: Partial<DataNodeData & IndicatorNodeData & PortfolioNodeData & OptimizerNodeData>) => void
   addNode: (type: string) => void
   setJobState: (isRunning: boolean, jobId: number | null, status: JobStatus | null, error?: string | null) => void
-  updatePortfolioResult: (metrics: BacktestMetrics | null, status: JobStatus, jobId: number, error?: string | null) => void
+  updatePortfolioResult: (metrics: BacktestMetrics | MultiBacktestResult | null, status: JobStatus, jobId: number, error?: string | null) => void
   updateOptimizerResult: (bestParams: Record<string, any> | null, bestValue: number | null, trials: any[] | null, status: JobStatus, jobId: number, error?: string | null) => void
   updateWfoResult: (results: any, status: JobStatus, jobId: number, error?: string | null) => void
   resetExecution: () => void
@@ -241,6 +242,15 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
       .map((n) => {
         const category = NODE_TYPE_CATEGORY_MAP[n.type ?? ''] ?? 'DataIngestion'
         const { jobStatus: _js, metrics: _m, jobId: _jid, error: _e, category: _cat, ...params } = n.data as Record<string, unknown>
+
+        // Faza 10: DataIngestion — symbol wspiera wiele tickerów (rozdzielone przecinkami)
+        if (category === 'DataIngestion' && typeof params.symbol === 'string') {
+          const raw = params.symbol as string
+          params.symbol = raw.includes(',')
+            ? raw.split(',').map((s) => s.trim().toUpperCase()).filter(Boolean)
+            : raw.trim().toUpperCase()
+        }
+
         return {
           id: n.id,
           type: n.type ?? 'unknown',

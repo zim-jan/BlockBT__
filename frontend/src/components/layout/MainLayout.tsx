@@ -17,7 +17,9 @@ interface MainLayoutProps {
 export function MainLayout({ children }: MainLayoutProps) {
   const nodes = useWorkflowStore((state) => state.nodes)
   const portfolioNode = nodes.find((n) => n.type === 'portfolioNode')
-  const metrics = (portfolioNode?.data as PortfolioNodeData)?.metrics
+  const rawMetrics = (portfolioNode?.data as PortfolioNodeData)?.metrics
+  // Faza 10: sidebar podsumowanie pokazujemy tylko dla wyniku single-symbol (multi ma metryki per-ticker)
+  const metrics = rawMetrics && !('is_multi_symbol' in rawMetrics) ? rawMetrics : null
 
   const totalReturn = metrics?.total_return_pct ?? 0
   const sharpeRatio = metrics?.sharpe_ratio ?? 0

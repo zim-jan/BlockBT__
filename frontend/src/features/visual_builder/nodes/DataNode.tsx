@@ -46,10 +46,13 @@ export function DataNode({ id, data }: NodeProps<DataNode>) {
         <input
           value={data.symbol}
           onChange={(e) => updateNodeData(id as string, { symbol: e.target.value.toUpperCase() })}
-          placeholder={isSynthetic ? 'SYNTHETIC' : 'AAPL'}
+          placeholder={isSynthetic ? 'SYNTHETIC' : 'AAPL, MSFT'}
           className="rf-input"
           disabled={isSynthetic}
         />
+        {!isSynthetic && (
+          <div className="rf-hint" style={{ fontSize: '11px' }}>Wiele tickerów: rozdziel przecinkami</div>
+        )}
 
         {/* Date range — hidden for synthetic */}
         {!isSynthetic && (
