@@ -72,7 +72,16 @@ def get_domain_context(domain: str) -> str:
             "in `vbt.IndicatorFactory`. `generate_custom` (DAG `indicatorType=='custom'`) is hardened the same way "
             "(AST validation + closed `__builtins__`); user code defines `entries`/`exits`. Sandbox blocks "
             "imports/eval/exec/getattr/os/sys, dunder + frame attrs, and file-write attrs (to_csv/tofile/...) -> "
-            "raises ValueError('Unsafe code detected: ...'). No external deps (Air-Gapped)."
+            "raises ValueError('Unsafe code detected: ...'). No external deps (Air-Gapped).\n"
+            "- Faza 12 (risk management): `ExecutionParams` (schemas/dag.py) adds `sl_stop`/`tp_stop` (0..1), "
+            "`sl_trail` (bool), `size` (>0), `size_type` (amount|value|percent). `execute_dag_portfolio` passes "
+            "them to `vbt.Portfolio.from_signals` ONLY when set (no regression on DAGs without risk params); "
+            "`size_type` accepted as a plain string (vbt 1.0.0). `run_dag_backtest` requires an Indicators node "
+            "-> raises `GraphValidationError` if missing (SL/TP need a signal source to act on). vbt does not "
+            "expose SL/TP exit counts in `stats()`/a stable enum, so `_count_stop_exits` reconstructs them by "
+            "classifying closed trades: exit price vs entry*(1+/-stop) with eps=1e-3, long/short symmetric; "
+            "surfaced in `result['raw']` only when the given stop is set. Multi-symbol per-ticker SL/TP counts "
+            "are out of scope (Faza 10 branch executes SL/TP correctly but doesn't surface counts)."
         ),
         "api_layer": (
             "Domain: API Layer\n"
