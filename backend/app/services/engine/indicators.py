@@ -1,3 +1,5 @@
+import ast
+import builtins
 from typing import Any
 
 import numpy as np
@@ -12,6 +14,164 @@ class IndicatorService:
     Service for generating entry and exit signals (entries/exits) based on OHLCV data.
     Supports native vectorbt vectorization for parameters and dynamic registry.
     """
+
+    # --- Faza 11: sandbox dla kodu użytkownika (walidator AST deny-by-default) ---
+    # Dozwolone typy węzłów AST. Wszystko spoza tej listy jest odrzucane —
+    # w szczególności Import/ImportFrom, ClassDef, With, Try, Raise, Global,
+    # Yield, Await (nie ma ich tutaj → walidator je blokuje).
+    _ALLOWED_AST_NODES: frozenset[str] = frozenset(
+        {
+            "Module", "FunctionDef", "arguments", "arg", "Return",
+            "Assign", "AugAssign", "AnnAssign", "Expr", "Pass",
+            "If", "IfExp", "For", "While", "Break", "Continue",
+            "Name", "Load", "Store",
+            "Constant",
+            "BinOp", "UnaryOp", "BoolOp", "Compare",
+            "Add", "Sub", "Mult", "Div", "FloorDiv", "Mod", "Pow",
+            "LShift", "RShift", "BitOr", "BitXor", "BitAnd", "MatMult",
+            "Invert", "Not", "UAdd", "USub",
+            "And", "Or",
+            "Eq", "NotEq", "Lt", "LtE", "Gt", "GtE", "Is", "IsNot", "In", "NotIn",
+            "Call", "keyword", "Starred",
+            "Attribute",
+            "Subscript", "Slice", "Tuple", "List", "Dict", "Set",
+            "ListComp", "SetComp", "DictComp", "GeneratorExp", "comprehension",
+            "Lambda",
+        }
+    )
+
+    # Nazwy zabronione (ucieczki z sandboxa: introspekcja, I/O, dostęp systemowy).
+    # Import tych modułów jest już blokowany przez brak Import/ImportFrom w
+    # `_ALLOWED_AST_NODES`; nazwy trzymamy dodatkowo jako obronę w głąb.
+    _FORBIDDEN_NAMES: frozenset[str] = frozenset(
+        {
+            "eval", "exec", "compile", "open", "__import__", "input",
+            "getattr", "setattr", "delattr", "hasattr",
+            "globals", "locals", "vars", "dir", "breakpoint",
+            "object", "type", "super", "memoryview", "help",
+            "exit", "quit", "classmethod", "staticmethod",
+            "os", "sys", "subprocess", "socket", "shutil", "importlib",
+            "builtins", "__builtins__", "pickle", "marshal", "ctypes",
+        }
+    )
+
+    # Minimalny, bezpieczny zestaw wbudowanych funkcji udostępniany kodowi usera.
+    _SAFE_BUILTIN_NAMES: tuple[str, ...] = (
+        "abs", "min", "max", "len", "range", "enumerate", "zip", "sum",
+        "round", "float", "int", "bool", "str", "list", "dict", "tuple",
+        "set", "sorted", "reversed", "map", "filter", "any", "all",
+        "pow", "divmod", "print",
+    )
+
+    @classmethod
+    def _safe_builtins(cls) -> dict[str, Any]:
+        """Faza 11: buduje słownik dozwolonych wbudowanych funkcji dla sandboxa."""
+        return {name: getattr(builtins, name) for name in cls._SAFE_BUILTIN_NAMES}
+
+    @classmethod
+    def _validate_code_safety(cls, code: str) -> ast.Module:
+        """
+        Faza 11 (bezpieczeństwo eval/exec): statyczna analiza AST kodu użytkownika.
+
+        Model deny-by-default: dozwolone są tylko węzły z `_ALLOWED_AST_NODES`.
+        Dodatkowo blokujemy dostęp do atrybutów dunder (np. `__globals__`,
+        `__class__`) oraz użycie niebezpiecznych nazw wbudowanych. Każde
+        naruszenie kończy się `ValueError` z frazą "Unsafe code detected".
+        """
+        try:
+            tree = ast.parse(code, mode="exec")
+        except SyntaxError as exc:
+            raise ValueError(
+                f"Unsafe code detected: niepoprawna składnia ({exc})."
+            ) from exc
+
+        for node in ast.walk(tree):
+            node_name = type(node).__name__
+            if node_name not in cls._ALLOWED_AST_NODES:
+                raise ValueError(
+                    f"Unsafe code detected: niedozwolona konstrukcja '{node_name}'."
+                )
+            if isinstance(node, ast.Attribute) and (
+                node.attr.startswith("__") or node.attr.endswith("__")
+            ):
+                raise ValueError(
+                    f"Unsafe code detected: dostęp do atrybutu '{node.attr}' zabroniony."
+                )
+            if isinstance(node, ast.Name) and node.id in cls._FORBIDDEN_NAMES:
+                raise ValueError(
+                    f"Unsafe code detected: użycie nazwy '{node.id}' zabronione."
+                )
+
+        return tree
+
+    @classmethod
+    def compile_custom_indicator(cls, code: str) -> Any:
+        """
+        Faza 11 (Filary 2 i 3): kompiluje wskaźnik zdefiniowany przez użytkownika.
+
+        Kroki:
+        1. Walidacja AST (sandbox — brak importów, eval/exec, dostępu systemowego).
+        2. Bezpieczne wykonanie kodu w zamkniętej przestrzeni nazw → wyciągnięcie
+           funkcji rdzenia liczbowego.
+        3. Kompilacja rdzenia numba `@njit` ("Prędkość C") i opakowanie w
+           `vbt.IndicatorFactory` — zwracana klasa udostępnia metodę `.run(...)`.
+
+        Kompilacja numba jest leniwa (następuje przy pierwszym `.run()`), więc
+        samo zbudowanie fabryki nie wymaga, by kod był w pełni numba-zgodny.
+        """
+        cls._validate_code_safety(code)
+
+        import vectorbt as vbt_mod
+        from numba import njit
+
+        safe_globals: dict[str, Any] = {
+            "__builtins__": cls._safe_builtins(),
+            "np": np,
+        }
+        local_ns: dict[str, Any] = {}
+        try:
+            exec(compile(code, "<custom_indicator>", "exec"), safe_globals, local_ns)
+        except Exception as exc:
+            raise ValueError(
+                f"Unsafe code detected: błąd wykonania kodu wskaźnika ({exc})."
+            ) from exc
+
+        funcs = [obj for obj in local_ns.values() if callable(obj)]
+        if not funcs:
+            raise ValueError(
+                "Kod wskaźnika musi definiować funkcję (np. 'def custom_oscillator(close): ...')."
+            )
+        user_fn = funcs[-1]  # ostatnia zdefiniowana funkcja = główny rdzeń
+
+        # Kontrakt dla użytkownika: funkcja przyjmuje 1-wymiarową serię cen
+        # (numpy) i zwraca 1-wymiarowy wynik. Rdzeń liczbowy kompilujemy @njit
+        # ("Prędkość C"); kompilacja jest leniwa — następuje przy pierwszym `.run()`.
+        try:
+            jit_core = njit(user_fn)
+        except Exception:  # pragma: no cover - fallback dla nietypowych domknięć
+            logger.warning("compile_custom_indicator: njit nie owinął funkcji, fallback bez JIT")
+            jit_core = user_fn
+
+        def apply_func(close: np.ndarray) -> np.ndarray:
+            """
+            Adapter kontraktu: vbt przekazuje tablicę 2D (wiersze=czas, kolumny=symbole).
+            Aplikujemy rdzeń 1D per kolumnę — dzięki temu użytkownik pisze prostą
+            funkcję jednowymiarową, a wektoryzacja po symbolach dzieje się tutaj.
+            """
+            arr = np.asarray(close, dtype=np.float64)
+            if arr.ndim == 1:
+                return np.asarray(jit_core(np.ascontiguousarray(arr)), dtype=np.float64)
+            out = np.empty_like(arr, dtype=np.float64)
+            for col in range(arr.shape[1]):
+                out[:, col] = np.asarray(
+                    jit_core(np.ascontiguousarray(arr[:, col])), dtype=np.float64
+                )
+            return out
+
+        factory = vbt_mod.IndicatorFactory(
+            input_names=["close"], output_names=["out"]
+        ).from_apply_func(apply_func)
+        return factory
 
     @staticmethod
     def _get_val(params: dict[str, Any], key: str, default: Any) -> Any:
@@ -116,25 +276,35 @@ class IndicatorService:
         The code should define 'entries' and 'exits' variables.
         """
         logger.info("IndicatorService: Executing custom strategy code")
-        
-        local_scope = {
+
+        # Faza 11: sandbox — walidacja AST przed wykonaniem. Zgłasza ValueError
+        # ("Unsafe code detected: ...") dla importów/eval/exec/dostępu systemowego.
+        IndicatorService._validate_code_safety(code_content)
+
+        # Pojedyncza, zamknięta przestrzeń nazw z ograniczonymi wbudowanymi.
+        # Kluczowe: pusty `{}` jako globals i tak wstrzykuje pełne builtins —
+        # dlatego jawnie podajemy __builtins__ z bezpiecznego zestawu.
+        safe_ns: dict[str, Any] = {
+            "__builtins__": IndicatorService._safe_builtins(),
             "close": close,
             "vbt": vbt,
             "np": np,
             "pd": pd,
         }
-        
+
         try:
-            # Execute the user code
-            exec(code_content, {}, local_scope)
-            
-            entries = local_scope.get("entries")
-            exits = local_scope.get("exits")
-            
+            exec(compile(code_content, "<custom_strategy>", "exec"), safe_ns)
+
+            entries = safe_ns.get("entries")
+            exits = safe_ns.get("exits")
+
             if entries is None or exits is None:
                 raise ValueError("Custom code must define 'entries' and 'exits' variables.")
-                
+
             return entries, exits
+        except ValueError:
+            # Błędy sandboxa / kontraktu przekazujemy bez owijania (czytelny komunikat).
+            raise
         except Exception as e:
             logger.error(f"Error executing custom strategy code: {e}")
             raise RuntimeError(f"Custom strategy execution failed: {e}") from e
