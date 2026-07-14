@@ -55,6 +55,30 @@ class IndicatorService:
         }
     )
 
+    # Niebezpieczne nazwy atrybutów (NIE-dunder). Blokada dunderów łapie
+    # `__class__`/`__globals__`, ale poniższe atrybuty są zwykłymi nazwami i
+    # otwierają ucieczkę z sandboxa: dostęp do ramek/globalsów przez generatory,
+    # surowa pamięć/interfejs C numpy oraz zapis dowolnego pliku na dysk
+    # (serializatory pandas/numpy) — krytyczne w trybie Air-Gapped.
+    _FORBIDDEN_ATTRIBUTES: frozenset[str] = frozenset(
+        {
+            # ramki wykonania / generatory / korutyny → f_globals (nie-dunder!)
+            "gi_frame", "gi_code", "cr_frame", "cr_code", "ag_frame",
+            "f_globals", "f_locals", "f_back", "f_builtins", "f_code",
+            "func_globals", "func_code", "func_closure",
+            # surowa pamięć / interfejs C numpy
+            "ctypes", "tobytes", "tostring", "getbuffer", "setflags",
+            # zapis na dysk (numpy)
+            "tofile", "save", "savez", "savetxt",
+            # zapis / serializacja na dysk (pandas)
+            "to_pickle", "to_csv", "to_parquet", "to_hdf", "to_sql",
+            "to_json", "to_feather", "to_excel", "to_xml", "to_html",
+            "to_latex", "to_stata", "to_gbq", "to_clipboard", "to_orc",
+            # wykonanie procesów / serializacja bajtów
+            "system", "popen", "spawn", "communicate", "dump", "dumps",
+        }
+    )
+
     # Minimalny, bezpieczny zestaw wbudowanych funkcji udostępniany kodowi usera.
     _SAFE_BUILTIN_NAMES: tuple[str, ...] = (
         "abs", "min", "max", "len", "range", "enumerate", "zip", "sum",
@@ -92,7 +116,9 @@ class IndicatorService:
                     f"Unsafe code detected: niedozwolona konstrukcja '{node_name}'."
                 )
             if isinstance(node, ast.Attribute) and (
-                node.attr.startswith("__") or node.attr.endswith("__")
+                node.attr.startswith("__")
+                or node.attr.endswith("__")
+                or node.attr in cls._FORBIDDEN_ATTRIBUTES
             ):
                 raise ValueError(
                     f"Unsafe code detected: dostęp do atrybutu '{node.attr}' zabroniony."
