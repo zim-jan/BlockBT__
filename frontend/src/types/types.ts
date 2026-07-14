@@ -162,6 +162,7 @@ export interface IndicatorNodeData extends Record<string, unknown> {
   macdSlow?: number
   macdSignal?: number
   codeContent?: string
+  error?: string | null
 }
 
 export interface SignalNodeData extends Record<string, unknown> {

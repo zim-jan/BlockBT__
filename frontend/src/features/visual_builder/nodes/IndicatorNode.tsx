@@ -147,8 +147,13 @@ export function IndicatorNode({ id, data }: NodeProps<IndicatorNode>) {
             />
             <div className="rf-hint">
               Available: <code>close</code>, <code>vbt</code>, <code>np</code>, <code>pd</code>.<br/>
-              Must define <code>entries</code> and <code>exits</code>.
+              Must define <code>entries</code> and <code>exits</code>.<br/>
+              ⚠️ Walidacja statyczna (AST) blokuje importy, <code>eval</code>/<code>exec</code> i dostęp do dunderów — to NIE jest pełna granica bezpieczeństwa. Nie uruchamiaj niezaufanych strategii z zewnątrz.<br/>
+              Zobacz poradnik: <code>docs/frontend/custom_indicators.md</code>.
             </div>
+            {data.error && (
+              <p className="rf-hint rf-hint--error text-center mt-2">{data.error}</p>
+            )}
           </>
         )}
 
