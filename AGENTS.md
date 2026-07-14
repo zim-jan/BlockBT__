@@ -174,10 +174,15 @@ Jesteś Głównym Architektem i Programistą w projekcie BlockBT. Pracujesz w ry
     3. **Indicator Bridges:** Zaimplementowano mosty dla `vbt_MA` i `vbt_RSI`, umożliwiające poprawne mapowanie parametrów DAG na natywne wywołania `vectorbt` i konwersję na sygnały logiczne. [DONE]
     4. **TDD Verification:** Wszystkie 60 testów backendowych przechodzi, weryfikacja manualna potwierdza stabilność przepływu Data -> Indicator -> Signal -> TimeShift -> Portfolio. [DONE]
 
-* **Faza 10: Broadcasting i Multi-wymiarowość (Filar 1)**
-    Cel: Macierze. Brak pętli. Szybkość.
-    Testy: Wydajność tensorów. Poprawność sortowania MultiIndex.
-    Dokumentacja: Instrukcja optymalizacji wielu tickerów naraz.
+* **Faza 10: Broadcasting i Multi-wymiarowość (Filar 1)** [DONE]
+    Cel: Macierze. Brak pętli. Szybkość. [DONE]
+    1. **Pivot LONG→WIDE:** `_prepare_close` wykrywa wierszowy MultiIndex `[symbol, date]` i przez `unstack` buduje macierz WIDE (index=daty, kolumny=symbole); silnik wektoryzuje po kolumnach bez pętli. [DONE]
+    2. **Metryki per ticker:** gałąź multi w `run_dag_backtest` liczy metryki z wektorowych Series vectorbt (guard NaN/inf → 0.0) i zwraca `metrics`/`equity_curve` zgrupowane per symbol (kontrakt `is_multi_symbol`). [DONE]
+    3. **Normalizacja kolumn:** `IndicatorService._align_to_symbols` usuwa doklejony poziom `ma_window`; blokada wektoryzacji parametry×symbole (`ValueError`). [DONE]
+    4. **Warstwa danych + runner:** `fetch(str|list)` → LONG concat; rekurencyjna serializacja metryk bez spłaszczania nested per-symbol. [DONE]
+    5. **Frontend:** DataNode (przecinki), PortfolioNode (accordion per ticker + jeden wykres multi-trace). [DONE]
+    Testy: Wydajność tensorów. Poprawność sortowania MultiIndex. [DONE] — `test_broadcasting.py` (9 testów) + `test_broadcasting_perf.py` (2 testy), 71 backend pass.
+    Dokumentacja: Instrukcja optymalizacji wielu tickerów naraz. [DONE] — patrz `docs/backend/multi_ticker_optimization.md` + ADR-0001.
 
 * **Faza 11: Custom Factory i Numba JIT (Filary 2 i 3)**
   Cel: Własna matematyka. Prędkość C.
