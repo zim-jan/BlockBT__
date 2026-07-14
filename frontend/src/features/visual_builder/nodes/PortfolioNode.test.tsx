@@ -18,8 +18,9 @@ vi.mock('../../../store/chatStore', () => ({
 }))
 
 // Mock workflow store
+const mockUpdateNodeData = vi.fn()
 vi.mock('../../../store/workflowStore', () => ({
-  useWorkflowStore: () => vi.fn(),
+  useWorkflowStore: () => mockUpdateNodeData,
 }))
 
 describe('PortfolioNode', () => {
@@ -120,6 +121,40 @@ describe('PortfolioNode', () => {
 
     // AAPL metrics normalized and displayed (Total Return -> 1.20%)
     expect(screen.getByText(/1.20%/)).toBeInTheDocument()
+  })
+
+  it('renders SL/TP/Size risk fields and writes fraction values to store', () => {
+    mockUpdateNodeData.mockClear()
+
+    render(
+      <ReactFlowProvider>
+        <PortfolioNode id="portfolio-4" data={defaultData} />
+      </ReactFlowProvider>
+    )
+
+    const slInput = screen.getByLabelText(/Stop Loss/i) as HTMLInputElement
+    const tpInput = screen.getByLabelText(/Take Profit/i) as HTMLInputElement
+    const sizeInput = screen.getByLabelText(/Position Size/i) as HTMLInputElement
+
+    fireEvent.change(slInput, { target: { value: '5' } })
+    expect(mockUpdateNodeData).toHaveBeenCalledWith('portfolio-4', { sl_stop: 0.05 })
+
+    fireEvent.change(tpInput, { target: { value: '10' } })
+    expect(mockUpdateNodeData).toHaveBeenCalledWith('portfolio-4', { tp_stop: 0.1 })
+
+    fireEvent.change(sizeInput, { target: { value: '100' } })
+    expect(mockUpdateNodeData).toHaveBeenCalledWith('portfolio-4', { size: 100 })
+  })
+
+  it('renders SL as percent from stored fraction', () => {
+    render(
+      <ReactFlowProvider>
+        <PortfolioNode id="portfolio-5" data={{ ...defaultData, sl_stop: 0.075 }} />
+      </ReactFlowProvider>
+    )
+
+    const slInput = screen.getByLabelText(/Stop Loss/i) as HTMLInputElement
+    expect(slInput.value).toBe('7.5')
   })
 })
 
