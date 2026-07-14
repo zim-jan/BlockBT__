@@ -75,5 +75,51 @@ describe('PortfolioNode', () => {
     expect(screen.getByText(/15.50%/)).toBeInTheDocument()
     expect(screen.getByText(/1.80/)).toBeInTheDocument()
   })
+
+  it('renders per-symbol accordions and a multi-trace chart for multi-symbol results', () => {
+    const dataWithMultiMetrics = {
+      ...defaultData,
+      jobStatus: 'COMPLETED' as const,
+      metrics: {
+        is_multi_symbol: true,
+        symbols: ['AAPL', 'MSFT'],
+        metrics: {
+          AAPL: {
+            'Total Return [%]': 1.2,
+            'Sharpe Ratio': 0.5,
+            'Max Drawdown [%]': -3.0,
+            'Total Trades': 4,
+            'Final Value': 10120.0,
+            'Win Rate [%]': 50.0,
+          },
+          MSFT: {
+            'Total Return [%]': 2.4,
+            'Sharpe Ratio': 0.8,
+            'Max Drawdown [%]': -2.0,
+            'Total Trades': 6,
+            'Final Value': 10240.0,
+            'Win Rate [%]': 60.0,
+          },
+        },
+        equity_curve: {
+          AAPL: [{ date: '2024-01-01', value: 10000.0 }, { date: '2024-01-02', value: 10120.0 }],
+          MSFT: [{ date: '2024-01-01', value: 10000.0 }, { date: '2024-01-02', value: 10240.0 }],
+        },
+      },
+    }
+
+    render(
+      <ReactFlowProvider>
+        <PortfolioNode id="portfolio-3" data={dataWithMultiMetrics as any} />
+      </ReactFlowProvider>
+    )
+
+    // Both symbol accordion sections rendered
+    expect(screen.getByText('AAPL')).toBeInTheDocument()
+    expect(screen.getByText('MSFT')).toBeInTheDocument()
+
+    // AAPL metrics normalized and displayed (Total Return -> 1.20%)
+    expect(screen.getByText(/1.20%/)).toBeInTheDocument()
+  })
 })
 

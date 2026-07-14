@@ -44,7 +44,7 @@ class BaseDataConnector(ABC):
 
     def fetch(
         self,
-        symbol: str,
+        symbol: str | list[str],
         start: str,
         end: str,
         timeframe: str = "1d",
@@ -54,7 +54,7 @@ class BaseDataConnector(ABC):
 
         Parameters
         ----------
-        symbol:     Ticker symbol, e.g. ``"AAPL"``.
+        symbol:     Ticker symbol ``"AAPL"`` lub lista tickerów ``["AAPL", "MSFT"]``.
         start:      ISO date string, e.g. ``"2020-01-01"``.
         end:        ISO date string, e.g. ``"2023-12-31"``.
         timeframe:  Data frequency, e.g. ``"1d"``, ``"1h"``.
@@ -63,8 +63,26 @@ class BaseDataConnector(ABC):
         Returns
         -------
         pd.DataFrame
-            DatetimeIndex, columns: ``open high low close volume`` (float64).
+            - Single symbol (``str``): DatetimeIndex, kolumny ``open high low close volume`` (float64).
+            - Lista symboli: format LONG — wierszowy 2-poziomowy MultiIndex ``[symbol, date]``
+              (te same kolumny co single), zbudowany deterministycznie: per-symbol pobranie
+              (cache per ticker działa dalej) + ``pd.concat(..., keys=symbols, names=["symbol"]).sort_index()``.
+              Nie używamy ``vbt.YFData(list)`` — wyłącznie pętla per-symbol + concat.
         """
+        # Faza 10: lista tickerów → LONG MultiIndex [symbol, date] (broadcasting w silniku).
+        if isinstance(symbol, (list, tuple)):
+            frames: list[pd.DataFrame] = []
+            keys: list[str] = []
+            for sym in symbol:
+                frames.append(
+                    self.fetch(sym, start, end, timeframe=timeframe, use_cache=use_cache)
+                )
+                keys.append(sym)
+            if not frames:
+                return pd.DataFrame()
+            combined = pd.concat(frames, keys=keys, names=["symbol"])
+            return combined.sort_index()
+
         cache_path = self._cache_path(symbol, start, end, timeframe)
 
         if use_cache and self._cache_valid(cache_path):

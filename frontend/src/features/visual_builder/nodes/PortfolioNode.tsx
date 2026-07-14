@@ -1,5 +1,5 @@
 import {Handle, Position} from '@xyflow/react'
-import type {PortfolioNodeData} from '../../../types/types'
+import type {MetricValue, MultiBacktestResult, NormalizedMetrics, PortfolioNodeData} from '../../../types/types'
 import {useChatStore} from '../../../store/chatStore'
 import {useWorkflowStore} from '../../../store/workflowStore'
 import {useWorkflowExecution} from '../../../hooks/useWorkflowExecution'
@@ -25,6 +25,50 @@ function fmt(n: number | null | undefined, decimals = 2, suffix = ''): string {
   return `${n.toFixed(decimals)}${suffix}`
 }
 
+/** Wspólna tabela metryk — reużywana zarówno dla single-symbol, jak i każdego symbolu w multi-symbol. */
+function MetricTable({ metrics }: { metrics: NormalizedMetrics }) {
+  return (
+    <div className="rf-metrics">
+      <MetricRow
+        label="Total Return"
+        value={fmt(metrics.total_return_pct, 2, '%')}
+        colorClass={(metrics.total_return_pct ?? 0) >= 0 ? 'rf-metric-value--green' : 'rf-metric-value--red'}
+      />
+      <MetricRow
+        label="Sharpe Ratio"
+        value={fmt(metrics.sharpe_ratio)}
+        colorClass={(metrics.sharpe_ratio ?? 0) >= 0 ? 'rf-metric-value--green' : 'rf-metric-value--red'}
+      />
+      <MetricRow
+        label="Max Drawdown"
+        value={fmt(metrics.max_drawdown_pct, 2, '%')}
+        colorClass="rf-metric-value--amber"
+      />
+      <MetricRow label="Trades" value={String(metrics.num_trades ?? '—')} />
+      <MetricRow
+        label="Final Capital"
+        value={metrics.final_capital != null ? `$${Number(metrics.final_capital).toLocaleString('en-US', { maximumFractionDigits: 0 })}` : '—'}
+      />
+    </div>
+  )
+}
+
+/** Normalizuje surowy słownik metryk z backendu (klucze typu "Total Return [%]") do NormalizedMetrics. */
+function normalizeRawMetrics(raw: Record<string, MetricValue> | undefined): NormalizedMetrics {
+  const num = (v: MetricValue | undefined): number | null => (typeof v === 'number' ? v : v == null ? null : Number(v))
+  return {
+    total_return_pct: num(raw?.['Total Return [%]']),
+    sharpe_ratio: num(raw?.['Sharpe Ratio']),
+    max_drawdown_pct: num(raw?.['Max Drawdown [%]']),
+    num_trades: num(raw?.['Total Trades']),
+    final_capital: num(raw?.['Final Value']),
+  }
+}
+
+function isMultiResult(metrics: PortfolioNodeData['metrics']): metrics is MultiBacktestResult {
+  return !!metrics && (metrics as MultiBacktestResult).is_multi_symbol === true
+}
+
 export function PortfolioNode({ id, data }: Props) {
   const { jobStatus, metrics, error, jobId } = data
   const openChat = useChatStore(state => state.openChat)
@@ -38,10 +82,10 @@ export function PortfolioNode({ id, data }: Props) {
 
   return (
     <div className={`rf-node rf-node--portfolio ${isCompleted ? 'rf-node--completed' : ''} ${isFailed ? 'rf-node--failed' : ''}`}>
-      <Handle 
-        type="target" 
-        position={Position.Left} 
-        id="in" 
+      <Handle
+        type="target"
+        position={Position.Left}
+        id="in"
         className="easy-connect-handle"
       />
       <div className="rf-node__header react-flow__node-drag-handle">
@@ -96,7 +140,7 @@ export function PortfolioNode({ id, data }: Props) {
         {!jobStatus && (
           <div className="flex flex-col items-center gap-3 py-2">
             <p className="rf-hint rf-hint--center italic">Ready for analysis</p>
-            <button 
+            <button
               onClick={runBacktest}
               disabled={isExecutionRunning}
               className="rf-btn rf-btn-primary w-full"
@@ -112,28 +156,11 @@ export function PortfolioNode({ id, data }: Props) {
             <p className="rf-hint">{isPending ? 'Queued...' : 'Executing vectorbt...'}</p>
           </div>
         )}
-        {isCompleted && metrics && (
-          <div className="rf-metrics">
-            <MetricRow
-              label="Total Return"
-              value={fmt(metrics.total_return_pct, 2, '%')}
-              colorClass={(metrics.total_return_pct ?? 0) >= 0 ? 'rf-metric-value--green' : 'rf-metric-value--red'}
-            />
-            <MetricRow
-              label="Sharpe Ratio"
-              value={fmt(metrics.sharpe_ratio)}
-              colorClass={(metrics.sharpe_ratio ?? 0) >= 0 ? 'rf-metric-value--green' : 'rf-metric-value--red'}
-            />
-            <MetricRow
-              label="Max Drawdown"
-              value={fmt(metrics.max_drawdown_pct, 2, '%')}
-              colorClass="rf-metric-value--amber"
-            />
-            <MetricRow label="Trades" value={String(metrics.num_trades ?? '—')} />
-            <MetricRow
-              label="Final Capital"
-              value={metrics.final_capital != null ? `$${Number(metrics.final_capital).toLocaleString('en-US', { maximumFractionDigits: 0 })}` : '—'}
-            />
+
+        {/* SINGLE-symbol — niezmienione zachowanie */}
+        {isCompleted && metrics && !isMultiResult(metrics) && (
+          <div className="rf-metrics-wrap">
+            <MetricTable metrics={metrics} />
 
             {metrics.equity_curve && metrics.equity_curve.length > 0 && (
               <div className="rf-chart mt-4 border rounded overflow-hidden bg-white" style={{ height: '150px' }}>
@@ -179,6 +206,59 @@ export function PortfolioNode({ id, data }: Props) {
             </div>
           </div>
         )}
+
+        {/* MULTI-symbol — akordeon metryk per symbol + jeden wykres equity z N seriami */}
+        {isCompleted && metrics && isMultiResult(metrics) && (
+          <div className="rf-metrics-wrap rf-metrics-wrap--multi">
+            {(metrics.symbols ?? Object.keys(metrics.metrics ?? {})).map((symbol, idx) => (
+              <details key={symbol} open={idx === 0} className="rf-metrics-accordion mb-2">
+                <summary className="rf-metrics-accordion__summary font-medium cursor-pointer">{symbol}</summary>
+                <MetricTable metrics={normalizeRawMetrics(metrics.metrics?.[symbol])} />
+              </details>
+            ))}
+
+            {metrics.equity_curve && Object.keys(metrics.equity_curve).length > 0 && (
+              <div className="rf-chart mt-4 border rounded overflow-hidden bg-white" style={{ height: '180px' }}>
+                <Plot
+                  data={Object.entries(metrics.equity_curve).map(([sym, points]) => ({
+                    x: points.map((p) => p.date),
+                    y: points.map((p) => p.value),
+                    name: sym,
+                    type: 'scatter' as const,
+                    mode: 'lines' as const,
+                  }))}
+                  layout={{
+                    autosize: true,
+                    margin: { l: 0, r: 0, b: 0, t: 0 },
+                    xaxis: { visible: false },
+                    yaxis: { visible: false },
+                    showlegend: true,
+                    legend: { orientation: 'h', font: { size: 9 } },
+                    paper_bgcolor: 'rgba(0,0,0,0)',
+                    plot_bgcolor: 'rgba(0,0,0,0)',
+                  }}
+                  config={{ displayModeBar: false, responsive: true }}
+                  style={{ width: '100%', height: '100%' }}
+                  useResizeHandler
+                />
+              </div>
+            )}
+
+            <div className="rf-action-row mt-4 flex justify-center">
+              <button
+                onClick={() => {
+                  if (jobId) openChat(jobId);
+                }}
+                title="Analyze via AI"
+                className="w-full py-2 bg-blue-50 text-blue-600 border border-blue-200 rounded font-medium hover:bg-blue-100 transition-colors shadow-sm flex items-center justify-center gap-2"
+                style={{ position: 'relative', zIndex: 10 }}
+              >
+                <span className="text-lg">✨</span> Analyze Results
+              </button>
+            </div>
+          </div>
+        )}
+
         {isFailed && (
           <p className="rf-hint rf-hint--error text-center mt-2">{error ?? 'Engine error'}</p>
         )}

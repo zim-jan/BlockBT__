@@ -47,7 +47,10 @@ def get_domain_context(domain: str) -> str:
             "- Must extend base class `base.DataConnector`.\n"
             "- Implement `async def fetch_data()`.\n"
             "- Data must be cached locally as Parquet files in `BLOCKBT_CACHE_DIR`.\n"
-            "- Use registry pattern in `registry.py` for discovery."
+            "- Use registry pattern in `registry.py` for discovery.\n"
+            "- Faza 10: `fetch(symbol: str | list[str])` — a list fetches each symbol (cache stays per ticker) "
+            "and returns LONG format via `pd.concat(..., keys=symbols, names=['symbol']).sort_index()`. "
+            "Deliberately NOT `vbt.YFData(list)` (column layout is version-dependent)."
         ),
         "core_engine": (
             "Domain: Core Engine & Data\n"
@@ -55,7 +58,14 @@ def get_domain_context(domain: str) -> str:
             "Guidelines:\n"
             "- STRICT RULE: Use ONLY the free, open-source `vectorbt` library.\n"
             "- STRICT RULE: DO NOT use, import, or generate code for `vectorbtpro`.\n"
-            "- Key files: `opensource_engine.py` (logic), `loader.py` (data), `indicators.py`, `optimizer.py`."
+            "- Key files: `opensource_engine.py` (logic), `loader.py` (data), `indicators.py`, `optimizer.py`.\n"
+            "- Faza 10 (multi-symbol): `_prepare_close` pivots row MultiIndex [symbol, date] (LONG) into a WIDE "
+            "DataFrame (columns=symbols); the whole pipeline broadcasts over columns with NO python loops.\n"
+            "- Multi-symbol metrics come from vectorbt column Series (total_return/sharpe/max_drawdown/trades) "
+            "guarded with np.isfinite -> 0.0; result carries `is_multi_symbol`, `symbols`, per-ticker `metrics` "
+            "and `equity_curve`. Single-symbol output stays flat (backward compatible).\n"
+            "- `IndicatorService._align_to_symbols` strips the `ma_window` column level vbt adds; combining a "
+            "parameter list with multiple symbols raises ValueError (out of scope)."
         ),
         "api_layer": (
             "Domain: API Layer\n"

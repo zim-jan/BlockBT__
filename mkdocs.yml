@@ -50,7 +50,10 @@ nav:
       - Database: backend/database.md
       - Connectors: backend/connectors.md
       - Engines & Optimization: backend/engines_and_optimization.md
+      - Optymalizacja wielu tickerów: backend/multi_ticker_optimization.md
       - API & Agents: backend/api_and_agents.md
   - Frontend:
       - Architecture: frontend/architecture.md
       - Visual Builder: frontend/visual_builder.md
+  - Decyzje architektoniczne (ADR):
+      - ADR-0001 Broadcasting multi-symbol: adr/0001-broadcasting-multi-symbol.md

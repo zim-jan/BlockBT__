@@ -58,4 +58,30 @@ describe('workflowStore', () => {
     
     expect(useWorkflowStore.getState().nodes[0].data.isOutdated).toBe(false)
   })
+
+  it('exportDAG splits comma-separated symbol into an array (multi-symbol)', () => {
+    const store = useWorkflowStore.getState()
+    store.addNode('dataNode')
+    const dataNodeId = useWorkflowStore.getState().nodes[0].id
+
+    useWorkflowStore.getState().updateNodeData(dataNodeId, { symbol: 'AAPL, MSFT' })
+
+    const dag = useWorkflowStore.getState().exportDAG()
+    const dataDagNode = dag.nodes.find((n) => n.id === dataNodeId)!
+
+    expect(dataDagNode.params.symbol).toEqual(['AAPL', 'MSFT'])
+  })
+
+  it('exportDAG keeps a single symbol as a plain string (single-symbol, unchanged)', () => {
+    const store = useWorkflowStore.getState()
+    store.addNode('dataNode')
+    const dataNodeId = useWorkflowStore.getState().nodes[0].id
+
+    useWorkflowStore.getState().updateNodeData(dataNodeId, { symbol: 'AAPL' })
+
+    const dag = useWorkflowStore.getState().exportDAG()
+    const dataDagNode = dag.nodes.find((n) => n.id === dataNodeId)!
+
+    expect(dataDagNode.params.symbol).toBe('AAPL')
+  })
 })

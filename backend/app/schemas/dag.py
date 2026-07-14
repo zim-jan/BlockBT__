@@ -12,7 +12,8 @@ class BaseNode(BaseModel):
 
 
 class DataIngestionParams(BaseModel):
-    symbol: str
+    # Faza 10: pojedynczy ticker (str) lub lista tickerów do wektoryzacji broadcastingiem.
+    symbol: str | list[str]
     timeframe: str
     dataSource: str | None = None
     startDate: str | None = None

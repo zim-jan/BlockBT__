@@ -85,6 +85,36 @@ export interface BacktestMetrics {
   equity_curve?: { date: string; value: number }[]
 }
 
+// ───────────────────────────────────────────────
+// Faza 10: Multi-symbol backtest types
+// ───────────────────────────────────────────────
+
+/** Wartość pojedynczej metryki w surowym słowniku z backendu (np. "Total Return [%]") */
+export type MetricValue = number | string | null
+
+/** Punkt krzywej equity */
+export interface EquityPoint {
+  date: string
+  value: number
+}
+
+/** Znormalizowany podzbiór metryk używany przez MetricTable (wspólny dla single i multi) */
+export interface NormalizedMetrics {
+  total_return_pct?: number | null
+  sharpe_ratio?: number | null
+  max_drawdown_pct?: number | null
+  num_trades?: number | null
+  final_capital?: number | null
+}
+
+/** Wynik backtestu dla wielu symboli jednocześnie (Faza 10 — broadcasting) */
+export interface MultiBacktestResult {
+  is_multi_symbol: true
+  symbols: string[]
+  metrics: Record<string, Record<string, MetricValue>>
+  equity_curve: Record<string, EquityPoint[]>
+}
+
 export interface BacktestJobData {
   job_id: number
   strategy_id: number
@@ -170,7 +200,7 @@ export interface PortfolioNodeData extends Record<string, unknown> {
   fees?: number
   slippage?: number
   jobStatus?: JobStatus
-  metrics?: BacktestMetrics | null
+  metrics?: BacktestMetrics | MultiBacktestResult | null
   jobId?: number
   error?: string | null
   isOutdated?: boolean

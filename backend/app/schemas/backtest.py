@@ -33,7 +33,8 @@ class BacktestJobResponse(BaseModel):
     job_id: int
     strategy_id: int
     status: str
-    symbol: str
+    # Faza 10: multi-symbol zwraca listę tickerów zamiast pojedynczego stringa.
+    symbol: str | list[str]
     timeframe: str | None = None
     start_date: str | None = None
     end_date: str | None = None
@@ -46,5 +47,6 @@ class BacktestJobResponse(BaseModel):
     max_drawdown_pct: float | None = None
     num_trades: int | None = None
     final_capital: float | None = None
-    equity_curve: list[dict[str, Any]] | None = None
+    # Faza 10: single-symbol -> lista punktów; multi-symbol -> {symbol: [punkty]}.
+    equity_curve: list[dict[str, Any]] | dict[str, list[dict[str, Any]]] | None = None
     error_message: str | None = None
