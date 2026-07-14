@@ -71,15 +71,22 @@ class BaseDataConnector(ABC):
         """
         # Faza 10: lista tickerów → LONG MultiIndex [symbol, date] (broadcasting w silniku).
         if isinstance(symbol, (list, tuple)):
+            # Review Fazy 10: deduplikacja (kolizja kolumn po unstack) z zachowaniem kolejnosci.
+            unique_symbols: list[str] = list(dict.fromkeys(symbol))
+            if not unique_symbols:
+                return pd.DataFrame()
+            # Review Fazy 10: pojedynczy ticker degraduje do formatu single (spojnosc z "AAPL").
+            if len(unique_symbols) == 1:
+                return self.fetch(
+                    unique_symbols[0], start, end, timeframe=timeframe, use_cache=use_cache
+                )
             frames: list[pd.DataFrame] = []
             keys: list[str] = []
-            for sym in symbol:
+            for sym in unique_symbols:
                 frames.append(
                     self.fetch(sym, start, end, timeframe=timeframe, use_cache=use_cache)
                 )
                 keys.append(sym)
-            if not frames:
-                return pd.DataFrame()
             combined = pd.concat(frames, keys=keys, names=["symbol"])
             return combined.sort_index()
 

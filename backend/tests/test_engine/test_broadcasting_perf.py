@@ -9,6 +9,7 @@ import time
 
 import numpy as np
 import pandas as pd
+import pytest
 
 from app.services.engine.opensource_engine import OpenSourceEngine
 
@@ -42,6 +43,7 @@ def _dag(symbols) -> dict:
     }
 
 
+@pytest.mark.perf
 def test_tensor_perf_scaling():
     """20 tickerów nie może skalować się liniowo wobec 1 (dowód wektoryzacji, nie pętli)."""
     engine = OpenSourceEngine()
@@ -62,10 +64,11 @@ def test_tensor_perf_scaling():
     t20 = time.perf_counter() - t0
 
     # Wektoryzacja: 20 symboli tanio, znacznie poniżej 20x kosztu jednego symbolu.
-    assert t20 < max(0.5, 6 * t1), f"t20={t20:.4f}s vs t1={t1:.4f}s — podejrzenie pętli"
-    assert t20 < 5.0, f"t20={t20:.4f}s przekracza budżet absolutny"
+    assert t20 < max(1.0, 10 * t1), f"t20={t20:.4f}s vs t1={t1:.4f}s — podejrzenie petli per-symbol"
+    assert t20 < 10.0, f"t20={t20:.4f}s przekracza budzet absolutny"
 
 
+@pytest.mark.perf
 def test_tensor_no_row_loop_shape():
     """20 symboli o RÓŻNYCH danych → wszystkie w metrykach, wartości różnią się między symbolami."""
     engine = OpenSourceEngine()

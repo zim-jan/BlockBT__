@@ -50,14 +50,37 @@ class IndicatorService:
     ) -> pd.Series | pd.DataFrame:
         """
         Faza 10: przy DataFrame wieloma symbolami vbt dokleja poziom parametru (np. 'ma_window')
-        do kolumn wskaźnika. Sprowadzamy kolumny z powrotem do czystych symboli (close.columns),
-        aby crossed_above/portfel operowały na jednoznacznych kluczach per ticker.
+        do kolumn wskaznika. Sprowadzamy kolumny z powrotem do czystych symboli (close.columns),
+        aby crossed_above/portfel operowaly na jednoznacznych kluczach per ticker.
+
+        Review Fazy 10: dodany guard liczby kolumn (wykrywa rozjazd wskaznik/symbole zamiast
+        cichego przypisania), a przy MultiIndex — jesli istnieje poziom pokrywajacy sie ze
+        zbiorem symboli, DROP pozostalych poziomow (odporne na kolejnosc), inaczej fallback
+        pozycyjny zgodny z kontraktem kolejnosci kolumn vbt.
         """
-        if isinstance(close, pd.DataFrame) and isinstance(indicator, pd.DataFrame):
-            aligned = indicator.copy()
-            aligned.columns = close.columns
-            return aligned
-        return indicator
+        if not (isinstance(close, pd.DataFrame) and isinstance(indicator, pd.DataFrame)):
+            return indicator
+
+        if indicator.shape[1] != close.shape[1]:
+            raise ValueError(
+                "Faza 10: liczba kolumn wskaznika "
+                f"({indicator.shape[1]}) != liczba symboli ({close.shape[1]})."
+            )
+
+        aligned = indicator.copy()
+
+        # MultiIndex z poziomem parametru → zredukuj do poziomu symboli (dopasowanie po nazwie).
+        if isinstance(indicator.columns, pd.MultiIndex):
+            target_set = {str(c) for c in close.columns}
+            for lvl in range(indicator.columns.nlevels):
+                level_vals = [str(v) for v in indicator.columns.get_level_values(lvl)]
+                if set(level_vals) == target_set and len(set(level_vals)) == len(level_vals):
+                    aligned.columns = pd.Index(level_vals, name=close.columns.name)
+                    return aligned
+
+        # Fallback pozycyjny (single scalar param, kolejnosc vbt = kolejnosc close).
+        aligned.columns = close.columns
+        return aligned
 
     @staticmethod
     def generate_sma_crossover(

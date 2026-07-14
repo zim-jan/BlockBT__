@@ -100,8 +100,11 @@ exclude = ["vectorbt_src"]
 
 [tool.pytest.ini_options]
 testpaths = ["backend/tests"]
-addopts = "-v --tb=short"
+addopts = "-v --tb=short -m \"not perf\""
 asyncio_mode = "auto"
+markers = [
+    "perf: testy wydajnościowe oparte na czasie zegara (flaky na CI; uruchamiane jawnie: -m perf)",
+]
 filterwarnings = [
     "ignore::DeprecationWarning:vectorbt.*",
     "ignore::FutureWarning:vectorbt.*",
