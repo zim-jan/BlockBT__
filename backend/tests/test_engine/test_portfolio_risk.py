@@ -1,11 +1,22 @@
-import pytest
 import pandas as pd
+
 from app.services.engine.opensource_engine import OpenSourceEngine
+
 
 def test_portfolio_stop_loss_take_profit():
     engine = OpenSourceEngine()
+    # Faza 12: wymóg węzła Indicators wymusza dodanie źródła sygnałów.
+    # Custom indicator (ścieżka Fazy 11): wejście na barze 0, brak własnych exitów —
+    # dzięki temu SL na spadku 100→90 (-10%) faktycznie odpala.
+    custom_code = (
+        "entries = pd.Series(False, index=close.index)\n"
+        "entries.iloc[0] = True\n"
+        "exits = pd.Series(False, index=close.index)\n"
+    )
     dag_dict = {
         "nodes": [
+            {"id": "i1", "category": "Indicators", "type": "indicatorNode",
+             "params": {"indicatorType": "custom", "codeContent": custom_code}},
             {"id": "p1", "category": "Execution", "type": "portfolioNode", "params": {"sl_stop": 0.05, "tp_stop": 0.10}}
         ]
     }

@@ -16,6 +16,7 @@ import quantstats as qs
 from loguru import logger
 
 from app.core.config import settings
+from app.core.utils.graph_parser import GraphValidationError
 from app.services.engine.base import BaseStrategyEngine
 from app.services.engine.indicators import IndicatorService
 
@@ -338,6 +339,10 @@ class OpenSourceEngine(BaseStrategyEngine):
         ind_node = next((n for n in nodes if n.get("category") == "Indicators"), {})
         exec_node = next((n for n in nodes if n.get("category") == "Execution"), {})
 
+        # Faza 12: DAG musi zawierać węzeł Indicators (brak sygnałów bez wskaźnika).
+        if not any(n.get("category") == "Indicators" for n in nodes):
+            raise GraphValidationError("DAG musi zawierać węzeł Indicators.")
+
         ind_params = ind_node.get("params", {})
         exec_params = exec_node.get("params", {})
         data_params = data_node.get("params", {})
@@ -383,6 +388,10 @@ class OpenSourceEngine(BaseStrategyEngine):
             return self._build_multi_symbol_result(portfolio, close, timeframe)
 
         stats = portfolio.stats()
+        # Faza 12: liczniki wyjść SL/TP (vbt ich nie eksponuje w stats() — dokładamy do raw).
+        sl_stop = exec_params.get("sl_stop")
+        tp_stop = exec_params.get("tp_stop")
+        stop_exits = self._count_stop_exits(portfolio, sl_stop, tp_stop)
         total_return = float(portfolio.total_return() * 100)
         sharpe = float(portfolio.sharpe_ratio())
         drawdown = float(portfolio.max_drawdown() * 100)
@@ -410,6 +419,13 @@ class OpenSourceEngine(BaseStrategyEngine):
         }
         response_metrics.update(qs_metrics)
 
+        raw_stats = stats.to_dict() if hasattr(stats, "to_dict") else dict(stats)
+        # Faza 12: dokładamy liczniki wyjść SL/TP tylko gdy dany stop był ustawiony.
+        if sl_stop is not None:
+            raw_stats["Stop Loss Exits"] = stop_exits["Stop Loss Exits"]
+        if tp_stop is not None:
+            raw_stats["Take Profit Exits"] = stop_exits["Take Profit Exits"]
+
         equity_curve = []
         try:
             if isinstance(portfolio.value(), pd.Series):
@@ -431,8 +447,49 @@ class OpenSourceEngine(BaseStrategyEngine):
             "final_capital": final_val,
             "equity_curve": equity_curve,
             "metrics": response_metrics,
-            "raw": stats.to_dict() if hasattr(stats, "to_dict") else dict(stats),
+            "raw": raw_stats,
         }
+
+    @staticmethod
+    def _count_stop_exits(
+        portfolio: Any, sl_stop: float | None, tp_stop: float | None
+    ) -> dict[str, int]:
+        """
+        Faza 12: klasyfikacja zamkniętych transakcji po cenie wyjścia względem poziomów stopów.
+
+        Metoda odporna na wersję vbt: vbt nie etykietuje wyjść SL/TP w rekordach, więc
+        rekonstruujemy je z Avg Entry/Exit Price. Long: SL gdy exit<=entry*(1-sl)*(1+eps),
+        TP gdy exit>=entry*(1+tp)*(1-eps); short symetrycznie. Liczymy tylko dla ustawionych stopów.
+        """
+        counts = {"Stop Loss Exits": 0, "Take Profit Exits": 0}
+        if sl_stop is None and tp_stop is None:
+            return counts
+
+        eps = 1e-3
+        try:
+            trades = portfolio.trades.records_readable
+        except Exception:
+            return counts
+
+        for _, row in trades.iterrows():
+            if row.get("Status") != "Closed":
+                continue
+            entry = float(row["Avg Entry Price"])
+            exit_price = float(row["Avg Exit Price"])
+            is_long = str(row.get("Direction", "Long")).lower() == "long"
+
+            if sl_stop is not None:
+                if is_long and exit_price <= entry * (1 - sl_stop) * (1 + eps):
+                    counts["Stop Loss Exits"] += 1
+                elif not is_long and exit_price >= entry * (1 + sl_stop) * (1 - eps):
+                    counts["Stop Loss Exits"] += 1
+            if tp_stop is not None:
+                if is_long and exit_price >= entry * (1 + tp_stop) * (1 - eps):
+                    counts["Take Profit Exits"] += 1
+                elif not is_long and exit_price <= entry * (1 - tp_stop) * (1 + eps):
+                    counts["Take Profit Exits"] += 1
+
+        return counts
 
     @staticmethod
     def _finite_or_zero(value: Any) -> float:
@@ -548,12 +605,28 @@ class OpenSourceEngine(BaseStrategyEngine):
         if fees <= 0 or slippage <= 0:
             raise ValueError("Zero-Cost Fallacy: Fees i Slippage muszą być > 0.")
 
-        return self.vbt.Portfolio.from_signals(
-            close=price_data,
-            entries=entries,
-            exits=exits,
-            init_cash=init_cash,
-            fees=fees,
-            slippage=slippage,
-            freq="D"
-        )
+        # Faza 12: parametry ryzyka i sizingu (dokładane tylko gdy ustawione).
+        kwargs: dict[str, Any] = {
+            "close": price_data,
+            "entries": entries,
+            "exits": exits,
+            "init_cash": init_cash,
+            "fees": fees,
+            "slippage": slippage,
+            "freq": "D",
+        }
+
+        sl_stop = params.get("sl_stop")
+        tp_stop = params.get("tp_stop")
+        size = params.get("size")
+        if sl_stop is not None:
+            kwargs["sl_stop"] = float(sl_stop)
+            kwargs["sl_trail"] = bool(params.get("sl_trail", False))
+        if tp_stop is not None:
+            kwargs["tp_stop"] = float(tp_stop)
+        if size is not None:
+            kwargs["size"] = float(size)
+            # vbt akceptuje string size_type wprost: amount | value | percent.
+            kwargs["size_type"] = str(params.get("size_type", "amount"))
+
+        return self.vbt.Portfolio.from_signals(**kwargs)
