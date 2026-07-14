@@ -84,3 +84,6 @@ vectorbt_src/
 /site/developer/extending_db/index.html
 /site/developer/overview/index.html
 /site/security_audit_report/index.html
+
+# Claude Code local working dir (worktrees, sesyjne ustawienia) — nie wersjonujemy
+.claude/
