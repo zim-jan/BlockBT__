@@ -391,7 +391,9 @@ class OpenSourceEngine(BaseStrategyEngine):
         # Faza 12: liczniki wyjść SL/TP (vbt ich nie eksponuje w stats() — dokładamy do raw).
         sl_stop = exec_params.get("sl_stop")
         tp_stop = exec_params.get("tp_stop")
-        stop_exits = self._count_stop_exits(portfolio, sl_stop, tp_stop)
+        sl_trail = bool(exec_params.get("sl_trail", False))
+        slippage = float(exec_params.get("slippage", 0.001))
+        stop_exits = self._count_stop_exits(portfolio, close, sl_stop, tp_stop, sl_trail, slippage)
         total_return = float(portfolio.total_return() * 100)
         sharpe = float(portfolio.sharpe_ratio())
         drawdown = float(portfolio.max_drawdown() * 100)
@@ -452,20 +454,34 @@ class OpenSourceEngine(BaseStrategyEngine):
 
     @staticmethod
     def _count_stop_exits(
-        portfolio: Any, sl_stop: float | None, tp_stop: float | None
+        portfolio: Any,
+        close: pd.Series,
+        sl_stop: float | None,
+        tp_stop: float | None,
+        sl_trail: bool = False,
+        slippage: float = 0.001,
     ) -> dict[str, int]:
         """
         Faza 12: klasyfikacja zamkniętych transakcji po cenie wyjścia względem poziomów stopów.
 
-        Metoda odporna na wersję vbt: vbt nie etykietuje wyjść SL/TP w rekordach, więc
-        rekonstruujemy je z Avg Entry/Exit Price. Long: SL gdy exit<=entry*(1-sl)*(1+eps),
-        TP gdy exit>=entry*(1+tp)*(1-eps); short symetrycznie. Liczymy tylko dla ustawionych stopów.
+        vbt (open source 1.0) nie etykietuje wyjść SL/TP w rekordach transakcji, więc
+        rekonstruujemy je z cen wejścia/wyjścia. Dla stopu stałego poziom SL jest liczony
+        od ceny wejścia; dla stopu podążającego (sl_trail=True) — od biegnącego ekstremum
+        ceny w oknie trwania pozycji (Long: szczyt, Short: dołek), bo trailing przesuwa
+        stop za ceną. TP jest zawsze liczony od ceny wejścia (tp_stop nie podąża).
+
+        Tolerancja `eps` uwzględnia poślizg (Avg Exit Price zawiera slippage), więc jest
+        wyprowadzana z parametru slippage. UWAGA: klasyfikacja jest heurystyczna — wyjście
+        sygnałowe, które przypadkiem trafi poza próg, zostanie policzone jako stop; przy
+        aktywnych stopach vbt zwykle domyka pozycję stopem jako pierwszym, więc w praktyce
+        jest to bezpieczne (szczegóły i ograniczenia: ADR-0003).
         """
         counts = {"Stop Loss Exits": 0, "Take Profit Exits": 0}
         if sl_stop is None and tp_stop is None:
             return counts
 
-        eps = 1e-3
+        # Avg Exit Price zawiera slippage → tolerancja co najmniej rzędu slippage.
+        eps = max(1e-3, 2.0 * float(slippage))
         try:
             trades = portfolio.trades.records_readable
         except Exception:
@@ -474,14 +490,30 @@ class OpenSourceEngine(BaseStrategyEngine):
         for _, row in trades.iterrows():
             if row.get("Status") != "Closed":
                 continue
-            entry = float(row["Avg Entry Price"])
-            exit_price = float(row["Avg Exit Price"])
+            try:
+                entry = float(row["Avg Entry Price"])
+                exit_price = float(row["Avg Exit Price"])
+            except (TypeError, ValueError, KeyError):
+                continue
+            if not (np.isfinite(entry) and np.isfinite(exit_price)):
+                continue
             is_long = str(row.get("Direction", "Long")).lower() == "long"
 
+            # Poziom odniesienia SL: cena wejścia (stop stały) lub ekstremum ceny w oknie
+            # trwania pozycji (stop podążający — poziom trailinguje za ceną).
+            sl_ref = entry
+            if sl_trail and sl_stop is not None:
+                try:
+                    window = close.loc[row["Entry Timestamp"]:row["Exit Timestamp"]]
+                    if len(window) > 0:
+                        sl_ref = float(window.max() if is_long else window.min())
+                except Exception:
+                    sl_ref = entry
+
             if sl_stop is not None:
-                if is_long and exit_price <= entry * (1 - sl_stop) * (1 + eps):
+                if is_long and exit_price <= sl_ref * (1 - sl_stop) * (1 + eps):
                     counts["Stop Loss Exits"] += 1
-                elif not is_long and exit_price >= entry * (1 + sl_stop) * (1 - eps):
+                elif not is_long and exit_price >= sl_ref * (1 + sl_stop) * (1 - eps):
                     counts["Stop Loss Exits"] += 1
             if tp_stop is not None:
                 if is_long and exit_price >= entry * (1 + tp_stop) * (1 - eps):

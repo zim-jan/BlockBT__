@@ -34,6 +34,21 @@ def test_trailing_stop_runs():
     assert "Stop Loss Exits" in result["raw"]
 
 
+def test_trailing_stop_counted_relative_to_peak():
+    """H2: trailing SL liczony względem biegnącego szczytu, nie ceny wejścia.
+
+    Ruch 100→130→110: trailing SL (5% od szczytu 130 = 123.5) odpala i JEST liczony;
+    ten sam ruch przy stopie stałym (5% od 100 = 95) nie odpala — 110 nie łamie 95.
+    Gdyby licznik używał poziomu od wejścia, trailing byłby błędnie 0 (regresja z review).
+    """
+    engine = OpenSourceEngine()
+    df = pd.DataFrame({"close": [100.0, 130, 120, 115, 110]})
+    trail = engine.run_dag_backtest(df, _dag({"sl_stop": 0.05, "sl_trail": True}))
+    fixed = engine.run_dag_backtest(df, _dag({"sl_stop": 0.05}))
+    assert trail["raw"]["Stop Loss Exits"] > 0
+    assert fixed["raw"]["Stop Loss Exits"] == 0
+
+
 def test_position_sizing_reflected():
     """Sizing: większy size => inna (wyższa na rosnącej serii) wartość końcowa."""
     engine = OpenSourceEngine()
