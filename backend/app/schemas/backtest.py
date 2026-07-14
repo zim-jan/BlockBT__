@@ -49,4 +49,8 @@ class BacktestJobResponse(BaseModel):
     final_capital: float | None = None
     # Faza 10: single-symbol -> lista punktów; multi-symbol -> {symbol: [punkty]}.
     equity_curve: list[dict[str, Any]] | dict[str, list[dict[str, Any]]] | None = None
+    # Faza 10 (review): flaga i lista tickerów dla wyniku multi-symbol.
+    # Dzięki temu frontend rozpoznaje gałąź multi (jd.is_multi_symbol) przez realny endpoint.
+    is_multi_symbol: bool | None = None
+    symbols: list[str] | None = None
     error_message: str | None = None

@@ -246,9 +246,12 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
         // Faza 10: DataIngestion — symbol wspiera wiele tickerów (rozdzielone przecinkami)
         if (category === 'DataIngestion' && typeof params.symbol === 'string') {
           const raw = params.symbol as string
-          params.symbol = raw.includes(',')
-            ? raw.split(',').map((s) => s.trim().toUpperCase()).filter(Boolean)
-            : raw.trim().toUpperCase()
+          // Review Fazy 10: trim + upper + filtracja pustych + DEDUPLIKACJA (kolizja kolumn po unstack)
+          const tickers = Array.from(
+            new Set(raw.split(',').map((s) => s.trim().toUpperCase()).filter(Boolean)),
+          )
+          // Review Fazy 10: dokladnie 1 ticker → string (spojnosc z single-symbol), inaczej lista
+          params.symbol = tickers.length <= 1 ? (tickers[0] ?? '') : tickers
         }
 
         return {

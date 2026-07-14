@@ -119,7 +119,7 @@ export interface BacktestJobData {
   job_id: number
   strategy_id: number
   status: JobStatus
-  metrics: BacktestMetrics | null
+  metrics: BacktestMetrics | Record<string, Record<string, MetricValue>> | null
   total_return_pct: number | null
   sharpe_ratio: number | null
   max_drawdown_pct: number | null
@@ -128,6 +128,11 @@ export interface BacktestJobData {
   error_message: string | null
   created_at: string
   completed_at: string | null
+  // Faza 10 (review): pola multi-symbol z backendu (GET /api/backtest/{id})
+  is_multi_symbol?: boolean
+  symbols?: string[]
+  equity_curve?: EquityPoint[] | Record<string, EquityPoint[]>
+  parameters?: Record<string, unknown>
 }
 
 export interface StrategyData {

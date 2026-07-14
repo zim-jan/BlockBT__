@@ -158,28 +158,7 @@ class OpenSourceEngine(BaseStrategyEngine):
             else:
                 final_val = initial_capital
 
-            # QuantStats integration
-            qs_metrics = {}
-            try:
-                # Get extended metrics from QuantStats directly on the returns
-                qs_report = qs.reports.metrics(portfolio.returns(), display=False)
-                if isinstance(qs_report, pd.Series):
-                    qs_metrics = {
-                        str(k): float(v) if not isinstance(v, (str, type(None))) else v
-                        for k, v in qs_report.to_dict().items()
-                    }
-                elif isinstance(qs_report, pd.DataFrame):
-                    # QuantStats metrics often returns a DataFrame where metrics are 
-                    # index and strategy is column. We want a flat dict.
-                    if "Strategy" in qs_report.columns:
-                        qs_metrics = {
-                            str(k): float(v) if not isinstance(v, (str, type(None))) else v
-                            for k, v in qs_report["Strategy"].to_dict().items()
-                        }
-                    else:
-                        qs_metrics = qs_report.to_dict()
-            except Exception as e:
-                logger.warning("QuantStats failed to generate metrics: {}", e)
+            qs_metrics = self._extract_qs_metrics(portfolio.returns())
 
             response_metrics = {
                 "Total Return [%]": total_return,
@@ -262,6 +241,32 @@ class OpenSourceEngine(BaseStrategyEngine):
                 "is_vectorized": True,
                 "vectorized_results": results_list,
             }
+
+    @staticmethod
+    def _extract_qs_metrics(returns: pd.Series) -> dict[str, Any]:
+        """
+        Review Fazy 10: wspolny ekstraktor metryk QuantStats (deduplikacja run_backtest/run_dag_backtest).
+        Zwraca plaski slownik metryk; przy bledzie loguje ostrzezenie i zwraca pusty slownik.
+        """
+        try:
+            qs_report = qs.reports.metrics(returns, display=False)
+        except Exception as e:  # noqa: BLE001 - QuantStats bywa kruchy na krotkich seriach
+            logger.warning("QuantStats failed to generate metrics: {}", e)
+            return {}
+
+        def _flat(series: pd.Series) -> dict[str, Any]:
+            return {
+                str(k): float(v) if not isinstance(v, (str, type(None))) else v
+                for k, v in series.to_dict().items()
+            }
+
+        if isinstance(qs_report, pd.Series):
+            return _flat(qs_report)
+        if isinstance(qs_report, pd.DataFrame):
+            if "Strategy" in qs_report.columns:
+                return _flat(qs_report["Strategy"])
+            return qs_report.to_dict()
+        return {}
 
     @staticmethod
     def _find_close_level(columns: pd.MultiIndex) -> int:
@@ -393,18 +398,7 @@ class OpenSourceEngine(BaseStrategyEngine):
         else:
             final_val = initial_capital
 
-        qs_metrics = {}
-        try:
-            qs_report = qs.reports.metrics(portfolio.returns(), display=False)
-            if isinstance(qs_report, pd.Series):
-                qs_metrics = {str(k): float(v) if not isinstance(v, (str, type(None))) else v for k, v in qs_report.to_dict().items()}
-            elif isinstance(qs_report, pd.DataFrame):
-                if "Strategy" in qs_report.columns:
-                    qs_metrics = {str(k): float(v) if not isinstance(v, (str, type(None))) else v for k, v in qs_report["Strategy"].to_dict().items()}
-                else:
-                    qs_metrics = qs_report.to_dict()
-        except Exception as e:
-            logger.warning("QuantStats failed: {}", e)
+        qs_metrics = self._extract_qs_metrics(portfolio.returns())
 
         response_metrics = {
             "Total Return [%]": total_return,
@@ -442,12 +436,25 @@ class OpenSourceEngine(BaseStrategyEngine):
 
     @staticmethod
     def _finite_or_zero(value: Any) -> float:
-        """Faza 10: guard NaN/inf → 0.0 (stała cena → 0 trade → Sharpe=inf, Win Rate=NaN)."""
+        """Faza 10: guard NaN/inf → 0.0 (używane dla liczników/wartości, np. Total Trades)."""
         try:
             fval = float(value)
         except (TypeError, ValueError):
             return 0.0
         return fval if np.isfinite(fval) else 0.0
+
+    @staticmethod
+    def _finite_or_none(value: Any) -> float | None:
+        """
+        Review Fazy 10: guard NaN/inf → None dla metryk wskaznikowych (Sharpe, zwroty, DD, Win Rate).
+        Ujednolica semantyke z single-symbol (runner._serialize_metric_value: NaN/inf → None) —
+        "brak danych" nie jest mylony z realnym zerem.
+        """
+        try:
+            fval = float(value)
+        except (TypeError, ValueError):
+            return None
+        return fval if np.isfinite(fval) else None
 
     def _build_multi_symbol_result(
         self, portfolio: Any, close: pd.DataFrame, timeframe: str
@@ -467,16 +474,18 @@ class OpenSourceEngine(BaseStrategyEngine):
         value = portfolio.value()  # DataFrame: index=daty, kolumny=symbole
         final_value = value.iloc[-1]
 
-        metrics: dict[str, dict[str, float]] = {}
+        metrics: dict[str, dict[str, float | None]] = {}
         equity_curve: dict[str, list[dict[str, Any]]] = {}
         for sym in symbols:
             metrics[sym] = {
-                "Total Return [%]": self._finite_or_zero(total_return.get(sym)),
-                "Sharpe Ratio": self._finite_or_zero(sharpe.get(sym)),
-                "Max Drawdown [%]": self._finite_or_zero(drawdown.get(sym)),
+                # metryki wskaznikowe: NaN/inf → None (spojnie z single-symbol)
+                "Total Return [%]": self._finite_or_none(total_return.get(sym)),
+                "Sharpe Ratio": self._finite_or_none(sharpe.get(sym)),
+                "Max Drawdown [%]": self._finite_or_none(drawdown.get(sym)),
+                "Win Rate [%]": self._finite_or_none(win_rate.get(sym)),
+                # liczniki/wartosci pozostaja numeryczne (0.0 zamiast None)
                 "Total Trades": int(self._finite_or_zero(trades_count.get(sym))),
                 "Final Value": self._finite_or_zero(final_value.get(sym)),
-                "Win Rate [%]": self._finite_or_zero(win_rate.get(sym)),
             }
             col = value[sym]
             equity_curve[sym] = [

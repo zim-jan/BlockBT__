@@ -4,12 +4,12 @@ from typing import Any
 
 from fastapi import APIRouter, BackgroundTasks, HTTPException
 
+from app.core.utils.graph_parser import GraphParser, GraphValidationError
 from app.db.session import get_session
 from app.models.orm import BacktestJob, JobStatus, Strategy
 from app.schemas.backtest import BacktestJobResponse, BacktestRequest, DAGBacktestRequest
 from app.schemas.base import ApiResponse
 from app.services.engine.runner import run_vectorbt_backtest
-from app.core.utils.graph_parser import GraphParser, GraphValidationError
 
 """Trasy obsługujące backtestowanie — Faza 2.
 
@@ -67,7 +67,32 @@ def _job_to_schema(job: BacktestJob) -> BacktestJobResponse:
 
     # Populate metrics ONLY if status is COMPLETED
     is_completed = (job.status == JobStatus.COMPLETED or job.status == "COMPLETED")
-    
+
+    # Faza 10 (review): wynik multi-symbol — nie spłaszczaj metryk, przenieś strukturę
+    # per-ticker + flagi, aby frontend rozpoznał gałąź multi przez GET /api/backtest/{id}.
+    is_multi_symbol = bool(raw_metrics.get("is_multi_symbol"))
+    if is_completed and is_multi_symbol:
+        symbols: list[str] = list(raw_metrics.get("symbols", []))
+        nested_metrics = {sym: raw_metrics.get(sym) for sym in symbols}
+        return BacktestJobResponse(
+            id=job.id,
+            job_id=job.id,
+            strategy_id=job.strategy_id,
+            status=job.status,
+            symbol=params.get("symbol", symbols),
+            timeframe=params.get("timeframe", ""),
+            start_date=params.get("start_date", ""),
+            end_date=params.get("end_date", ""),
+            initial_capital=params.get("initial_capital", 10000.0),
+            created_at=job.created_at,
+            metrics=nested_metrics,
+            parameters=params,
+            error_message=job.error_message,
+            equity_curve=raw_metrics.get("equity_curve"),
+            is_multi_symbol=True,
+            symbols=symbols,
+        )
+
     return BacktestJobResponse(
         id=job.id,
         job_id=job.id,
@@ -88,6 +113,7 @@ def _job_to_schema(job: BacktestJob) -> BacktestJobResponse:
         num_trades=job.num_trades,
         final_capital=job.final_capital,
         equity_curve=raw_metrics.get("equity_curve"),
+        is_multi_symbol=False,
     )
 
 
