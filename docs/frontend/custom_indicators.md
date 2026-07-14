@@ -49,8 +49,11 @@ entries = fast.vbt.crossed_above(slow)
 exits = fast.vbt.crossed_below(slow)
 ```
 
-Błąd walidacji (np. „Unsafe code detected: ...") jest pokazywany w węźle
-(`data.error`).
+Błąd walidacji (np. „Unsafe code detected: ...") jest zgłaszany przez backend
+jako `ValueError` podczas kompilacji strategii. W obecnej wersji UI komunikat
+wypływa na **błędzie zadania (job) węzła Portfolio**, a nie bezpośrednio na węźle
+Indicators — węzeł ma zarezerwowane pole `data.error`, ale store nie podłącza
+jeszcze do niego błędów kompilacji wskaźnika (podłączenie: praca przyszła).
 
 ## Sandbox — co wolno, a czego nie
 
