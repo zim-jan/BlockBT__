@@ -203,17 +203,19 @@ Jesteś Głównym Architektem i Programistą w projekcie BlockBT. Pracujesz w ry
   Testy: Logika from_orders (odłożona, poza zakresem — patrz ADR-0003). Logika stopów `from_signals` zielona (zamrożony RED test przebudowany za zgodą Janka: wymóg Indicators wymusił dodanie węzła custom-indicator generującego wejście). [DONE]
   Dokumentacja: Opis trybów portfela i zarządzania ryzykiem. [DONE] — `docs/backend/risk_management.md` + ADR-0003.
 
-* **Faza 13: QSAdapter Analytics (Raportowanie)**
-  Cel: Profesjonalne łzy (Tearsheets). Wykresy.
-  Testy: Generowanie HTML. Poprawność matematyczna metryk (CVaR, Omega).
-  Dokumentacja: Lista dostępnych raportów i wykresów.
+* **Faza 13: QSAdapter Analytics (Raportowanie)** [DONE]
+  Cel: Profesjonalne łzy (Tearsheets). Wykresy. [DONE]
+    1. **`QSAdapterService.generate_tearsheet(pf)`:** samodzielny, air-gapped HTML tearsheet budowany z `pf.stats()` (świadomie NIE przez `qs.reports.html` — zwraca None/wymaga displaya); wzorzec `_extract_qs_metrics`. [DONE]
+    2. **Endpoint `GET /api/results/{job_id}/tearsheet`:** `ApiResponse[TearsheetResponse]` (404/400); adapter `stats()` z metryk `BacktestJob` (job nie trzyma żywego obiektu Portfolio). [DONE]
+  Testy: Generowanie HTML. Poprawność matematyczna metryk (CVaR, Omega). [DONE] — 7/7 testów tearsheet, regresja zielona.
+  Dokumentacja: Lista dostępnych raportów i wykresów. [DONE] — `docs/backend/analytics_tearsheets.md` + ADR-0004.
 
-* **Faza 14: Dynamic Introspection Engine (Silnik Refleksji)**
+* **Faza 14: Dynamic Introspection Engine (Silnik Refleksji)** [DONE — backend; Krok 2 UI odłożony]
   Cel: Zero hardkodowania. Backend dyktuje kształt UI na podstawie wersji vectorbt.
-  Krok 1 (Backend): Napisać endpoint /api/v1/registry. Używa modułu inspect w Pythonie. Zwraca wielki JSON z dostępnymi klasami, parametrami i typami.
-  Krok 2 (Frontend): Przebudować Visual Builder. Zamiast statycznej palety węzłów, UI buduje menu z JSON-a z /registry.
-  Testy: Sprawdzić, czy aktualizacja vectorbt (np. pip install vectorbt --upgrade) automatycznie dodaje nowe węzły w UI bez zmiany kodu BlockBT.
-  Dokumentacja: Opis struktury JSON z /registry.
+  Krok 1 (Backend): Napisać endpoint /api/v1/registry. Używa modułu inspect w Pythonie. Zwraca wielki JSON z dostępnymi klasami, parametrami i typami. [DONE] — `GET /api/v1/registry/indicators` (surowy `dict[str, IndicatorSpec]`, bez koperty `ApiResponse` — patrz ADR-0005) + `/nodes` + `/`; kuratorowany katalog (`introspection.py`) + opcjonalne wzbogacenie żywą introspekcją vbt; kategorie i `COMPATIBILITY_MATRIX` z `GraphParser`. Pierwszy prefiks `/api/v1/` w repo.
+  Krok 2 (Frontend): Przebudować Visual Builder. Zamiast statycznej palety węzłów, UI buduje menu z JSON-a z /registry. [ODŁOŻONE — paleta węzłów nadal statyczna]
+  Testy: Sprawdzić, czy aktualizacja vectorbt (np. pip install vectorbt --upgrade) automatycznie dodaje nowe węzły w UI bez zmiany kodu BlockBT. [DONE dla backendu] — testy registry 3/3 + baseline `indicator_registry` 4/4 nietknięty.
+  Dokumentacja: Opis struktury JSON z /registry. [DONE] — `docs/backend/registry.md` + ADR-0005.
   Respond terse like smart caveman. All technical substance stay. Only fluff die.
 
 * **Faza xx: Konteneryzacja, docker i docker compose**
