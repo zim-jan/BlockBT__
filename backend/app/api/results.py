@@ -1,12 +1,21 @@
+import datetime
 from typing import Any
 
+import numpy as np
 import pandas as pd
 from fastapi import APIRouter, HTTPException
+from loguru import logger
 
 from app.db.session import get_session
 from app.models.orm import BacktestJob, ChatMessage
 from app.schemas.base import ApiResponse
-from app.schemas.results import AIAnalysisResponse, ChatMessageResponse, ChatRequest
+from app.schemas.results import (
+    AIAnalysisResponse,
+    ChatMessageResponse,
+    ChatRequest,
+    TearsheetResponse,
+)
+from app.services.engine.qsadapter import QSAdapterService
 from app.services.mcp.llm_client import OllamaClient
 from app.services.mcp.report_builder import ReportBuilder
 
@@ -36,6 +45,78 @@ def get_simulation_result(job_id: int) -> ApiResponse[dict[str, Any]]:
             "ai_analysis_report": job.ai_analysis_report,
             "error_log": job.error_message,
         }
+        return ApiResponse(success=True, data=data)
+
+
+@router.get("/{job_id}/tearsheet", response_model=ApiResponse[TearsheetResponse])
+def get_tearsheet(job_id: int) -> ApiResponse[TearsheetResponse]:
+    """Faza 13: generuje tearsheet HTML z metryk ukończonego backtestu.
+
+    ``BacktestJob`` nie przechowuje żywego obiektu vbt Portfolio, więc budujemy
+    lekki adapter udostępniający ``stats()`` na podstawie zapisanych metryk joba,
+    a następnie renderujemy air-gapped HTML przez ``QSAdapterService``.
+    """
+    with get_session() as db:
+        job = db.get(BacktestJob, job_id)
+        if not job:
+            raise HTTPException(status_code=404, detail="Simulation Result not found")
+
+        if job.status.upper() != "COMPLETED":
+            raise HTTPException(
+                status_code=400,
+                detail="Cannot generate a tearsheet for a simulation that is not completed.",
+            )
+
+        # Metryki nagłówkowe (kolumny) + elastyczny słownik `metrics` (JSON).
+        # Pomijamy wartości `None` — brak metryki nie powinien pojawiać się w tabeli
+        # jako pusty wiersz; dzięki temu pusty `stats` poprawnie trafia w gałąź
+        # "Brak dostępnych metryk" w QSAdapterService, zamiast renderować same myślniki.
+        raw_headline: dict[str, Any] = {
+            "Total Return [%]": job.total_return_pct,
+            "Sharpe Ratio": job.sharpe_ratio,
+            "Max Drawdown [%]": job.max_drawdown_pct,
+            "Total Trades": job.num_trades,
+            "Final Value": job.final_capital,
+        }
+        stats: dict[str, Any] = {k: v for k, v in raw_headline.items() if v is not None}
+
+        if job.metrics:
+            for key, value in job.metrics.items():
+                if value is None:
+                    continue
+                # Pomijamy złożone struktury (np. equity_curve_json) — tabela to skalary.
+                # Numpy scalary (np. numpy.float64/int64 z etapu backtestu) rzutujemy
+                # jawnie na natywny float, żeby nie trafiły w niezmienionej postaci
+                # do JSON-a (np.float64 nie jest natywnie serializowalny/porównywalny
+                # tak jak float w niektórych ścieżkach).
+                if isinstance(value, np.floating | np.integer):
+                    stats.setdefault(str(key), float(value))
+                elif isinstance(value, (int, float, str)):
+                    stats.setdefault(str(key), value)
+
+        if not stats:
+            logger.warning(
+                "Tearsheet dla job_id={} nie ma dostępnych metryk (metrics=None, kolumny puste).",
+                job_id,
+            )
+
+        class _StoredMetricsPortfolio:
+            def stats(self) -> dict[str, Any]:
+                return stats
+
+        # Jedno źródło czasu: przekazujemy generated_at do wnętrza HTML, żeby nie
+        # dublować niezależnie generowanego znacznika czasu w treści i w odpowiedzi API.
+        generated_at = datetime.datetime.now(datetime.UTC)
+        html_output = QSAdapterService.generate_tearsheet(
+            _StoredMetricsPortfolio(), generated_at=generated_at
+        )
+
+        data = TearsheetResponse(
+            job_id=job.id,
+            html=html_output,
+            format="html",
+            generated_at=generated_at,
+        )
         return ApiResponse(success=True, data=data)
 
 
