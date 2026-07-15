@@ -17,7 +17,16 @@ _vbt_path = Path(__file__).resolve().parents[2] / "vectorbt_src"
 if _vbt_path.exists() and str(_vbt_path) not in sys.path:
     sys.path.insert(0, str(_vbt_path))
 
-from app.api import backtest, indicators, optimizer, results, settings, strategies, workflows
+from app.api import (
+    backtest,
+    indicators,
+    optimizer,
+    registry,
+    results,
+    settings,
+    strategies,
+    workflows,
+)
 from app.db.session import get_session, init_db
 from app.models.orm import SystemPrompt
 from app.services.mcp.llm_client import _SYSTEM_PROMPT
@@ -141,6 +150,8 @@ app.include_router(optimizer.router, prefix="/api/optimizer", tags=["Optimizer"]
 app.include_router(workflows.router, prefix="/api/workflows", tags=["Workflows"])
 app.include_router(results.router, prefix="/api/results", tags=["Results"])
 app.include_router(settings.router, prefix="/api/settings", tags=["Settings"])
+# Faza 14: Dynamic Introspection Engine — pierwszy prefiks /api/v1/ w repo.
+app.include_router(registry.router, prefix="/api/v1/registry", tags=["Registry"])
 
 
 # ---------------------------------------------------------------------------

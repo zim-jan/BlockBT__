@@ -54,6 +54,7 @@ nav:
       - Zarządzanie ryzykiem (SL/TP/Sizing): backend/risk_management.md
       - Analityka i tearsheety: backend/analytics_tearsheets.md
       - API & Agents: backend/api_and_agents.md
+      - Rejestr introspekcji (Registry): backend/registry.md
   - Frontend:
       - Architecture: frontend/architecture.md
       - Visual Builder: frontend/visual_builder.md
@@ -63,3 +64,4 @@ nav:
       - ADR-0002 Custom Factory + sandbox + Numba: adr/0002-custom-factory-sandbox-numba.md
       - ADR-0003 Advanced Portfolio + Risk: adr/0003-advanced-portfolio-risk.md
       - ADR-0004 QSAdapter Analytics + Tearsheets: adr/0004-qsadapter-analytics-tearsheets.md
+      - ADR-0005 Dynamic Introspection Registry: adr/0005-dynamic-introspection-registry.md
