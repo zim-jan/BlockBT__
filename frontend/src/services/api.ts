@@ -13,8 +13,8 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
   const method = options?.method || 'GET';
   const requestBody = options?.body ? JSON.parse(options.body as string) : undefined;
   
-  // Log request structure (skip health check to avoid spam)
-  if (path !== '/api/health') {
+  // Log request structure (skip health check to avoid spam; tylko w DEV — review 2026-07-15)
+  if (import.meta.env.DEV && path !== '/api/health') {
     console.group(`🚀 API Request: ${method} ${path}`);
     console.log('URL:', `${BASE_URL}${path}`);
     if (requestBody) {
@@ -42,7 +42,7 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
     
     const data = await res.json() as Promise<T>;
     
-    if (path !== '/api/health') {
+    if (import.meta.env.DEV && path !== '/api/health') {
       console.group(`✅ API Response: ${method} ${path}`);
       console.log('Status:', res.status);
       console.log('Data:', data);

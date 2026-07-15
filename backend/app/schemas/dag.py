@@ -59,6 +59,13 @@ class ExecutionParams(BaseModel):
     init_cash: float = 10000.0
     fees: float = Field(default=0.001, gt=0.0)
     slippage: float = Field(default=0.001, gt=0.0)
+    # Faza 12: zarządzanie ryzykiem (stop-loss / take-profit / trailing) i sizing pozycji.
+    sl_stop: float | None = Field(default=None, gt=0.0, le=1.0)
+    tp_stop: float | None = Field(default=None, gt=0.0, le=1.0)
+    sl_trail: bool = False
+    size: float | None = Field(default=None, gt=0.0)
+    # Whitelist typów sizingu vectorbt: amount | value | percent.
+    size_type: Literal["amount", "value", "percent"] = "amount"
 
 
 class ExecutionNode(BaseNode):

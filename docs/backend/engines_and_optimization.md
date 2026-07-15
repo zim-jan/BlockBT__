@@ -2,6 +2,12 @@
 
 BlockBT wykorzystuje unikalną architekturę dwóch silników, która pozwala na elastyczne przełączanie się między rozwiązaniami Open-Source a wersjami komercyjnymi, przy jednoczesnym zachowaniu spójnego API dla reszty aplikacji.
 
+!!! note "Zakres pracy dyplomowej"
+    W ramach pracy rozwijany i testowany jest **wyłącznie `OpenSourceEngine`** (darmowy `vectorbt`).
+    `ProEngine` to jedynie **hook BYOL działający w trybie mock** — nie jest zaimplementowany produkcyjnie
+    (brak licencji `vectorbtpro`) i nie podlega ocenie funkcjonalnej. Opisany niżej wzorzec Dual-Engine
+    to decyzja architektoniczna (rozszerzalność), nie działająca integracja komercyjna.
+
 ## Architektura Silników
 
 Rdzeniem systemu jest abstrakcyjny interfejs `BaseStrategyEngine` (`backend/app/services/engine/base.py`), który definiuje standardowe metody dla każdego silnika backtestowego.

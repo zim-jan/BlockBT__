@@ -94,7 +94,7 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
   updateNodeData: (nodeId, data) =>
     set((s) => {
       const updatedNode = s.nodes.find((n) => n.id === nodeId)
-      const isDependencyNode = updatedNode && ['dataNode', 'indicatorNode', 'signalNode'].includes(updatedNode.type ?? '')
+      const isDependencyNode = updatedNode && ['dataNode', 'indicatorNode', 'signalNode', 'timeShiftNode'].includes(updatedNode.type ?? '')
       
       return {
         nodes: s.nodes.map((n) => {
@@ -221,7 +221,8 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
       errorMessage: null,
       nodes: s.nodes.map((n) => {
         if (n.type === 'portfolioNode') {
-          return { ...n, data: { jobStatus: undefined, metrics: undefined, jobId: undefined, error: undefined } }
+          // FIX (review 2026-07-15): spread ...n.data — inaczej reset kasował init_cash/fees/slippage/sl_stop/tp_stop/size (Faza 12)
+          return { ...n, data: { ...n.data, jobStatus: undefined, metrics: undefined, jobId: undefined, error: undefined } }
         }
         if (n.type === 'optimizerNode') {
           return { ...n, data: { ...n.data, jobStatus: undefined, bestParameters: undefined, bestValue: undefined, trials: undefined, jobId: undefined, error: undefined } }

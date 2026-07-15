@@ -205,6 +205,13 @@ export interface PortfolioNodeData extends Record<string, unknown> {
   init_cash?: number
   fees?: number
   slippage?: number
+  /** Stop Loss jako ułamek 0..1 (backend ExecutionParams.sl_stop). UI pokazuje %, store trzyma ułamek. */
+  sl_stop?: number
+  /** Take Profit jako ułamek 0..1 (backend ExecutionParams.tp_stop). UI pokazuje %, store trzyma ułamek. */
+  tp_stop?: number
+  /** Rozmiar pozycji — interpretacja zależna od size_type (backend ExecutionParams.size). */
+  size?: number
+  size_type?: 'amount' | 'value' | 'percent'
   jobStatus?: JobStatus
   metrics?: BacktestMetrics | MultiBacktestResult | null
   jobId?: number

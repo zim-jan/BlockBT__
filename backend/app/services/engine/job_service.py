@@ -20,7 +20,7 @@ class JobService:
         error_message: str | None = None
     ) -> BacktestJob | None:
         """Update the state and results of a BacktestJob."""
-        job = db.query(BacktestJob).get(job_id)
+        job = db.get(BacktestJob, job_id)
         if not job:
             logger.warning(f"JobService: BacktestJob(id={job_id}) not found.")
             return None

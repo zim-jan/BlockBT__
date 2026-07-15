@@ -145,16 +145,17 @@ export function useWorkflowExecution() {
               sma_slow: smaSlow,
               n_days: 0, // Calculated later or ignored for now
               initial_capital: initialCapital,
-              total_return_pct: jd.total_return_pct ?? rawMetrics.total_return_pct ?? 0,
-              sharpe_ratio: jd.sharpe_ratio ?? rawMetrics.sharpe_ratio ?? 0,
-              max_drawdown_pct: jd.max_drawdown_pct ?? rawMetrics.max_drawdown_pct ?? 0,
-              num_trades: jd.num_trades ?? rawMetrics.num_trades ?? 0,
+              // FIX (review 2026-07-15): null zamiast 0 — fmt() renderuje null jako "—" (brak danych != wartosc zerowa)
+              total_return_pct: jd.total_return_pct ?? rawMetrics.total_return_pct ?? null,
+              sharpe_ratio: jd.sharpe_ratio ?? rawMetrics.sharpe_ratio ?? null,
+              max_drawdown_pct: jd.max_drawdown_pct ?? rawMetrics.max_drawdown_pct ?? null,
+              num_trades: jd.num_trades ?? rawMetrics.num_trades ?? null,
               final_capital: jd.final_capital ?? rawMetrics.final_capital ?? initialCapital,
-              win_rate_pct: rawMetrics.win_rate_pct ?? 0,
+              win_rate_pct: rawMetrics.win_rate_pct ?? null,
               equity_curve: jd.equity_curve || rawMetrics.equity_curve,
             }
             
-            console.log('📦 useWorkflowExecution: Formatted metrics for store:', finalMetrics)
+            if (import.meta.env.DEV) console.log('📦 useWorkflowExecution: Formatted metrics for store:', finalMetrics)
 
             updatePortfolioResult(
               finalMetrics,

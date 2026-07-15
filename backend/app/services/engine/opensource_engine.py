@@ -16,6 +16,7 @@ import quantstats as qs
 from loguru import logger
 
 from app.core.config import settings
+from app.core.utils.graph_parser import GraphValidationError
 from app.services.engine.base import BaseStrategyEngine
 from app.services.engine.indicators import IndicatorService
 
@@ -301,6 +302,12 @@ class OpenSourceEngine(BaseStrategyEngine):
             # daty rosnąco + deterministyczna kolejność symboli
             wide = wide.sort_index().sort_index(axis=1)
             wide = wide.ffill().dropna(how="any").astype(np.float64)
+            # Guard (review 2026-07-15): rozłączne kalendarze tickerów → pusty DataFrame po dropna;
+            # jawny błąd zamiast niejasnego crasha dalej w from_signals
+            if wide.empty:
+                raise ValueError(
+                    "Brak wspólnego zakresu dat dla podanych tickerów (po wyrównaniu kalendarzy dane są puste)."
+                )
             return wide
 
         # 2) Kolumnowy MultiIndex (pola × symbole) → wybór 'close'
@@ -310,6 +317,11 @@ class OpenSourceEngine(BaseStrategyEngine):
                 close_wide.index = pd.to_datetime(close_wide.index)
             close_wide = close_wide.sort_index().sort_index(axis=1)
             close_wide = close_wide.ffill().dropna(how="any").astype(np.float64)
+            # Guard (review 2026-07-15): jak wyżej — pusty wynik po wyrównaniu kalendarzy
+            if close_wide.empty:
+                raise ValueError(
+                    "Brak wspólnego zakresu dat dla podanych tickerów (po wyrównaniu kalendarzy dane są puste)."
+                )
             return close_wide
 
         # 3) Single-symbol → Series (dotychczasowe zachowanie)
@@ -337,6 +349,10 @@ class OpenSourceEngine(BaseStrategyEngine):
         data_node = next((n for n in nodes if n.get("category") == "DataIngestion"), {})
         ind_node = next((n for n in nodes if n.get("category") == "Indicators"), {})
         exec_node = next((n for n in nodes if n.get("category") == "Execution"), {})
+
+        # Faza 12: DAG musi zawierać węzeł Indicators (brak sygnałów bez wskaźnika).
+        if not any(n.get("category") == "Indicators" for n in nodes):
+            raise GraphValidationError("DAG musi zawierać węzeł Indicators.")
 
         ind_params = ind_node.get("params", {})
         exec_params = exec_node.get("params", {})
@@ -383,6 +399,12 @@ class OpenSourceEngine(BaseStrategyEngine):
             return self._build_multi_symbol_result(portfolio, close, timeframe)
 
         stats = portfolio.stats()
+        # Faza 12: liczniki wyjść SL/TP (vbt ich nie eksponuje w stats() — dokładamy do raw).
+        sl_stop = exec_params.get("sl_stop")
+        tp_stop = exec_params.get("tp_stop")
+        sl_trail = bool(exec_params.get("sl_trail", False))
+        slippage = float(exec_params.get("slippage", 0.001))
+        stop_exits = self._count_stop_exits(portfolio, close, sl_stop, tp_stop, sl_trail, slippage)
         total_return = float(portfolio.total_return() * 100)
         sharpe = float(portfolio.sharpe_ratio())
         drawdown = float(portfolio.max_drawdown() * 100)
@@ -410,6 +432,13 @@ class OpenSourceEngine(BaseStrategyEngine):
         }
         response_metrics.update(qs_metrics)
 
+        raw_stats = stats.to_dict() if hasattr(stats, "to_dict") else dict(stats)
+        # Faza 12: dokładamy liczniki wyjść SL/TP tylko gdy dany stop był ustawiony.
+        if sl_stop is not None:
+            raw_stats["Stop Loss Exits"] = stop_exits["Stop Loss Exits"]
+        if tp_stop is not None:
+            raw_stats["Take Profit Exits"] = stop_exits["Take Profit Exits"]
+
         equity_curve = []
         try:
             if isinstance(portfolio.value(), pd.Series):
@@ -431,8 +460,79 @@ class OpenSourceEngine(BaseStrategyEngine):
             "final_capital": final_val,
             "equity_curve": equity_curve,
             "metrics": response_metrics,
-            "raw": stats.to_dict() if hasattr(stats, "to_dict") else dict(stats),
+            "raw": raw_stats,
         }
+
+    @staticmethod
+    def _count_stop_exits(
+        portfolio: Any,
+        close: pd.Series,
+        sl_stop: float | None,
+        tp_stop: float | None,
+        sl_trail: bool = False,
+        slippage: float = 0.001,
+    ) -> dict[str, int]:
+        """
+        Faza 12: klasyfikacja zamkniętych transakcji po cenie wyjścia względem poziomów stopów.
+
+        vbt (open source 1.0) nie etykietuje wyjść SL/TP w rekordach transakcji, więc
+        rekonstruujemy je z cen wejścia/wyjścia. Dla stopu stałego poziom SL jest liczony
+        od ceny wejścia; dla stopu podążającego (sl_trail=True) — od biegnącego ekstremum
+        ceny w oknie trwania pozycji (Long: szczyt, Short: dołek), bo trailing przesuwa
+        stop za ceną. TP jest zawsze liczony od ceny wejścia (tp_stop nie podąża).
+
+        Tolerancja `eps` uwzględnia poślizg (Avg Exit Price zawiera slippage), więc jest
+        wyprowadzana z parametru slippage. UWAGA: klasyfikacja jest heurystyczna — wyjście
+        sygnałowe, które przypadkiem trafi poza próg, zostanie policzone jako stop; przy
+        aktywnych stopach vbt zwykle domyka pozycję stopem jako pierwszym, więc w praktyce
+        jest to bezpieczne (szczegóły i ograniczenia: ADR-0003).
+        """
+        counts = {"Stop Loss Exits": 0, "Take Profit Exits": 0}
+        if sl_stop is None and tp_stop is None:
+            return counts
+
+        # Avg Exit Price zawiera slippage → tolerancja co najmniej rzędu slippage.
+        eps = max(1e-3, 2.0 * float(slippage))
+        try:
+            trades = portfolio.trades.records_readable
+        except Exception:
+            return counts
+
+        for _, row in trades.iterrows():
+            if row.get("Status") != "Closed":
+                continue
+            try:
+                entry = float(row["Avg Entry Price"])
+                exit_price = float(row["Avg Exit Price"])
+            except (TypeError, ValueError, KeyError):
+                continue
+            if not (np.isfinite(entry) and np.isfinite(exit_price)):
+                continue
+            is_long = str(row.get("Direction", "Long")).lower() == "long"
+
+            # Poziom odniesienia SL: cena wejścia (stop stały) lub ekstremum ceny w oknie
+            # trwania pozycji (stop podążający — poziom trailinguje za ceną).
+            sl_ref = entry
+            if sl_trail and sl_stop is not None:
+                try:
+                    window = close.loc[row["Entry Timestamp"]:row["Exit Timestamp"]]
+                    if len(window) > 0:
+                        sl_ref = float(window.max() if is_long else window.min())
+                except Exception:
+                    sl_ref = entry
+
+            if sl_stop is not None:
+                if is_long and exit_price <= sl_ref * (1 - sl_stop) * (1 + eps):
+                    counts["Stop Loss Exits"] += 1
+                elif not is_long and exit_price >= sl_ref * (1 + sl_stop) * (1 - eps):
+                    counts["Stop Loss Exits"] += 1
+            if tp_stop is not None:
+                if is_long and exit_price >= entry * (1 + tp_stop) * (1 - eps):
+                    counts["Take Profit Exits"] += 1
+                elif not is_long and exit_price <= entry * (1 - tp_stop) * (1 + eps):
+                    counts["Take Profit Exits"] += 1
+
+        return counts
 
     @staticmethod
     def _finite_or_zero(value: Any) -> float:
@@ -543,17 +643,35 @@ class OpenSourceEngine(BaseStrategyEngine):
         """
         fees = float(params.get("fees", 0.001))
         slippage = float(params.get("slippage", 0.001))
-        init_cash = float(params.get("init_cash", 10000.0))
+        # FIX (review 2026-07-15): fallback na initialCapital jak w run_dag_backtest —
+        # inaczej raport i egzekucja portfela mogły rozjechać się przy surowym diccie z samym initialCapital
+        init_cash = float(params.get("init_cash", params.get("initialCapital", 10000.0)))
 
         if fees <= 0 or slippage <= 0:
             raise ValueError("Zero-Cost Fallacy: Fees i Slippage muszą być > 0.")
 
-        return self.vbt.Portfolio.from_signals(
-            close=price_data,
-            entries=entries,
-            exits=exits,
-            init_cash=init_cash,
-            fees=fees,
-            slippage=slippage,
-            freq="D"
-        )
+        # Faza 12: parametry ryzyka i sizingu (dokładane tylko gdy ustawione).
+        kwargs: dict[str, Any] = {
+            "close": price_data,
+            "entries": entries,
+            "exits": exits,
+            "init_cash": init_cash,
+            "fees": fees,
+            "slippage": slippage,
+            "freq": "D",
+        }
+
+        sl_stop = params.get("sl_stop")
+        tp_stop = params.get("tp_stop")
+        size = params.get("size")
+        if sl_stop is not None:
+            kwargs["sl_stop"] = float(sl_stop)
+            kwargs["sl_trail"] = bool(params.get("sl_trail", False))
+        if tp_stop is not None:
+            kwargs["tp_stop"] = float(tp_stop)
+        if size is not None:
+            kwargs["size"] = float(size)
+            # vbt akceptuje string size_type wprost: amount | value | percent.
+            kwargs["size_type"] = str(params.get("size_type", "amount"))
+
+        return self.vbt.Portfolio.from_signals(**kwargs)

@@ -181,7 +181,7 @@ class OptunaOptimizer:
             current_params = base_parameters.copy()
             for name, bounds in param_bounds.items():
                 # Support both Pydantic model and dict
-                b = bounds.dict() if hasattr(bounds, "dict") else bounds
+                b = bounds.model_dump() if hasattr(bounds, "model_dump") else bounds
                 p_type = b.get("type", "int")
 
                 if p_type == "int":
@@ -205,11 +205,13 @@ class OptunaOptimizer:
 
             try:
                 execution_result = self.engine.run_backtest(data, current_params)
-                val = execution_result.get("metrics", {}).get(metric, 0.0)
-                return float(val) if val is not None else 0.0
+                val = execution_result.get("metrics", {}).get(metric)
+                # FIX (review 2026-07-15): brak metryki / crash trialu → -inf (direction=maximize),
+                # inaczej 0.0 wygrywało z poprawnymi, ujemnymi wynikami i fałszowało best_params
+                return float(val) if val is not None else float("-inf")
             except Exception as e:
                 logger.error(f"Trial {trial.number} failed: {e}")
-                return 0.0
+                return float("-inf")
 
         study = optuna.create_study(direction="maximize")
         study.optimize(objective, n_trials=n_trials)
@@ -248,7 +250,12 @@ class WalkForwardOptimizer:
         step_size: str = "90d",
     ) -> dict[str, Any]:
         """Run a walk-forward optimization.
-        Currently implements a simple rolling backtest (anchored or non-anchored).
+
+        UWAGA (review 2026-07-15): obecna implementacja to STUB — wykonuje pojedynczy
+        backtest na całym zakresie danych; `window_size`/`step_size` są tylko echem w
+        odpowiedzi, NIE ma realnego podziału in-sample/out-of-sample. Pełny rolling WFO
+        (optymalizacja na train, ewaluacja na test) to osobne zadanie — patrz
+        15072026-review/01-backend-code-review.md (MED). Nie prezentować jako pełne WFO.
         """
         logger.info("Starting Walk-Forward Optimization | window={} step={}", window_size, step_size)
         
@@ -267,4 +274,4 @@ class WalkForwardOptimizer:
             }
         except Exception as e:
             logger.error("WFO failed: {}", e)
-            raise e
+            raise

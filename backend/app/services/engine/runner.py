@@ -20,11 +20,12 @@ from app.services.engine.loader import EngineLoader
 from app.services.engine.opensource_engine import _setup_vbt
 from app.services.engine.optimizer import OptunaOptimizer, WalkForwardOptimizer
 
-# Initialize vbt once
+# Initialize vbt once — reeksportowane i używane przez app.api.indicators (NIE usuwać)
 try:
     vbt = _setup_vbt()
-except Exception:
-    pass  # Fallback
+except Exception:  # noqa: BLE001 — fallback gdy vbt niedostępne przy imporcie
+    vbt = None
+    logger.warning("runner: _setup_vbt() nieudane przy imporcie — vbt=None")
 
 
 def _serialize_metric_value(v: Any) -> Any:

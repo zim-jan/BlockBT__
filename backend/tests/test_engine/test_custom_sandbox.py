@@ -48,6 +48,17 @@ MALICIOUS_SNIPPETS: list[str] = [
     "close.to_csv('/tmp/evil.csv')",
     "close.to_pickle('/tmp/evil.pkl')",
     "close.to_parquet('/tmp/evil.parquet')",
+    # ODCZYT / deserializacja / sieć / alternatywny eval (review 2026-07-15)
+    "out = pd.read_pickle('/etc/passwd')",   # pickle → RCE
+    "out = pd.read_csv('http://evil/x')",    # odczyt + SSRF
+    "out = pd.read_parquet('/tmp/x')",
+    "out = np.load('/tmp/x.npy')",           # np.load = pickle → RCE
+    "out = np.fromfile('/tmp/x')",
+    "out = np.frombuffer(b'')",
+    "out = pd.eval('1+1')",                  # alternatywny eval przez atrybut
+    "out = close.query('a > 1')",            # DataFrame.query = eval
+    "out = vbt.YFData.download('AAPL')",     # dostęp sieciowy
+    "out = close.get_data()",
     # importy w każdej odmianie (brak Import/ImportFrom w allowliście)
     "import os",
     "from os import system",

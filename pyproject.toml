@@ -52,8 +52,7 @@ dependencies = [
     "psycopg-binary",
     "langchain-text-splitters",
     "mcp[cli]",
-    "mkdocstrings",
-    "ruff",
+    # ruff/mkdocstrings przeniesione do [dev] — to narzędzia deweloperskie, nie zależności runtime (review 2026-07-15)
     "pandas-stubs~=2.3.3",
     "vectorbt[rust]>=1.0.0",
     "quantstats>=0.0.81",
