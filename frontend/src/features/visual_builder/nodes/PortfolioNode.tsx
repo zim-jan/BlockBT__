@@ -212,6 +212,19 @@ export function PortfolioNode({ id, data }: Props) {
               className="rf-input"
               style={{ fontSize: '12px' }}
             />
+            {/* size_type — backend interpretuje `size` zaleznie od tej jednostki (Faza 12) */}
+            <select
+              id={`${id}-size-type`}
+              aria-label="Size unit"
+              value={data.size_type ?? 'amount'}
+              onChange={(e) => updateNodeData(id, { size_type: e.target.value as PortfolioNodeData['size_type'] } as any)}
+              className="rf-input"
+              style={{ fontSize: '11px', marginTop: '4px' }}
+            >
+              <option value="amount">amount</option>
+              <option value="value">value</option>
+              <option value="percent">percent</option>
+            </select>
           </div>
         </div>
 

@@ -59,6 +59,51 @@ describe('workflowStore', () => {
     expect(useWorkflowStore.getState().nodes[0].data.isOutdated).toBe(false)
   })
 
+  it('resetExecution preserves portfolio config (fees/slippage/sl_stop/tp_stop/size) — regresja Fazy 12', () => {
+    const store = useWorkflowStore.getState()
+    store.addNode('portfolioNode')
+    const portfolioNodeId = useWorkflowStore.getState().nodes[0].id
+
+    // Konfiguracja ryzyka + wynik wykonania
+    useWorkflowStore.getState().updateNodeData(portfolioNodeId, {
+      sl_stop: 0.05, tp_stop: 0.1, size: 100, size_type: 'value',
+      jobStatus: 'COMPLETED', metrics: { total_return_pct: 10 } as any, jobId: 7,
+    } as any)
+
+    useWorkflowStore.getState().resetExecution()
+
+    const node = useWorkflowStore.getState().nodes.find(n => n.id === portfolioNodeId)!
+    // Pola wykonania wyczyszczone
+    expect(node.data.jobStatus).toBeUndefined()
+    expect(node.data.metrics).toBeUndefined()
+    // Konfiguracja PRZETRWAŁA reset
+    expect(node.data.sl_stop).toBe(0.05)
+    expect(node.data.tp_stop).toBe(0.1)
+    expect(node.data.size).toBe(100)
+    expect(node.data.size_type).toBe('value')
+    expect(node.data.init_cash).toBe(10000)
+    expect(node.data.fees).toBe(0.001)
+  })
+
+  it('updating timeShiftNode invalidates downstream execution nodes', () => {
+    const store = useWorkflowStore.getState()
+    store.addNode('timeShiftNode')
+    store.addNode('portfolioNode')
+    const nodes = useWorkflowStore.getState().nodes
+    const timeShiftId = nodes.find(n => n.type === 'timeShiftNode')!.id
+    const portfolioId = nodes.find(n => n.type === 'portfolioNode')!.id
+
+    useWorkflowStore.getState().updateNodeData(portfolioId, {
+      jobStatus: 'COMPLETED', metrics: { total_return_pct: 10 } as any, jobId: 5,
+    } as any)
+
+    useWorkflowStore.getState().updateNodeData(timeShiftId, { shift_periods: 3 } as any)
+
+    const portfolio = useWorkflowStore.getState().nodes.find(n => n.id === portfolioId)!
+    expect(portfolio.data.jobStatus).toBeUndefined()
+    expect(portfolio.data.metrics).toBeUndefined()
+  })
+
   it('exportDAG splits comma-separated symbol into an array (multi-symbol)', () => {
     const store = useWorkflowStore.getState()
     store.addNode('dataNode')
