@@ -70,6 +70,7 @@ def test_njit_faster_than_pure_python():
     identyczna pętla w czystym Pythonie na dużej tablicy.
     """
     factory = IndicatorService.compile_custom_indicator(NUMBA_INDICATOR_CODE)
+    np.random.seed(42)  # deterministyczne dane → stabilny pomiar
     close = np.random.random(500_000).astype(np.float64)
 
     # Rozgrzewka — koszt kompilacji JIT poza pomiarem.
@@ -83,8 +84,11 @@ def test_njit_faster_than_pure_python():
     _rolling_mean_py(close)
     t_py = time.perf_counter() - t0
 
-    # Konserwatywny próg — JIT powinien być wyraźnie szybszy niż pętla Pythona.
-    assert t_jit < t_py, f"JIT ({t_jit:.4f}s) nie szybszy niż Python ({t_py:.4f}s)"
+    # Próg z marginesem: JIT musi być co najmniej 5× szybszy. Goły `t_jit < t_py`
+    # bywał niestabilny — narzut vbt na wywołaniu potrafi zbliżyć czasy przy szumie.
+    assert t_jit < t_py / 5, (
+        f"JIT ({t_jit:.4f}s) nie ≥5× szybszy niż Python ({t_py:.4f}s)"
+    )
 
 
 # Kontrakt wyboru funkcji (Faza 11, #8 z code review): przy wielu funkcjach
@@ -107,3 +111,26 @@ def test_first_function_is_the_core_not_last():
 
     # main_indicator → *2 = [2,4,6]; błąd (helper) dałby [1000,1001,1002].
     np.testing.assert_allclose(out, [2.0, 4.0, 6.0], rtol=1e-9)
+
+
+# Kontrakt funkcji pomocniczych (code review #1): rdzeń MOŻE wołać helpera.
+# Rozdzielone globals/locals w exec sprawiały, że helper był niewidoczny w
+# `__globals__` rdzenia → `NameError` przy `.run()`. Ten test to wychwytuje.
+CORE_CALLS_HELPER_CODE = """
+def indicator(close):
+    return _double(close) + 1.0
+
+def _double(x):
+    return x * 2.0
+"""
+
+
+def test_core_can_call_helper_function():
+    """#1: rdzeń wołający funkcję pomocniczą liczy poprawnie (brak NameError)."""
+    factory = IndicatorService.compile_custom_indicator(CORE_CALLS_HELPER_CODE)
+    close = np.array([1.0, 2.0, 3.0], dtype=np.float64)
+
+    out = np.asarray(factory.run(close).out).ravel()
+
+    # indicator = _double(close) + 1 = close*2 + 1 = [3, 5, 7].
+    np.testing.assert_allclose(out, [3.0, 5.0, 7.0], rtol=1e-9)

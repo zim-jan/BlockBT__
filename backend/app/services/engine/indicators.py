@@ -76,6 +76,9 @@ class IndicatorService:
             "to_latex", "to_stata", "to_gbq", "to_clipboard", "to_orc",
             # wykonanie procesów / serializacja bajtów
             "system", "popen", "spawn", "communicate", "dump", "dumps",
+            # str.format sięga atrybutów przez pola '{0.__globals__}' → obejście
+            # zakazu dunderów; wskaźnik liczbowy nie potrzebuje formatowania stringów.
+            "format", "format_map",
         }
     )
 
@@ -150,13 +153,17 @@ class IndicatorService:
         import vectorbt as vbt_mod
         from numba import njit
 
-        safe_globals: dict[str, Any] = {
+        # Jedna wspólna przestrzeń nazw (globals == locals). Kluczowe dla kontraktu
+        # funkcji pomocniczych: definicje najwyższego poziomu lądują w `safe_ns`,
+        # a każda funkcja rozwiązuje wolne nazwy przez własne `__globals__` = `safe_ns`.
+        # Rozdzielone globals/locals sprawiały, że rdzeń wołający helpera dostawał
+        # `NameError` przy `.run()` (helper był niewidoczny w globalsach funkcji).
+        safe_ns: dict[str, Any] = {
             "__builtins__": cls._safe_builtins(),
             "np": np,
         }
-        local_ns: dict[str, Any] = {}
         try:
-            exec(compile(code, "<custom_indicator>", "exec"), safe_globals, local_ns)
+            exec(compile(code, "<custom_indicator>", "exec"), safe_ns)
         except Exception as exc:
             raise ValueError(
                 f"Unsafe code detected: błąd wykonania kodu wskaźnika ({exc})."
@@ -171,18 +178,29 @@ class IndicatorService:
             raise ValueError(
                 "Kod wskaźnika musi definiować funkcję (np. 'def custom_oscillator(close): ...')."
             )
-        user_fn = local_ns.get(func_names[0])
+        user_fn = safe_ns.get(func_names[0])
         if not callable(user_fn):
             raise ValueError("Nie udało się pobrać funkcji wskaźnika z kodu użytkownika.")
 
         # Kontrakt dla użytkownika: funkcja przyjmuje 1-wymiarową serię cen
         # (numpy) i zwraca 1-wymiarowy wynik. Rdzeń liczbowy kompilujemy @njit
         # ("Prędkość C"); kompilacja jest leniwa — następuje przy pierwszym `.run()`.
-        try:
-            jit_core = njit(user_fn)
-        except Exception:  # pragma: no cover - fallback dla nietypowych domknięć
-            logger.warning("compile_custom_indicator: njit nie owinął funkcji, fallback bez JIT")
-            jit_core = user_fn
+        #
+        # njit-ujemy KAŻDĄ funkcję najwyższego poziomu i podmieniamy ją w safe_ns.
+        # Numba w trybie nopython nie potrafi wywołać zwykłej funkcji-globala
+        # (TypingError: untyped global), więc helper wołany przez rdzeń też musi być
+        # dispatcherem njit. njit jest leniwe — owinięcie nieużywanego helpera nic
+        # nie kosztuje (skompiluje się dopiero przy realnym wywołaniu z rdzenia).
+        for name in func_names:
+            fn = safe_ns.get(name)
+            if callable(fn):
+                try:
+                    safe_ns[name] = njit(fn)
+                except Exception:  # pragma: no cover - nietypowe domknięcia
+                    logger.warning(
+                        "compile_custom_indicator: njit nie owinął '{}', fallback bez JIT", name
+                    )
+        jit_core = safe_ns.get(func_names[0])
 
         def apply_func(close: np.ndarray) -> np.ndarray:
             """
