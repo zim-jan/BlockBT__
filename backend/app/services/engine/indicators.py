@@ -60,6 +60,13 @@ class IndicatorService:
     # otwierają ucieczkę z sandboxa: dostęp do ramek/globalsów przez generatory,
     # surowa pamięć/interfejs C numpy oraz zapis dowolnego pliku na dysk
     # (serializatory pandas/numpy) — krytyczne w trybie Air-Gapped.
+    #
+    # UWAGA (review 2026-07-15): do exec wstrzykiwane są pełne moduły pd/np/vbt,
+    # więc denylista nazw jest z natury best-effort, NIE twardą granicą. Dla
+    # aplikacji self-hosted (użytkownik może "zhackować" tylko własną instancję)
+    # to świadomie wystarczające defense-in-depth — domykamy znane wektory
+    # (pickle-RCE, odczyt plików, dostęp sieciowy, alternatywny eval), a rodzinę
+    # `pd.read_*` blokujemy hurtowo prefiksem w `_validate_code_safety`.
     _FORBIDDEN_ATTRIBUTES: frozenset[str] = frozenset(
         {
             # ramki wykonania / generatory / korutyny → f_globals (nie-dunder!)
@@ -70,10 +77,17 @@ class IndicatorService:
             "ctypes", "tobytes", "tostring", "getbuffer", "setflags",
             # zapis na dysk (numpy)
             "tofile", "save", "savez", "savetxt",
+            # ODCZYT / deserializacja (numpy) — np.load = pickle → RCE; reszta = odczyt pliku
+            "load", "loadtxt", "genfromtxt", "fromfile", "frombuffer",
+            "memmap", "fromregex", "getfield",
             # zapis / serializacja na dysk (pandas)
             "to_pickle", "to_csv", "to_parquet", "to_hdf", "to_sql",
             "to_json", "to_feather", "to_excel", "to_xml", "to_html",
             "to_latex", "to_stata", "to_gbq", "to_clipboard", "to_orc",
+            # alternatywny eval (pandas): pd.eval / DataFrame.query
+            "eval", "query",
+            # dostęp sieciowy (vbt data downloaders) — łamie Air-Gapped
+            "download", "fetch", "get_data",
             # wykonanie procesów / serializacja bajtów
             "system", "popen", "spawn", "communicate", "dump", "dumps",
         }
@@ -118,6 +132,7 @@ class IndicatorService:
             if isinstance(node, ast.Attribute) and (
                 node.attr.startswith("__")
                 or node.attr.endswith("__")
+                or node.attr.startswith("read_")  # pd.read_pickle/read_csv/... hurtowo (odczyt/deserializacja)
                 or node.attr in cls._FORBIDDEN_ATTRIBUTES
             ):
                 raise ValueError(
