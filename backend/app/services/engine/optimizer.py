@@ -335,6 +335,64 @@ class WalkForwardOptimizer:
 
         return windows
 
+    def _evaluate_window(
+        self,
+        data: pd.DataFrame,
+        window_index: int,
+        bounds: tuple[pd.Timestamp, pd.Timestamp, pd.Timestamp, pd.Timestamp],
+        parameters: dict[str, Any],
+        param_bounds: dict[str, Any] | None,
+        n_trials: int,
+        metric: str,
+    ) -> dict[str, Any]:
+        """Przetwórz jedno okno WFO: optymalizacja IS (opcjonalna) + backtest OOS.
+
+        Zwraca raport okna (granice IS/OOS w ISO, ``best_params``, ``oos_metrics``
+        z guardem NaN/inf → 0.0; przy awarii backtestu OOS — metryki 0.0 + ``error``).
+        """
+        is_start, is_end, oos_start, oos_end = bounds
+        idx = data.index
+        is_df = data.loc[(idx >= is_start) & (idx < is_end)]
+        oos_df = data.loc[(idx >= oos_start) & (idx < oos_end)]
+
+        # 1) Optymalizacja in-sample (reuse istniejącego OptunaOptimizer)
+        if param_bounds:
+            optimizer = OptunaOptimizer(self.engine)
+            opt_result = optimizer.run_optimization(
+                param_bounds, is_df, parameters, n_trials=n_trials, metric=metric
+            )
+            best_params = {**parameters, **opt_result.get("best_params", {})}
+        else:
+            best_params = dict(parameters)
+
+        # 2) Backtest out-of-sample na najlepszych parametrach
+        error_msg: str | None = None
+        try:
+            oos_result = self.engine.run_backtest(oos_df, best_params)
+            oos_raw = oos_result.get("metrics", {})
+        except Exception as e:  # noqa: BLE001 — pojedyncze okno nie zrywa całego WFO
+            logger.error("WFO window {} OOS backtest failed: {}", window_index, e)
+            oos_raw = {}
+            error_msg = str(e)
+
+        report: dict[str, Any] = {
+            "window_index": window_index,
+            "is_start": is_start.isoformat(),
+            "is_end": is_end.isoformat(),
+            "oos_start": oos_start.isoformat(),
+            "oos_end": oos_end.isoformat(),
+            "is_rows": int(len(is_df)),
+            "oos_rows": int(len(oos_df)),
+            "best_params": best_params,
+            "oos_metrics": {
+                "Total Return [%]": self._finite_or_zero(oos_raw.get("Total Return [%]")),
+                "Sharpe Ratio": self._finite_or_zero(oos_raw.get("Sharpe Ratio")),
+            },
+        }
+        if error_msg is not None:
+            report["error"] = error_msg
+        return report
+
     def run_wfo(
         self,
         data: pd.DataFrame,
@@ -401,52 +459,12 @@ class WalkForwardOptimizer:
                 f"plus one out-of-sample observation (step_size={step_size})."
             )
 
-        idx = data.index
-        window_reports: list[dict[str, Any]] = []
-
-        for i, (is_start, is_end, oos_start, oos_end) in enumerate(windows):
-            is_df = data.loc[(idx >= is_start) & (idx < is_end)]
-            oos_df = data.loc[(idx >= oos_start) & (idx < oos_end)]
-
-            # 1) Optymalizacja in-sample (reuse istniejącego OptunaOptimizer)
-            if param_bounds:
-                optimizer = OptunaOptimizer(self.engine)
-                opt_result = optimizer.run_optimization(
-                    param_bounds, is_df, parameters, n_trials=n_trials, metric=metric
-                )
-                best_params = {**parameters, **opt_result.get("best_params", {})}
-            else:
-                best_params = dict(parameters)
-
-            # 2) Backtest out-of-sample na najlepszych parametrach
-            error_msg: str | None = None
-            try:
-                oos_result = self.engine.run_backtest(oos_df, best_params)
-                oos_raw = oos_result.get("metrics", {})
-            except Exception as e:  # noqa: BLE001 — pojedyncze okno nie zrywa całego WFO
-                logger.error("WFO window {} OOS backtest failed: {}", i, e)
-                oos_raw = {}
-                error_msg = str(e)
-
-            oos_metrics = {
-                "Total Return [%]": self._finite_or_zero(oos_raw.get("Total Return [%]")),
-                "Sharpe Ratio": self._finite_or_zero(oos_raw.get("Sharpe Ratio")),
-            }
-
-            report: dict[str, Any] = {
-                "window_index": i,
-                "is_start": is_start.isoformat(),
-                "is_end": is_end.isoformat(),
-                "oos_start": oos_start.isoformat(),
-                "oos_end": oos_end.isoformat(),
-                "is_rows": int(len(is_df)),
-                "oos_rows": int(len(oos_df)),
-                "best_params": best_params,
-                "oos_metrics": oos_metrics,
-            }
-            if error_msg is not None:
-                report["error"] = error_msg
-            window_reports.append(report)
+        window_reports = [
+            self._evaluate_window(
+                data, i, bounds, parameters, param_bounds, n_trials, metric
+            )
+            for i, bounds in enumerate(windows)
+        ]
 
         # 3) Agregacja metryk OOS: zwrot składany geometrycznie + średni Sharpe
         compound = 1.0
