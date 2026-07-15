@@ -47,9 +47,16 @@ Integracja z biblioteką **Optuna** dla inteligentnego przeszukiwania przestrzen
 - **Skalowalność**: Idealny dla strategii z dużą liczbą parametrów, gdzie Grid Search byłby zbyt czasochłonny.
 
 ### Walk-Forward Optimization (WFO)
-Zaawansowana metoda testowania strategii na oknach przesuwnych.
-- **Mechanizm**: Dzieli dane historyczne na segmenty (okna), trenując optymalizację na jednym i testując na kolejnym. Pomaga to uniknąć przeuczenia (overfittingu) i lepiej ocenić stabilność strategii w czasie.
-- **API**: Dostępne przez dedykowany endpoint `/api/optimizer/wfo` oraz węzeł `WfoNode` na frontendzie.
+Pełna implementacja testowania strategii na oknach przesuwnych (Faza 15, `WalkForwardOptimizer` w `backend/app/services/engine/optimizer.py`).
+
+- **Podział na okna**: `split_windows()` dzieli oś czasu na okna in-sample (IS) / out-of-sample (OOS) na przedziałach półotwartych — IS = `[is_start, is_end)`, OOS = `[is_end, oos_end)`. OOS zaczyna się dokładnie tam, gdzie kończy się IS, więc **look-ahead jest wykluczony z konstrukcji**. `window_size` (np. `"365d"`) to długość IS, `step_size` (np. `"90d"`) to długość OOS i jednocześnie krok przesuwu — segmenty OOS przylegają do siebie bez nakładania.
+- **Tryby okien**:
+    - `rolling` (domyślny) — okno IS o stałej długości przesuwa się o `step_size`,
+    - `anchored` — początek IS zakotwiczony na starcie danych, okno IS rośnie o `step_size`.
+- **Optymalizacja in-sample**: gdy żądanie zawiera `param_bounds`, w każdym oknie parametry są optymalizowane na danych IS przez istniejący `OptunaOptimizer` (`n_trials` prób, metryka celu `metric`), a następnie wykonywany jest backtest OOS na najlepszych parametrach. Bez `param_bounds` wykonywana jest czysta ewaluacja walk-forward na stałych parametrach strategii.
+- **Agregacja wyników**: raport zawiera metryki per okno (granice IS/OOS, `best_params`, `oos_metrics`) oraz łączne metryki OOS — zwrot całkowity składany geometrycznie z okien i uśredniony Sharpe Ratio; wartości NaN/inf są sprowadzane do `0.0` (konwencja silnika). Awaria backtestu pojedynczego okna nie przerywa całego WFO (okno dostaje metryki `0.0` i pole `error`).
+- **API**: `POST /api/optimizer/wfo` (schemat `WalkForwardRequest` — pola `mode`, `param_bounds`, `n_trials`, `metric` są opcjonalne i addytywne względem starego kontraktu) oraz węzeł `WfoNode` na frontendzie; wyniki per okno trafiają do `trials_data.trials` w `OptimizationJob`.
+- **Decyzje projektowe**: patrz [ADR-0006](../adr/0006-walk-forward-optimization.md).
 
 ---
 

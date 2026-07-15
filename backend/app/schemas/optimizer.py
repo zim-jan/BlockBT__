@@ -1,7 +1,7 @@
 from datetime import datetime
-from typing import Any
+from typing import Any, Literal
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class ParameterBounds(BaseModel):
@@ -37,10 +37,16 @@ class WalkForwardRequest(BaseModel):
     start_date: str | None = None
     end_date: str | None = None
     initial_capital: float = 10000.0
-    
+
     window_size: str = "365d"
     step_size: str = "90d"
     parameters: dict[str, Any] | None = None
+
+    # Faza 15 — rozszerzenia addytywne (opcjonalne, domyślne wartości = stary kontrakt)
+    mode: Literal["rolling", "anchored"] = "rolling"
+    param_bounds: dict[str, ParameterBounds] | None = None
+    n_trials: int = Field(default=15, ge=1, le=500)
+    metric: str = "Total Return [%]"
 
 
 class OptimizationJobResponse(BaseModel):

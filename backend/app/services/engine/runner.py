@@ -234,9 +234,19 @@ def run_walk_forward(
     parameters: dict[str, Any],
     window_size: str,
     step_size: str,
+    mode: str = "rolling",
+    param_bounds: dict[str, Any] | None = None,
+    n_trials: int = 15,
+    metric: str = "Total Return [%]",
 ) -> None:
-    """Background worker for executing Walk-Forward Optimization."""
-    logger.info(f"WFORunner: starting job_id={job_id} | window={window_size} step={step_size}")
+    """Background worker for executing Walk-Forward Optimization.
+
+    Faza 15: realny WFO — parametry ``mode``/``param_bounds``/``n_trials``/``metric``
+    są opcjonalne (domyślne wartości zachowują stary kontrakt wywołania).
+    """
+    logger.info(
+        f"WFORunner: starting job_id={job_id} | window={window_size} step={step_size} mode={mode}"
+    )
 
     with get_session() as db:
         JobService.update_optimization_status(db, job_id, JobStatus.RUNNING)
@@ -252,7 +262,16 @@ def run_walk_forward(
         engine = EngineLoader.load()
 
         optimizer = WalkForwardOptimizer(engine)
-        results = optimizer.run_wfo(df, parameters, window_size, step_size)
+        results = optimizer.run_wfo(
+            df,
+            parameters,
+            window_size,
+            step_size,
+            mode=mode,
+            param_bounds=param_bounds,
+            n_trials=n_trials,
+            metric=metric,
+        )
 
         with get_session() as db:
             JobService.update_optimization_status(db, job_id, JobStatus.COMPLETED, results=results)

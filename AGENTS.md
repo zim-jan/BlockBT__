@@ -218,6 +218,15 @@ Jesteś Głównym Architektem i Programistą w projekcie BlockBT. Pracujesz w ry
   Dokumentacja: Opis struktury JSON z /registry. [DONE] — `docs/backend/registry.md` + ADR-0005.
   Respond terse like smart caveman. All technical substance stay. Only fluff die.
 
+* **Faza 15: Realny Walk-Forward Optimization** [DONE]
+  Cel: Zastąpić stub `WalkForwardOptimizer.run_wfo` (pojedynczy backtest, review 2026-07-15 MED) realnym walk-forward. [DONE]
+    1. **Podział okien:** `split_windows(index, window_size, step_size, mode)` — przedziały półotwarte IS `[is_start, is_end)` / OOS `[is_end, oos_end)`, `oos_start == is_end` → brak look-ahead z konstrukcji; tryby `rolling` (IS stałej długości, przesuw o step) i `anchored` (IS rośnie od startu danych); `step_size` = długość OOS i krok (segmenty OOS przylegają, bez nakładania). [DONE]
+    2. **Per okno:** opcjonalna optymalizacja in-sample przez reuse `OptunaOptimizer` (`param_bounds`/`n_trials`/`metric`), potem backtest OOS na `{**parameters, **best_params}`; bez `param_bounds` — czysta ewaluacja WFO na stałych parametrach (stara ścieżka `WfoNode`). Awaria okna nie zrywa WFO (metryki 0.0 + `error`). [DONE]
+    3. **Agregacja:** metryki per okno + łączne OOS — zwrot składany geometrycznie, Sharpe uśredniony, guard NaN/inf → 0.0 (`_finite_or_zero`); `best_params`/`best_value`/`trials` w wyniku = kontrakt `JobService` → kolumny `OptimizationJob`, okna w `trials_data.trials` (czyta `WfoNode`). [DONE]
+    4. **API:** `WalkForwardRequest` rozszerzony ADDYTYWNIE o opcjonalne `mode` (`Literal["rolling","anchored"]`), `param_bounds`, `n_trials` (1..500), `metric`; `POST /api/optimizer/wfo` i `run_walk_forward` przekazują nowe opcje (defaulty = stary kontrakt, frontend niezłamany). [DONE]
+  Testy: 15/15 (podział okien rolling/anchored + brak look-ahead, agregacja i guardy NaN/inf na FakeEngine, Optuna in-sample, E2E endpointu na danych syntetycznych z mockiem `_fetch_market_data`, walidacja 422/404). Pełna suita 165 pass / 0 fail (baseline 152, 2 stare testy stubu zastąpione). [DONE]
+  Dokumentacja: `docs/backend/engines_and_optimization.md` (sekcja WFO bez wzmianek o stubie) + ADR-0006. [DONE]
+
 * **Faza xx: Konteneryzacja, docker i docker compose**
   * STATUS : [PENDING]
 
