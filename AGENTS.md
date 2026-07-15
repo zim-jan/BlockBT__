@@ -138,10 +138,39 @@ Jesteś Głównym Architektem i Programistą w projekcie BlockBT. Pracujesz w ry
         + `.react-flow__handle { min-width: 20px; min-height: 20px; }` w **aktywnym**
         `assets/index.css` (obszar startu przeciągania; default 6x6px).
         Ref: https://reactflow.dev/api-reference/react-flow#connectionradius
-* **Faza 9.2: Poprawki 2:**
-  * Status: [DRAFT] 
+* **Faza 9.2: Poprawki 2 (EasyConnect):**
+  * Status: [PARTIAL] — oczywiste bugi naprawione (branch fix/review-backlog, 2026-07-15); pełny wzorzec easy-connect świadomie odłożony
   * Cel: Rozwiązanie znalezionych problemów z easyconnect
-    * Opis: Po włączeniu opcji easyconnect 
+  * Diagnoza (code review 2026-07-15) — zidentyfikowane problemy i ich stan:
+    1. **Martwy arkusz stylów [NAPRAWIONE]:** cały CSS easy-connect (ukrywanie standardowych
+       uchwytów, niewidzialne 40px strefy `easy-connect-handle`, z-index dla treści węzłów)
+       żył w `src/index.css`, którego aplikacja nie importuje (aktywny arkusz: `assets/index.css`).
+       Klasa `easy-connect-active` nie miała więc ŻADNEGO efektu wizualnego — tryb EasyConnect
+       realnie zmieniał tylko komponent linii połączenia (FloatingConnectionLine) i typ nowych
+       krawędzi (floating). Martwy plik usunięty; jego CSS celowo NIE przeniesiony (patrz „Odłożone").
+    2. **Kotwiczenie krawędzi floating [NAPRAWIONE]:** `edges/utils.ts` szukał uchwytów wyłącznie
+       w `handleBounds.source`; węzeł Portfolio ma tylko uchwyt `target`, więc krawędź floating
+       zawsze spadała do fallbacku i kończyła się w ŚRODKU węzła (pod jego bryłą).
+       Fix: wyszukiwanie source → target.
+    3. **Fallbacki `||` na współrzędnych [NAPRAWIONE]:** `FloatingConnectionLine` traktował
+       współrzędną 0 jak brak wartości (`tx || toX`). Fix: `??`.
+    4. **Mieszane typy krawędzi po przełączeniu trybu [NAPRAWIONE]:** typ (`floating`/`default`)
+       zapisywał się w krawędzi w momencie utworzenia (`defaultEdgeOptions`), więc po zmianie
+       trybu graf renderował mieszankę typów. Fix: typ krawędzi jest pochodną aktualnego trybu
+       (mapowanie w render `WorkflowEditor`), store przechowuje krawędzie bez zmian.
+  * Odłożone (świadomie — wyższe ryzyko, do decyzji przy powrocie do fazy):
+    * Pełny wzorzec easy-connect z oficjalnego przykładu React Flow
+      (`docs/external_libs/react_flow/examples_easy-connect.md`): pełnowymiarowe uchwyty
+      source+target przełączane przez `useConnection()` + `isConnectableStart={false}` na target.
+      Wymaga przebudowy wszystkich 7 węzłów. Stary CSS (ukrywanie uchwytów target + niewidzialne
+      40px strefy) NIE został przeniesiony do aktywnego arkusza, bo ukrycie uchwytów target
+      utrudnia/psuje kończenie połączeń w trybie strict (drop polega wtedy na przyciąganiu do
+      nieaktualnych bounds ukrytych uchwytów — kruche).
+    * Klasa `react-flow__node-drag-handle` na nagłówkach węzłów nie działa bez ustawienia
+      właściwości `dragHandle` na węźle (dziś cały węzeł jest draggable; przy pełnowymiarowych
+      uchwytach trzeba to domknąć).
+  * Uwaga: po fixie Kroku 5 Fazy 9.1 (`connectionRadius={40}` + min 20px uchwyty) łączenie
+    węzłów jest wygodne również bez trybu EasyConnect.
 
 * **Faza 9.3: Stabilizacja Pipeline DAG (Filar 0)**
   * Status: [DONE]

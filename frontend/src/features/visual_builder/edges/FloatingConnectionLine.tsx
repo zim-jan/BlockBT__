@@ -26,13 +26,15 @@ function FloatingConnectionLine({
 
   const { sx, sy, tx, ty, sourcePos, targetPos } = getEdgeParams(fromNode, targetNode);
 
+  // Faza 9.2: `??` zamiast `||` — współrzędna 0 jest poprawną wartością,
+  // a `||` traktował ją jak brak i podmieniał na pozycję kursora.
   const [edgePath] = getBezierPath({
     sourceX: sx,
     sourceY: sy,
-    sourcePosition: sourcePos || fromPosition,
-    targetPosition: targetPos || toPosition,
-    targetX: tx || toX,
-    targetY: ty || toY,
+    sourcePosition: sourcePos ?? fromPosition,
+    targetPosition: targetPos ?? toPosition,
+    targetX: tx ?? toX,
+    targetY: ty ?? toY,
   });
 
   return (

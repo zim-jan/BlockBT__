@@ -1,4 +1,4 @@
-import {useCallback, useState} from 'react'
+import {useCallback, useMemo, useState} from 'react'
 import {ReactFlow, Background, Controls, MiniMap, Panel,} from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
 import {useWorkflowStore} from '../../store/workflowStore'
@@ -44,6 +44,14 @@ export function WorkflowEditor() {
 
   const [isModalOpen, setIsModalOpen] = useState(false)
 
+  // Faza 9.2: typ krawędzi jest pochodną AKTUALNEGO trybu (floating vs default).
+  // Wcześniej typ zapisywał się przy utworzeniu krawędzi (defaultEdgeOptions),
+  // więc po przełączeniu Easy Connect graf renderował mieszane typy krawędzi.
+  const displayEdges = useMemo(
+    () => edges.map((e) => ({ ...e, type: isEasyConnectMode ? 'floating' : 'default' })),
+    [edges, isEasyConnectMode],
+  )
+
   const onDragOver = useCallback((event: React.DragEvent) => {
     event.preventDefault()
     event.dataTransfer.dropEffect = 'move'
@@ -80,7 +88,7 @@ export function WorkflowEditor() {
     <div style={{ width: '100%', height: '100%' }} className={isEasyConnectMode ? 'easy-connect-active' : ''}>
       <ReactFlow
         nodes={nodes}
-        edges={edges}
+        edges={displayEdges}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
@@ -92,10 +100,7 @@ export function WorkflowEditor() {
         connectionRadius={40}
         proOptions={{ hideAttribution: true }}
         connectionLineComponent={isEasyConnectMode ? FloatingConnectionLine : undefined}
-        defaultEdgeOptions={{
-           type: isEasyConnectMode ? 'floating' : 'default',
-           animated: true
-        }}
+        defaultEdgeOptions={{ animated: true }}
       >
         <Background gap={16} />
         <Controls />

@@ -23,10 +23,16 @@ function getParams(nodeA: any, nodeB: any) {
 }
 
 function getHandleCoordsByPosition(node: any, handlePosition: Position) {
-  // all handles are from type source, that's why we use handleBounds.source here
-  const handle = node.internals.handleBounds?.source?.find(
-    (h: any) => h.position === handlePosition,
-  );
+  // Faza 9.2: szukamy uchwytu najpierw wśród source, potem target — węzły
+  // terminalne (np. Portfolio) mają wyłącznie uchwyt typu target i wcześniej
+  // zawsze spadały do fallbacku na środek węzła (krawędź kończyła się pod nim).
+  const handle =
+    node.internals.handleBounds?.source?.find(
+      (h: any) => h.position === handlePosition,
+    ) ??
+    node.internals.handleBounds?.target?.find(
+      (h: any) => h.position === handlePosition,
+    );
 
   if (!handle) {
       // Fallback to center if handle not found
