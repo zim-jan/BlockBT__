@@ -1,3 +1,4 @@
+import datetime
 from typing import Any
 
 import pandas as pd
@@ -6,7 +7,13 @@ from fastapi import APIRouter, HTTPException
 from app.db.session import get_session
 from app.models.orm import BacktestJob, ChatMessage
 from app.schemas.base import ApiResponse
-from app.schemas.results import AIAnalysisResponse, ChatMessageResponse, ChatRequest
+from app.schemas.results import (
+    AIAnalysisResponse,
+    ChatMessageResponse,
+    ChatRequest,
+    TearsheetResponse,
+)
+from app.services.engine.qsadapter import QSAdapterService
 from app.services.mcp.llm_client import OllamaClient
 from app.services.mcp.report_builder import ReportBuilder
 
@@ -36,6 +43,54 @@ def get_simulation_result(job_id: int) -> ApiResponse[dict[str, Any]]:
             "ai_analysis_report": job.ai_analysis_report,
             "error_log": job.error_message,
         }
+        return ApiResponse(success=True, data=data)
+
+
+@router.get("/{job_id}/tearsheet", response_model=ApiResponse[TearsheetResponse])
+def get_tearsheet(job_id: int) -> ApiResponse[TearsheetResponse]:
+    """Faza 13: generuje tearsheet HTML z metryk ukończonego backtestu.
+
+    ``BacktestJob`` nie przechowuje żywego obiektu vbt Portfolio, więc budujemy
+    lekki adapter udostępniający ``stats()`` na podstawie zapisanych metryk joba,
+    a następnie renderujemy air-gapped HTML przez ``QSAdapterService``.
+    """
+    with get_session() as db:
+        job = db.get(BacktestJob, job_id)
+        if not job:
+            raise HTTPException(status_code=404, detail="Simulation Result not found")
+
+        if job.status.upper() != "COMPLETED":
+            raise HTTPException(
+                status_code=400,
+                detail="Cannot generate a tearsheet for a simulation that is not completed.",
+            )
+
+        # Metryki nagłówkowe (kolumny) + elastyczny słownik `metrics` (JSON).
+        stats: dict[str, Any] = {
+            "Total Return [%]": job.total_return_pct,
+            "Sharpe Ratio": job.sharpe_ratio,
+            "Max Drawdown [%]": job.max_drawdown_pct,
+            "Total Trades": job.num_trades,
+            "Final Value": job.final_capital,
+        }
+        if job.metrics:
+            for key, value in job.metrics.items():
+                # Pomijamy złożone struktury (np. equity_curve_json) — tabela to skalary.
+                if isinstance(value, (int, float, str, type(None))):
+                    stats.setdefault(str(key), value)
+
+        class _StoredMetricsPortfolio:
+            def stats(self) -> dict[str, Any]:
+                return stats
+
+        html_output = QSAdapterService.generate_tearsheet(_StoredMetricsPortfolio())
+
+        data = TearsheetResponse(
+            job_id=job.id,
+            html=html_output,
+            format="html",
+            generated_at=datetime.datetime.now(datetime.UTC),
+        )
         return ApiResponse(success=True, data=data)
 
 
