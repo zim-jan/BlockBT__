@@ -302,6 +302,12 @@ class OpenSourceEngine(BaseStrategyEngine):
             # daty rosnąco + deterministyczna kolejność symboli
             wide = wide.sort_index().sort_index(axis=1)
             wide = wide.ffill().dropna(how="any").astype(np.float64)
+            # Guard (review 2026-07-15): rozłączne kalendarze tickerów → pusty DataFrame po dropna;
+            # jawny błąd zamiast niejasnego crasha dalej w from_signals
+            if wide.empty:
+                raise ValueError(
+                    "Brak wspólnego zakresu dat dla podanych tickerów (po wyrównaniu kalendarzy dane są puste)."
+                )
             return wide
 
         # 2) Kolumnowy MultiIndex (pola × symbole) → wybór 'close'
@@ -311,6 +317,11 @@ class OpenSourceEngine(BaseStrategyEngine):
                 close_wide.index = pd.to_datetime(close_wide.index)
             close_wide = close_wide.sort_index().sort_index(axis=1)
             close_wide = close_wide.ffill().dropna(how="any").astype(np.float64)
+            # Guard (review 2026-07-15): jak wyżej — pusty wynik po wyrównaniu kalendarzy
+            if close_wide.empty:
+                raise ValueError(
+                    "Brak wspólnego zakresu dat dla podanych tickerów (po wyrównaniu kalendarzy dane są puste)."
+                )
             return close_wide
 
         # 3) Single-symbol → Series (dotychczasowe zachowanie)
@@ -632,7 +643,9 @@ class OpenSourceEngine(BaseStrategyEngine):
         """
         fees = float(params.get("fees", 0.001))
         slippage = float(params.get("slippage", 0.001))
-        init_cash = float(params.get("init_cash", 10000.0))
+        # FIX (review 2026-07-15): fallback na initialCapital jak w run_dag_backtest —
+        # inaczej raport i egzekucja portfela mogły rozjechać się przy surowym diccie z samym initialCapital
+        init_cash = float(params.get("init_cash", params.get("initialCapital", 10000.0)))
 
         if fees <= 0 or slippage <= 0:
             raise ValueError("Zero-Cost Fallacy: Fees i Slippage muszą być > 0.")

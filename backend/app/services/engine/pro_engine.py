@@ -124,7 +124,12 @@ class ProEngine(BaseStrategyEngine):
         symbol = params.get("symbol", "UNKNOWN")
         timeframe = params.get("timeframe", "1d")
         initial_capital = float(params.get("initial_capital", 10_000.0))
-        fees = float(params.get("fees", {}).get("commission_pct", 0.001))
+        # FIX (review 2026-07-15): `fees` bywa float (ExecutionParams.fees) albo dict
+        # {"commission_pct": ...} — OSS obsługuje oba, PRO wcześniej zakładał tylko dict
+        _fees_raw = params.get("fees", 0.001)
+        fees = float(
+            _fees_raw.get("commission_pct", 0.001) if isinstance(_fees_raw, dict) else _fees_raw
+        )
 
         close = data["close"]
 
