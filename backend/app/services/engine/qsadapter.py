@@ -12,9 +12,8 @@ ponieważ ta funkcja:
 Zamiast tego składamy minimalny, air-gapped HTML z tabelą metryk — bez zewnętrznych
 zasobów (CDN, czcionki, obrazy), zgodnie z filozofią Self-Hosted / Air-Gapped BlockBT.
 
-Rozszerzenie (opcjonalne, nie MVP): ``generate_full_tearsheet`` renderuje pełny
-raport QuantStats z wykresami przy użyciu backendu ``Agg`` (bez display) i degraduje
-gracefully do prostego tearsheetu, gdy generacja się nie powiedzie.
+Pełny raport QuantStats z wykresami (``qs.reports.html``) jest świadomie odłożonym
+rozszerzeniem poza MVP Fazy 13 — patrz ADR-0004.
 """
 
 from __future__ import annotations
@@ -65,20 +64,24 @@ class QSAdapterService:
         return html.escape(text)
 
     @staticmethod
-    def generate_tearsheet(pf: Any) -> str:
+    def generate_tearsheet(pf: Any, generated_at: datetime | None = None) -> str:
         """
         Buduje samodzielny raport HTML (tearsheet) z metryk ``pf.stats()``.
 
         Args:
             pf: obiekt portfela udostępniający metodę ``stats()`` zwracającą
                 ``pandas.Series`` lub ``dict`` metryk.
+            generated_at: znacznik czasu wygenerowania raportu (UTC). Jeśli nie
+                podano, używany jest ``datetime.now(UTC)``. Parametr istnieje,
+                aby wywołujący (np. endpoint) mógł podać jedno, wspólne źródło
+                czasu zamiast duplikować je osobno w HTML i w odpowiedzi API.
 
         Returns:
             Kompletny dokument HTML (``str``) zawierający tabelę metryk. Air-gapped:
             bez odwołań do zasobów zewnętrznych.
         """
         metrics = QSAdapterService._normalize_stats(pf)
-        generated_at = datetime.now(UTC).isoformat()
+        timestamp = (generated_at or datetime.now(UTC)).isoformat()
 
         if metrics:
             rows = "\n".join(
@@ -120,60 +123,7 @@ class QSAdapterService:
 </head>
 <body>
   <h1>BlockBT — Tearsheet analityczny</h1>
-  <p class="generated">Wygenerowano (UTC): {html.escape(generated_at)}</p>
+  <p class="generated">Wygenerowano (UTC): {html.escape(timestamp)}</p>
 {table}
 </body>
 </html>"""
-
-    @staticmethod
-    def generate_full_tearsheet(returns: pd.Series, title: str = "BlockBT Strategy") -> str:
-        """
-        Opcjonalne rozszerzenie: pełny tearsheet QuantStats z wykresami (backend Agg).
-
-        Ustawia backend ``Agg`` PRZED importem warstwy plottingu (brak display,
-        praca headless/air-gapped). Przy dowolnym błędzie degraduje gracefully do
-        prostego tearsheetu z metryk (``qs.reports.metrics``).
-
-        Args:
-            returns: seria zwrotów strategii (indeks czasowy).
-            title: tytuł raportu.
-
-        Returns:
-            HTML pełnego tearsheetu lub — w razie błędu — prostego tearsheetu z metryk.
-        """
-        try:
-            import matplotlib
-
-            matplotlib.use("Agg")  # headless: bez display, przed importem pyplot/quantstats.plots
-            import io
-
-            import quantstats as qs
-
-            buffer = io.StringIO()
-            qs.reports.html(returns, title=title, output=buffer)
-            content = buffer.getvalue()
-            if content and "<html" in content.lower():
-                return content
-            logger.warning("QSAdapter: qs.reports.html nie zwrócił HTML — fallback do metryk.")
-        except Exception as e:  # noqa: BLE001 - pełny raport QS bywa kruchy/headless-zależny
-            logger.warning("QSAdapter: generacja pełnego tearsheetu zawiodła: {}", e)
-
-        # Fallback: prosty tearsheet zbudowany z metryk QuantStats.
-        class _MetricsPortfolio:
-            def stats(self) -> dict[str, Any]:
-                try:
-                    import quantstats as qs
-
-                    report = qs.reports.metrics(returns, display=False)
-                except Exception as exc:  # noqa: BLE001
-                    logger.warning("QSAdapter: qs.reports.metrics zawiodło: {}", exc)
-                    return {}
-                if isinstance(report, pd.Series):
-                    return report.to_dict()
-                if isinstance(report, pd.DataFrame):
-                    if "Strategy" in report.columns:
-                        return report["Strategy"].to_dict()
-                    return report.to_dict()
-                return {}
-
-        return QSAdapterService.generate_tearsheet(_MetricsPortfolio())
