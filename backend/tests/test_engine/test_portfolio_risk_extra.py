@@ -84,3 +84,40 @@ def test_take_profit_fires():
     result = engine.run_dag_backtest(df, _dag({"sl_stop": 0.05, "tp_stop": 0.10}))
     assert result["raw"].get("Take Profit Exits", 0) > 0
     assert result["raw"].get("Stop Loss Exits", 0) == 0
+
+
+# Custom indicator: wejście bar0, wyjście SYGNAŁOWE na barze 1.
+_ENTRY_BAR0_EXIT_BAR1 = (
+    "entries = pd.Series(False, index=close.index)\n"
+    "entries.iloc[0] = True\n"
+    "exits = pd.Series(False, index=close.index)\n"
+    "exits.iloc[1] = True\n"
+)
+
+
+def test_signal_exit_near_stop_level_not_counted_as_sl():
+    """Review 2026-07-15: wyjście sygnałowe w pasie eps NAD poziomem SL nie jest liczone jako stop.
+
+    Wejście @100 (fill 100.1 ze slippage), SL 5% → poziom 95.095. Close bar1 = 95.1
+    NIE przebija poziomu (stop nie odpala), ale sygnał exit zamyka @95.0049 — cena
+    mieści się w tolerancji eps i stara heurystyka fałszywie liczyła to jako SL.
+    Maska exits na barze wyjścia rozstrzyga: to wyjście sygnałowe → licznik SL = 0.
+    """
+    engine = OpenSourceEngine()
+    df = pd.DataFrame({"close": [100.0, 95.1, 96.0, 97.0, 98.0]})
+    result = engine.run_dag_backtest(
+        df, _dag({"sl_stop": 0.05}, code=_ENTRY_BAR0_EXIT_BAR1)
+    )
+    assert result["raw"]["Stop Loss Exits"] == 0
+
+
+def test_gap_through_stop_counted_despite_signal_exit_same_bar():
+    """Głębokie przebicie poziomu SL (gap 100→90) liczy się jako stop nawet przy
+    koincydencji sygnału exit na tym samym barze — sygnał unieważnia klasyfikację
+    wyłącznie w wąskim pasie eps wokół poziomu stopu."""
+    engine = OpenSourceEngine()
+    df = pd.DataFrame({"close": [100.0, 90.0, 96.0, 97.0, 98.0]})
+    result = engine.run_dag_backtest(
+        df, _dag({"sl_stop": 0.05}, code=_ENTRY_BAR0_EXIT_BAR1)
+    )
+    assert result["raw"]["Stop Loss Exits"] == 1

@@ -394,17 +394,39 @@ class OpenSourceEngine(BaseStrategyEngine):
             params=exec_params
         )
 
-        # Faza 10: gałąź multi-symbol — metryki i krzywe kapitału per ticker z wektorowych Series.
-        if is_multi:
-            return self._build_multi_symbol_result(portfolio, close, timeframe)
-
-        stats = portfolio.stats()
-        # Faza 12: liczniki wyjść SL/TP (vbt ich nie eksponuje w stats() — dokładamy do raw).
+        # Faza 12: parametry stopów czytane przed gałęzią multi — liczniki SL/TP
+        # są surfacowane w obu ścieżkach (single i multi, review 2026-07-15).
         sl_stop = exec_params.get("sl_stop")
         tp_stop = exec_params.get("tp_stop")
         sl_trail = bool(exec_params.get("sl_trail", False))
         slippage = float(exec_params.get("slippage", 0.001))
-        stop_exits = self._count_stop_exits(portfolio, close, sl_stop, tp_stop, sl_trail, slippage)
+
+        # Faza 10: gałąź multi-symbol — metryki i krzywe kapitału per ticker z wektorowych Series.
+        if is_multi:
+            result = self._build_multi_symbol_result(portfolio, close, timeframe)
+            # Review 2026-07-15: liczniki wyjść SL/TP per symbol w zagnieżdżonym raw
+            # (result["raw"][symbol][...]) — spójnie z kontraktem is_multi_symbol (Faza 10);
+            # klucze tylko dla stopów faktycznie ustawionych (jak w single-symbol).
+            if sl_stop is not None or tp_stop is not None:
+                per_symbol = self._count_stop_exits_multi(
+                    portfolio, close, sl_stop, tp_stop, sl_trail, slippage, exits
+                )
+                nested_raw: dict[str, dict[str, int]] = {}
+                for sym, counts in per_symbol.items():
+                    sym_counts: dict[str, int] = {}
+                    if sl_stop is not None:
+                        sym_counts["Stop Loss Exits"] = counts["Stop Loss Exits"]
+                    if tp_stop is not None:
+                        sym_counts["Take Profit Exits"] = counts["Take Profit Exits"]
+                    nested_raw[sym] = sym_counts
+                result["raw"] = nested_raw
+            return result
+
+        stats = portfolio.stats()
+        # Faza 12: liczniki wyjść SL/TP (vbt ich nie eksponuje w stats() — dokładamy do raw).
+        stop_exits = self._count_stop_exits(
+            portfolio, close, sl_stop, tp_stop, sl_trail, slippage, exits
+        )
         total_return = float(portfolio.total_return() * 100)
         sharpe = float(portfolio.sharpe_ratio())
         drawdown = float(portfolio.max_drawdown() * 100)
@@ -464,16 +486,39 @@ class OpenSourceEngine(BaseStrategyEngine):
         }
 
     @staticmethod
-    def _count_stop_exits(
-        portfolio: Any,
+    def _signal_exit_at(exits: pd.Series | None, ts: Any) -> bool:
+        """Review 2026-07-15: czy finalna maska exits ma sygnał wyjścia na barze `ts`.
+
+        Używane do zawężenia heurystyki `_count_stop_exits`: wyjście na barze
+        z aktywnym sygnałem exit jest traktowane jako sygnałowe (nie stop),
+        o ile cena nie przebiła poziomu stopu głęboko (poza pas eps).
+        Brak maski / brak bara w indeksie → False (zachowanie sprzed zmiany).
+        """
+        if exits is None or ts is None:
+            return False
+        try:
+            value = exits.loc[ts]
+        except (KeyError, TypeError, IndexError):
+            return False
+        try:
+            return bool(value)
+        except (TypeError, ValueError):
+            return False
+
+    @classmethod
+    def _classify_stop_exits(
+        cls,
+        trades: pd.DataFrame,
         close: pd.Series,
         sl_stop: float | None,
         tp_stop: float | None,
-        sl_trail: bool = False,
-        slippage: float = 0.001,
+        sl_trail: bool,
+        slippage: float,
+        exits: pd.Series | None = None,
     ) -> dict[str, int]:
         """
-        Faza 12: klasyfikacja zamkniętych transakcji po cenie wyjścia względem poziomów stopów.
+        Faza 12 (+ review 2026-07-15): klasyfikacja zamkniętych transakcji po cenie wyjścia
+        względem poziomów stopów — wspólny rdzeń dla ścieżek single- i multi-symbol.
 
         vbt (open source 1.0) nie etykietuje wyjść SL/TP w rekordach transakcji, więc
         rekonstruujemy je z cen wejścia/wyjścia. Dla stopu stałego poziom SL jest liczony
@@ -482,10 +527,19 @@ class OpenSourceEngine(BaseStrategyEngine):
         stop za ceną. TP jest zawsze liczony od ceny wejścia (tp_stop nie podąża).
 
         Tolerancja `eps` uwzględnia poślizg (Avg Exit Price zawiera slippage), więc jest
-        wyprowadzana z parametru slippage. UWAGA: klasyfikacja jest heurystyczna — wyjście
-        sygnałowe, które przypadkiem trafi poza próg, zostanie policzone jako stop; przy
-        aktywnych stopach vbt zwykle domyka pozycję stopem jako pierwszym, więc w praktyce
-        jest to bezpieczne (szczegóły i ograniczenia: ADR-0003).
+        wyprowadzana z parametru slippage.
+
+        Zawężenie fałszywych trafień (review 2026-07-15): wyjście SYGNAŁOWE, którego cena
+        przypadkiem ląduje w pasie eps przy poziomie stopu, było wcześniej liczone jako
+        stop. Teraz sygnał exit na barze wyjścia (maska `exits`) unieważnia klasyfikację
+        stopu — ale WYŁĄCZNIE w pasie eps wokół poziomu; głębokie przebicie (gap przez
+        poziom) liczy się jako stop nawet przy koincydencji sygnału na tym samym barze.
+
+        Znane ograniczenia rezydualne (patrz ADR-0003, Konsekwencje):
+        - stop i sygnał na tym samym barze z fillem w pasie eps → liczone jako sygnał
+          (świadomy kierunek błędu: wolimy nie zawyżać liczników stopów),
+        - przy poziomach SL/TP bliżej siebie niż szerokość pasa eps pojedyncza transakcja
+          może zostać policzona w obu licznikach.
         """
         counts = {"Stop Loss Exits": 0, "Take Profit Exits": 0}
         if sl_stop is None and tp_stop is None:
@@ -493,10 +547,6 @@ class OpenSourceEngine(BaseStrategyEngine):
 
         # Avg Exit Price zawiera slippage → tolerancja co najmniej rzędu slippage.
         eps = max(1e-3, 2.0 * float(slippage))
-        try:
-            trades = portfolio.trades.records_readable
-        except Exception:
-            return counts
 
         for _, row in trades.iterrows():
             if row.get("Status") != "Closed":
@@ -509,6 +559,7 @@ class OpenSourceEngine(BaseStrategyEngine):
             if not (np.isfinite(entry) and np.isfinite(exit_price)):
                 continue
             is_long = str(row.get("Direction", "Long")).lower() == "long"
+            signal_exit = cls._signal_exit_at(exits, row.get("Exit Timestamp"))
 
             # Poziom odniesienia SL: cena wejścia (stop stały) lub ekstremum ceny w oknie
             # trwania pozycji (stop podążający — poziom trailinguje za ceną).
@@ -522,17 +573,95 @@ class OpenSourceEngine(BaseStrategyEngine):
                     sl_ref = entry
 
             if sl_stop is not None:
-                if is_long and exit_price <= sl_ref * (1 - sl_stop) * (1 + eps):
-                    counts["Stop Loss Exits"] += 1
-                elif not is_long and exit_price >= sl_ref * (1 + sl_stop) * (1 - eps):
+                level = sl_ref * (1 - sl_stop) if is_long else sl_ref * (1 + sl_stop)
+                if is_long:
+                    hit = exit_price <= level * (1 + eps)
+                    deep = exit_price < level * (1 - eps)
+                else:
+                    hit = exit_price >= level * (1 - eps)
+                    deep = exit_price > level * (1 + eps)
+                if hit and (deep or not signal_exit):
                     counts["Stop Loss Exits"] += 1
             if tp_stop is not None:
-                if is_long and exit_price >= entry * (1 + tp_stop) * (1 - eps):
-                    counts["Take Profit Exits"] += 1
-                elif not is_long and exit_price <= entry * (1 - tp_stop) * (1 + eps):
+                level = entry * (1 + tp_stop) if is_long else entry * (1 - tp_stop)
+                if is_long:
+                    hit = exit_price >= level * (1 - eps)
+                    deep = exit_price > level * (1 + eps)
+                else:
+                    hit = exit_price <= level * (1 + eps)
+                    deep = exit_price < level * (1 - eps)
+                if hit and (deep or not signal_exit):
                     counts["Take Profit Exits"] += 1
 
         return counts
+
+    @classmethod
+    def _count_stop_exits(
+        cls,
+        portfolio: Any,
+        close: pd.Series,
+        sl_stop: float | None,
+        tp_stop: float | None,
+        sl_trail: bool = False,
+        slippage: float = 0.001,
+        exits: pd.Series | None = None,
+    ) -> dict[str, int]:
+        """Faza 12: liczniki wyjść SL/TP, ścieżka single-symbol (patrz `_classify_stop_exits`)."""
+        counts = {"Stop Loss Exits": 0, "Take Profit Exits": 0}
+        if sl_stop is None and tp_stop is None:
+            return counts
+        try:
+            trades = portfolio.trades.records_readable
+        except Exception:
+            return counts
+        return cls._classify_stop_exits(
+            trades, close, sl_stop, tp_stop, sl_trail, slippage, exits
+        )
+
+    @classmethod
+    def _count_stop_exits_multi(
+        cls,
+        portfolio: Any,
+        close: pd.DataFrame,
+        sl_stop: float | None,
+        tp_stop: float | None,
+        sl_trail: bool = False,
+        slippage: float = 0.001,
+        exits: pd.Series | pd.DataFrame | None = None,
+    ) -> dict[str, dict[str, int]]:
+        """
+        Review 2026-07-15: liczniki wyjść SL/TP per symbol dla gałęzi multi-symbol (Faza 10).
+
+        Rekordy transakcji vbt dla portfela wielokolumnowego zawierają kolumnę `Column`
+        z etykietą symbolu — filtrujemy per symbol i klasyfikujemy wspólnym rdzeniem
+        (`_classify_stop_exits`) na cenach/maskach właściwej kolumny. Maska `exits` może
+        być Series (broadcast na wszystkie symbole) albo DataFrame (per kolumna).
+        """
+        empty = {"Stop Loss Exits": 0, "Take Profit Exits": 0}
+        symbols = [str(c) for c in close.columns]
+        if sl_stop is None and tp_stop is None:
+            return {sym: dict(empty) for sym in symbols}
+        try:
+            trades = portfolio.trades.records_readable
+        except Exception:
+            return {sym: dict(empty) for sym in symbols}
+
+        results: dict[str, dict[str, int]] = {}
+        for col in close.columns:
+            sym = str(col)
+            if "Column" in trades.columns:
+                sym_trades = trades[trades["Column"] == col]
+            else:
+                # Defensywnie: brak kolumny `Column` (nieoczekiwany kształt rekordów).
+                sym_trades = trades
+            if isinstance(exits, pd.DataFrame):
+                sym_exits = exits[col] if col in exits.columns else None
+            else:
+                sym_exits = exits  # Series → broadcast na wszystkie symbole (jak w from_signals)
+            results[sym] = cls._classify_stop_exits(
+                sym_trades, close[col], sl_stop, tp_stop, sl_trail, slippage, sym_exits
+            )
+        return results
 
     @staticmethod
     def _finite_or_zero(value: Any) -> float:

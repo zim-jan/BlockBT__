@@ -114,6 +114,16 @@ Osobna, natywna funkcja vbt do generowania masek wyjść SL/TP przed `from_signa
   po cenie wyjścia vs poziom stopu (long/short symetrycznie, `eps=1e-3`). Wynik
   trafia do `result["raw"]["Stop Loss Exits"]` / `["Take Profit Exits"]`
   **tylko gdy dany stop był ustawiony** w węźle Execution.
+- **Aktualizacja (review-backlog 2026-07-15):** klasyfikację wydzielono do
+  wspólnego rdzenia `_classify_stop_exits` i rozszerzono na **multi-symbol**
+  (`_count_stop_exits_multi`): rekordy transakcji filtrowane po etykiecie
+  `Column`, liczniki per symbol w zagnieżdżonym `raw`
+  (`result["raw"][symbol]["Stop Loss Exits"]`), klucze tylko dla ustawionych
+  stopów — spójnie z kontraktem `is_multi_symbol` Fazy 10. Dodatkowo heurystykę
+  zawężono maską `exits`: sygnał wyjścia na barze zamknięcia unieważnia
+  klasyfikację stopu **wyłącznie w pasie `eps` wokół poziomu** (eliminacja
+  fałszywych trafień „sygnał przypadkiem przy poziomie"); głębokie przebicie
+  poziomu (gap) liczy się jako stop nawet przy koincydencji sygnału.
 - **Schema:** `ExecutionParams` (`backend/app/schemas/dag.py`) — nowe pola
   `sl_stop: float | None` (0..1), `tp_stop: float | None` (0..1),
   `sl_trail: bool = False`, `size: float | None` (>0),
@@ -148,12 +158,20 @@ Osobna, natywna funkcja vbt do generowania masek wyjść SL/TP przed `from_signa
   blisko siebie lub przy szumie cenowym granicznym możliwa błędna klasyfikacja
   pojedynczej transakcji; nie wpływa na poprawność samej egzekucji SL/TP przez
   vbt, tylko na dokładność raportowanego licznika.
-- **Multi-symbol surfacing poza zakresem.** `_count_stop_exits` operuje na
-  ścieżce single-symbol (`portfolio.trades.records_readable` jako płaski
-  DataFrame). Gałąź multi-symbol (`_build_multi_symbol_result`, Faza 10) SL/TP
-  egzekwuje poprawnie (parametry broadcastują się po kolumnach w `from_signals`),
-  ale **nie zwraca per-symbol liczników wyjść SL/TP** — świadome cięcie zakresu
-  tej fazy, odłożone na przyszłą pracę.
+  **Doprecyzowanie po zawężeniu maską `exits` (2026-07-15) — ograniczenia
+  rezydualne:**
+  - stop i sygnał exit na tym samym barze z fillem w pasie `eps` → transakcja
+    liczona jako sygnałowa (świadomy kierunek błędu: wolimy NIE zawyżać
+    liczników stopów, wcześniejszy problem z review);
+  - poziomy SL i TP bliżej siebie niż szerokość pasa `eps` → pojedyncza
+    transakcja może zostać policzona w obu licznikach;
+  - `eps = max(1e-3, 2*slippage)` rośnie z poślizgiem — przy bardzo dużym
+    `slippage` pas tolerancji rozmywa rozróżnienie stop/sygnał.
+- **Multi-symbol surfacing — ZREALIZOWANE po fazie** (review-backlog
+  2026-07-15, patrz „Decyzja" wyżej): `_count_stop_exits_multi` zwraca liczniki
+  per symbol w zagnieżdżonym `raw`; pierwotne cięcie zakresu Fazy 12 zamknięte.
+  Testy: `test_portfolio_risk_multi.py` oraz przypadki graniczne heurystyki
+  w `test_portfolio_risk_extra.py`.
 - **`from_orders`/event-driven order-func poza zakresem** — patrz opcja B wyżej;
   obecne pokrycie (`from_signals`) wystarcza dla wymagań fazy, pełna symulacja
   zdarzeniowa z niestandardowymi regułami wyjścia to praca przyszła.
