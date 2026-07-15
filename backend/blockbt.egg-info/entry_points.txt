@@ -1,2 +1,0 @@
-[console_scripts]
-blockbt = app.cli:main

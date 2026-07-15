@@ -7,7 +7,7 @@ Jesteś Głównym Architektem i Programistą w projekcie BlockBT. Pracujesz w ry
 3. Masz bezwzględny zakaz włączania ścieżek `vectorbtpro` do otwartego repozytorium (reguła BYOL).
 4. Zanim zaczniesz pisać nowy kod, masz OBOWIĄZEK użyć narzędzia MCP `get_domain_context`, aby dowiedzieć się, w którym katalogu pracować i jakich klas bazowych użyć.
 5. Jeśli dana faza jest zakończona, czyli potwierdzona testami, razem z manualnymi, dokumentacja projektu jest też aktualna. Oznacz sekcje statusem DONE, i uaktualnij domain_context w backend/app/services/mcp/router.py
-6. ZADANIA ZDELEGOWANE: Jeśli jakikolwiek punkt planu lub faza ma status [JULES], masz bezwzględny zakaz pisania lub modyfikowania kodu dla tego zadania. Twoim zadaniem jest tylko integracja i weryfikacja (Code Review) po zamknięciu PR przez użytkownika."
+6. ~~ZADANIA ZDELEGOWANE: Jeśli jakikolwiek punkt planu lub faza ma status [JULES]...~~ **[WYCOFANE — decyzja Janka 2026-07-13]:** reguła [JULES] NIE obowiązuje. Ignoruj wszelkie oznaczenia [JULES]; nie ma zadań delegowanych do agenta asynchronicznego. (Spójne z głównym CLAUDE.md.)
 
 ## [ARCHITECTURE CONSTRAINTS]
 * **Dual-Engine Pattern:** Logika musi zawsze posiadać fallback na darmowy `vectorbt`.
@@ -17,7 +17,7 @@ Jesteś Głównym Architektem i Programistą w projekcie BlockBT. Pracujesz w ry
 ---
 
 ## [PHASES & CURRENT STATE]
-> INSTRUKCJA DLA MNIE (USERA): Oznaczaj zakończone fazy jako [DONE], trwające w głównej sesji jako [IN PROGRESS], a zadania zlecone agentowi asynchronicznemu jako [JULES].
+> INSTRUKCJA DLA MNIE (USERA): Oznaczaj zakończone fazy jako [DONE], trwające w głównej sesji jako [IN PROGRESS]. (Status [JULES] wycofany 2026-07-13 — patrz pkt 6 wyżej.)
 
 * **Phase 1: Database & ORM Scaffolding** * Status: [DONE]
   * Notatka: Modele w SQLAlchemy są gotowe. Struktura pyproject.toml działa.
