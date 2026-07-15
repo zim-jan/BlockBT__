@@ -12,6 +12,7 @@ from __future__ import annotations
 from typing import Any
 
 from fastapi import APIRouter
+from loguru import logger
 
 from app.schemas.registry import IndicatorSpec, NodeCategorySpec, RegistrySnapshot
 from app.services.engine.introspection import (
@@ -33,7 +34,8 @@ def _get_vbt() -> Any | None:
         from app.services.engine.runner import vbt
 
         return vbt
-    except Exception:  # noqa: BLE001 — brak vbt nie może blokować rejestru
+    except Exception as e:  # noqa: BLE001 — brak vbt nie może blokować rejestru
+        logger.debug(f"registry: vbt niedostępny lub import runner.py nieudany: {e}")
         return None
 
 

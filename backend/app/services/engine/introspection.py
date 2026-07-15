@@ -72,6 +72,10 @@ def _enrich_from_vbt(catalog: dict[str, IndicatorSpec], vbt: Any) -> None:
     Odczytuje wyłącznie statyczne metadane (``param_names``) klas fabryk wskaźników vbt.
     Nie wykonuje żadnego kodu na danych zewnętrznych. Każdy pojedynczy kandydat jest
     izolowany try/except, by częściowa niedostępność nie psuła całego katalogu.
+
+    Uwaga: pole ``type`` dla wpisów ``vbt_*`` jest wartością domyślną/przybliżoną
+    (zawsze ``"int"``) — nie jest introspekowane z faktycznego typu parametru vbt.
+    To czysto opisowa metadana dla frontendu, nie odzwierciedla rzeczywistego typu.
     """
     for name in _VBT_ENRICH_CANDIDATES:
         try:
