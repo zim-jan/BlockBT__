@@ -89,6 +89,7 @@ export function WorkflowEditor() {
         onDragOver={onDragOver}
         deleteKeyCode={['Backspace', 'Delete']}
         fitView
+        connectionRadius={40}
         proOptions={{ hideAttribution: true }}
         connectionLineComponent={isEasyConnectMode ? FloatingConnectionLine : undefined}
         defaultEdgeOptions={{

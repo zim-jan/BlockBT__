@@ -129,37 +129,15 @@ Jesteś Głównym Architektem i Programistą w projekcie BlockBT. Pracujesz w ry
     ```
     * Krok 3: Upewnienie się, czy w bazie zapisują się strategie wg nowego standardu DAG w formacie json [DONE]
     * Krok 4: Usunięcie logiki legacy [DONE]
-    * Krok 5: Powiększenie uchwytów w węzłach do połączeń dla ułatwienia trafienia myszką [FAIL] 
-    * ```
-        3. Optymalizacja UX (Handles)
-      Powiększono obszar trafienia uchwytów easy-connect-handle do 40px.
-
-       1 /* frontend/src/index.css */
-       2
-        3 .easy-connect-active .easy-connect-handle {
-        4   display: block !important;
-        5   opacity: 0 !important;
-       6   width: 40px !important;
-       7    height: 40px !important;
-       8   border-radius: 50% !important;
-       9   right: -20px !important;
-           10   z-index: 50 !important;
-         11 }
-
-      ```
-      * To, co się generuje, to wygląda następująco w przeglądarce: 
-      * connectionRadius number - The radius around a handle where you drop a connection line to create a new edge. - 20
-      * https://reactflow.dev/api-reference/react-flow#reconnectradius
-      ``` 
-      react-flow__handle react-flow__handle-right nodrag nopan easy-connect-handle source connectable connectablestart connectableend connectionindicator
-      react-flow__handle {
-      position: absolute;
-      pointer-events: none;
-      min-width: 20px; <--  tyle wystarczy 
-      min-height: 20px; <-- tyle wystarczy
-      width: 6px;
-      height: 6px;
-      ```
+    * Krok 5: Powiększenie uchwytów w węzłach do połączeń dla ułatwienia trafienia myszką [DONE]
+      * **Root cause wcześniejszego FAIL-a:** style easy-connect (w tym 40px handle) były dopisane
+        do `frontend/src/index.css`, którego aplikacja **w ogóle nie importuje** — aktywny arkusz to
+        `frontend/src/assets/index.css` (import w `main.tsx`). Zmiany CSS nie miały żadnego efektu.
+      * **Fix (branch fix/review-backlog):** `connectionRadius={40}` na `<ReactFlow>` w
+        `WorkflowEditor.tsx` (promień "przyciągania" końca połączenia do uchwytu; default 20)
+        + `.react-flow__handle { min-width: 20px; min-height: 20px; }` w **aktywnym**
+        `assets/index.css` (obszar startu przeciągania; default 6x6px).
+        Ref: https://reactflow.dev/api-reference/react-flow#connectionradius
 * **Faza 9.2: Poprawki 2:**
   * Status: [DRAFT] 
   * Cel: Rozwiązanie znalezionych problemów z easyconnect

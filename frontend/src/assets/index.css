@@ -179,6 +179,19 @@ html, body {
   top: 50% !important; /* Center the target handle vertically */
 }
 
+/*
+ * Faza 9.1 Krok 5: większy obszar trafienia uchwytów połączeń.
+ * Domyślny uchwyt React Flow ma 6x6px — zbyt mały do trafienia myszką.
+ * min 20x20px (zmierzone jako wystarczające) + connectionRadius={40}
+ * ustawiony na komponencie <ReactFlow> w WorkflowEditor.tsx.
+ * UWAGA: to musi być w TYM pliku (assets/index.css) — src/index.css nie jest
+ * importowany przez aplikację (przyczyna wcześniejszego FAIL-a tego kroku).
+ */
+.react-flow__handle {
+  min-width: 20px;
+  min-height: 20px;
+}
+
 /* Make inputs look a little more robust inside nodes */
 .rf-node__body {
   padding: 16px;
