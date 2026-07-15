@@ -118,6 +118,7 @@ def trigger_wfo(
                 "initial_capital": payload.initial_capital,
                 "window_size": payload.window_size,
                 "step_size": payload.step_size,
+                "mode": payload.mode,
             }
         )
         if payload.start_date:
@@ -127,11 +128,25 @@ def trigger_wfo(
         if payload.parameters:
             params.update(payload.parameters)
 
+        # Faza 15: opcjonalne zakresy parametrów dla optymalizacji in-sample per okno
+        wfo_bounds = (
+            {k: v.model_dump() for k, v in payload.param_bounds.items()}
+            if payload.param_bounds
+            else None
+        )
+
         job = OptimizationJob(
             strategy_id=strategy.id,
             status=JobStatus.PENDING,
             parameters_snapshot=params,
-            bounds_definition={"window_size": payload.window_size, "step_size": payload.step_size},
+            bounds_definition={
+                "window_size": payload.window_size,
+                "step_size": payload.step_size,
+                "mode": payload.mode,
+                "param_bounds": wfo_bounds,
+                "n_trials": payload.n_trials,
+                "metric": payload.metric,
+            },
         )
         db.add(job)
         db.flush()
@@ -144,6 +159,10 @@ def trigger_wfo(
         params,
         payload.window_size,
         payload.step_size,
+        payload.mode,
+        wfo_bounds,
+        payload.n_trials,
+        payload.metric,
     )
 
     return ApiResponse(success=True, data={"job_id": job_id})
