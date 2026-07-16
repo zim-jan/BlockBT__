@@ -18,7 +18,7 @@ from app.services.connectors.registry import ConnectorRegistry
 from app.services.engine.job_service import JobService
 from app.services.engine.loader import EngineLoader
 from app.services.engine.opensource_engine import _setup_vbt
-from app.services.engine.optimizer import OptunaOptimizer, WalkForwardOptimizer
+from app.services.engine.optimizer import OptunaOptimizer, WalkForwardOptimizer, WfoConfig
 
 # Initialize vbt once — reeksportowane i używane przez app.api.indicators (NIE usuwać)
 try:
@@ -161,6 +161,13 @@ def _execute_dag_backtest(engine, dag_dict: dict[str, Any]) -> dict[str, Any]:
         if key in result:
             payload[key] = result[key]
 
+    # Review 2026-07-16: raw (m.in. liczniki Stop Loss/Take Profit Exits z Fazy 12)
+    # musi trafić do payloadu jobu — metrics silnika są zawsze niepuste, więc
+    # fallback `if not metrics` wyżej nigdy nie scalał raw i liczniki ginęły
+    # przed zapisem do DB/API (potwierdzone testami manualnymi faz 10-14).
+    if "raw" in result:
+        payload["raw"] = _serialize_metrics(result["raw"])
+
     return payload
 
 
@@ -232,11 +239,17 @@ def run_optuna_optimization(
 def run_walk_forward(
     job_id: int,
     parameters: dict[str, Any],
-    window_size: str,
-    step_size: str,
+    config: WfoConfig,
 ) -> None:
-    """Background worker for executing Walk-Forward Optimization."""
-    logger.info(f"WFORunner: starting job_id={job_id} | window={window_size} step={step_size}")
+    """Background worker for executing Walk-Forward Optimization.
+
+    Faza 15: realny WFO — konfiguracja przebiegu (okna, tryb, bounds, metryka)
+    podróżuje jako jeden obiekt ``WfoConfig`` (review 2026-07-16).
+    """
+    logger.info(
+        f"WFORunner: starting job_id={job_id} | window={config.window_size} "
+        f"step={config.step_size} mode={config.mode}"
+    )
 
     with get_session() as db:
         JobService.update_optimization_status(db, job_id, JobStatus.RUNNING)
@@ -252,7 +265,7 @@ def run_walk_forward(
         engine = EngineLoader.load()
 
         optimizer = WalkForwardOptimizer(engine)
-        results = optimizer.run_wfo(df, parameters, window_size, step_size)
+        results = optimizer.run_wfo(df, parameters, config)
 
         with get_session() as db:
             JobService.update_optimization_status(db, job_id, JobStatus.COMPLETED, results=results)

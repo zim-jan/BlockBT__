@@ -1,7 +1,31 @@
 import '@testing-library/jest-dom'
 import { vi } from 'vitest'
 
-// Mock ResizeObserver
+// Mock ResizeObserver — entry musi mieć contentRect/borderBoxSize:
+// @xyflow/system >= 0.0.79 czyta entry.contentRect.width w extentResizeObserver
+// i niepełny mock generował unhandled TypeError w testach (review 2026-07-16)
+const makeResizeObserverEntry = (target: Element): ResizeObserverEntry => {
+  const size = { inlineSize: 1, blockSize: 1 }
+  const rect = {
+    width: 1,
+    height: 1,
+    x: 0,
+    y: 0,
+    top: 0,
+    left: 0,
+    bottom: 1,
+    right: 1,
+    toJSON: () => ({}),
+  } as DOMRectReadOnly
+  return {
+    target,
+    contentRect: rect,
+    borderBoxSize: [size],
+    contentBoxSize: [size],
+    devicePixelContentBoxSize: [size],
+  } as unknown as ResizeObserverEntry
+}
+
 class ResizeObserver {
   callback: ResizeObserverCallback
   constructor(callback: ResizeObserverCallback) {
@@ -10,7 +34,7 @@ class ResizeObserver {
   observe(target: Element) {
     // Simulate the observer trigger
     setTimeout(() => {
-      this.callback([{ target } as ResizeObserverEntry], this)
+      this.callback([makeResizeObserverEntry(target)], this)
     }, 0)
   }
   unobserve() {}

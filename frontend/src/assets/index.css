@@ -112,7 +112,12 @@ html, body {
 .rf-node--data { border-top: 3px solid #3b82f6; }
 .rf-node--indicator { border-top: 3px solid #10b981; }
 .rf-node--signal { border-top: 3px solid #f59e0b; }
+/* Style timeshift/optimizer przywrócone po skasowaniu martwego src/index.css,
+   który zawierał ich jedyne definicje (review 2026-07-16); klasa
+   rf-node--optimizer jest współdzielona przez OptimizerNode i WfoNode. */
+.rf-node--timeshift { border-top: 3px solid #d97706; background: linear-gradient(to bottom, rgba(217, 119, 6, 0.08), var(--bg-card)); }
 .rf-node--portfolio { border-top: 3px solid #8b5cf6; }
+.rf-node--optimizer { border-top: 3px solid #38bdf8; }
 
 .rf-node--completed {
   box-shadow: 0 0 20px rgba(16, 185, 129, 0.2);
@@ -179,6 +184,19 @@ html, body {
   top: 50% !important; /* Center the target handle vertically */
 }
 
+/*
+ * Faza 9.1 Krok 5: większy obszar trafienia uchwytów połączeń.
+ * Domyślny uchwyt React Flow ma 6x6px — zbyt mały do trafienia myszką.
+ * min 20x20px (zmierzone jako wystarczające) + connectionRadius={40}
+ * ustawiony na komponencie <ReactFlow> w WorkflowEditor.tsx.
+ * UWAGA: to musi być w TYM pliku (assets/index.css) — src/index.css nie jest
+ * importowany przez aplikację (przyczyna wcześniejszego FAIL-a tego kroku).
+ */
+.react-flow__handle {
+  min-width: 20px;
+  min-height: 20px;
+}
+
 /* Make inputs look a little more robust inside nodes */
 .rf-node__body {
   padding: 16px;
@@ -233,6 +251,7 @@ html, body {
 .react-flow__node-dataNode,
 .react-flow__node-indicatorNode,
 .react-flow__node-signalNode,
+.react-flow__node-timeShiftNode,
 .react-flow__node-portfolioNode {
   width: 280px !important;
   display: block !important;

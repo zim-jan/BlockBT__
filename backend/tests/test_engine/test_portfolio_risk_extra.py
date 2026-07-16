@@ -84,3 +84,67 @@ def test_take_profit_fires():
     result = engine.run_dag_backtest(df, _dag({"sl_stop": 0.05, "tp_stop": 0.10}))
     assert result["raw"].get("Take Profit Exits", 0) > 0
     assert result["raw"].get("Stop Loss Exits", 0) == 0
+
+
+# Custom indicator: wejście bar0, wyjście SYGNAŁOWE na barze 1.
+_ENTRY_BAR0_EXIT_BAR1 = (
+    "entries = pd.Series(False, index=close.index)\n"
+    "entries.iloc[0] = True\n"
+    "exits = pd.Series(False, index=close.index)\n"
+    "exits.iloc[1] = True\n"
+)
+
+
+def test_signal_exit_near_stop_level_not_counted_as_sl():
+    """Review 2026-07-15: wyjście sygnałowe w pasie eps NAD poziomem SL nie jest liczone jako stop.
+
+    Wejście @100 (fill 100.1 ze slippage), SL 5% → poziom 95.095. Close bar1 = 95.1
+    NIE przebija poziomu (stop nie odpala), ale sygnał exit zamyka @95.0049 — cena
+    mieści się w tolerancji eps i stara heurystyka fałszywie liczyła to jako SL.
+    Maska exits na barze wyjścia rozstrzyga: to wyjście sygnałowe → licznik SL = 0.
+    """
+    engine = OpenSourceEngine()
+    df = pd.DataFrame({"close": [100.0, 95.1, 96.0, 97.0, 98.0]})
+    result = engine.run_dag_backtest(
+        df, _dag({"sl_stop": 0.05}, code=_ENTRY_BAR0_EXIT_BAR1)
+    )
+    assert result["raw"]["Stop Loss Exits"] == 0
+
+
+def test_gap_through_stop_counted_despite_signal_exit_same_bar():
+    """Głębokie przebicie poziomu SL (gap 100→90) liczy się jako stop nawet przy
+    koincydencji sygnału exit na tym samym barze — o klasyfikacji decyduje warunek
+    triggera (close bara wyjścia za poziomem stopu), nie maska sygnałów."""
+    engine = OpenSourceEngine()
+    df = pd.DataFrame({"close": [100.0, 90.0, 96.0, 97.0, 98.0]})
+    result = engine.run_dag_backtest(
+        df, _dag({"sl_stop": 0.05}, code=_ENTRY_BAR0_EXIT_BAR1)
+    )
+    assert result["raw"]["Stop Loss Exits"] == 1
+
+
+# Custom indicator: wejście bar0, maska exits STREFOWA (True od bar1 do końca) —
+# typowa dla warunków typu fast<slow, gdzie sygnał trzyma się przez cały trend.
+_ENTRY_BAR0_EXIT_ZONE = (
+    "entries = pd.Series(False, index=close.index)\n"
+    "entries.iloc[0] = True\n"
+    "exits = pd.Series(False, index=close.index)\n"
+    "exits.iloc[1:] = True\n"
+)
+
+
+def test_stop_hit_counted_despite_zone_exit_mask():
+    """Review 2026-07-16: realne trafienie stopu przy STREFOWEJ masce exits.
+
+    Close bar1 = 95.05 przekracza poziom SL 95.095 (5% od fill-a wejścia 100.1) —
+    vbt uruchamia stop. Poprzednia heurystyka pasa eps unieważniała klasyfikację,
+    bo na barze wyjścia był też sygnał exit (maska strefowa), a fill nie był
+    "głęboko" za poziomem → systematyczny undercount stopów dla masek strefowych.
+    Warunek triggera (close za poziomem) klasyfikuje deterministycznie: to stop.
+    """
+    engine = OpenSourceEngine()
+    df = pd.DataFrame({"close": [100.0, 95.05, 96.0, 97.0, 98.0]})
+    result = engine.run_dag_backtest(
+        df, _dag({"sl_stop": 0.05}, code=_ENTRY_BAR0_EXIT_ZONE)
+    )
+    assert result["raw"]["Stop Loss Exits"] == 1

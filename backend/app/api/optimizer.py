@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import asdict
 from typing import Any
 
 from fastapi import APIRouter, BackgroundTasks, HTTPException
@@ -8,6 +9,7 @@ from app.db.session import get_session
 from app.models.orm import JobStatus, OptimizationJob, Strategy
 from app.schemas.base import ApiResponse
 from app.schemas.optimizer import OptimizationJobResponse, OptimizationRequest, WalkForwardRequest
+from app.services.engine.optimizer import WfoConfig
 from app.services.engine.runner import run_optuna_optimization, run_walk_forward
 
 """
@@ -108,43 +110,52 @@ def trigger_wfo(
                 detail=f"Strategy id={payload.strategy_id} not found",
             )
 
-        # Build parameters snapshot
+        # Build parameters snapshot: parametry strategii + nadpisania użytkownika,
+        # klucze infrastrukturalne NA KOŃCU — nie do nadpisania przez payload.parameters
+        # (review 2026-07-16: wcześniej user mógł rozjechać snapshot z realnym przebiegiem).
+        # Konfiguracja przebiegu WFO (okna/tryb/bounds) żyje wyłącznie w bounds_definition.
         params: dict[str, Any] = dict(strategy.parameters)
+        if payload.parameters:
+            params.update(payload.parameters)
         params.update(
             {
                 "symbol": payload.symbol,
                 "data_source": payload.data_source,
                 "timeframe": payload.timeframe,
                 "initial_capital": payload.initial_capital,
-                "window_size": payload.window_size,
-                "step_size": payload.step_size,
             }
         )
         if payload.start_date:
             params["start_date"] = payload.start_date
         if payload.end_date:
             params["end_date"] = payload.end_date
-        if payload.parameters:
-            params.update(payload.parameters)
+
+        # Faza 15: konfiguracja przebiegu (opcjonalne bounds → optymalizacja IS per okno)
+        config = WfoConfig(
+            window_size=payload.window_size,
+            step_size=payload.step_size,
+            mode=payload.mode,
+            param_bounds=(
+                {k: v.model_dump() for k, v in payload.param_bounds.items()}
+                if payload.param_bounds
+                else None
+            ),
+            n_trials=payload.n_trials,
+            metric=payload.metric,
+        )
 
         job = OptimizationJob(
             strategy_id=strategy.id,
             status=JobStatus.PENDING,
             parameters_snapshot=params,
-            bounds_definition={"window_size": payload.window_size, "step_size": payload.step_size},
+            bounds_definition=asdict(config),
         )
         db.add(job)
         db.flush()
         job_id = job.id
 
     # Schedule background task
-    background_tasks.add_task(
-        run_walk_forward,
-        job_id,
-        params,
-        payload.window_size,
-        payload.step_size,
-    )
+    background_tasks.add_task(run_walk_forward, job_id, params, config)
 
     return ApiResponse(success=True, data={"job_id": job_id})
 

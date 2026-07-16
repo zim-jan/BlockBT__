@@ -114,6 +114,27 @@ Osobna, natywna funkcja vbt do generowania masek wyjść SL/TP przed `from_signa
   po cenie wyjścia vs poziom stopu (long/short symetrycznie, `eps=1e-3`). Wynik
   trafia do `result["raw"]["Stop Loss Exits"]` / `["Take Profit Exits"]`
   **tylko gdy dany stop był ustawiony** w węźle Execution.
+- **Aktualizacja (review-backlog 2026-07-15):** klasyfikację wydzielono do
+  wspólnego rdzenia `_classify_stop_exits` i rozszerzono na **multi-symbol**
+  (`_count_stop_exits_multi`): rekordy transakcji filtrowane po etykiecie
+  `Column`, liczniki per symbol w zagnieżdżonym `raw`
+  (`result["raw"][symbol]["Stop Loss Exits"]`), klucze tylko dla ustawionych
+  stopów — spójnie z kontraktem `is_multi_symbol` Fazy 10. Dodatkowo heurystykę
+  zawężono maską `exits`: sygnał wyjścia na barze zamknięcia unieważnia
+  klasyfikację stopu **wyłącznie w pasie `eps` wokół poziomu** (eliminacja
+  fałszywych trafień „sygnał przypadkiem przy poziomie"); głębokie przebicie
+  poziomu (gap) liczy się jako stop nawet przy koincydencji sygnału.
+- **Aktualizacja (review integracyjne 2026-07-16):** heurystykę pasa `eps`
+  zastąpiono klasyfikacją po **warunku triggera**. Obserwacja kluczowa: przy
+  danych close-only vbt fill-uje KAŻDE wyjście (stop i sygnał) na close bara,
+  więc cena fill-a z zasady nie rozróżnia stopu od sygnału — pas `eps` dawał
+  jednocześnie fałszywe trafienia i **systematyczny undercount** przy maskach
+  strefowych (sygnał typu `fast<slow` trzymający się przez cały trend
+  unieważniał każde realne trafienie stopu). Nowa reguła: vbt sprawdza stopy
+  na każdym barze, więc **close bara wyjścia za poziomem stopu ⇔ stop
+  zadziałał** — deterministycznie, bez maski `exits`, bez pasa `eps` i bez
+  narożnika podwójnego liczenia SL+TP (poziomy leżą po przeciwnych stronach
+  ceny wejścia).
 - **Schema:** `ExecutionParams` (`backend/app/schemas/dag.py`) — nowe pola
   `sl_stop: float | None` (0..1), `tp_stop: float | None` (0..1),
   `sl_trail: bool = False`, `size: float | None` (>0),
@@ -144,16 +165,24 @@ Osobna, natywna funkcja vbt do generowania masek wyjść SL/TP przed `from_signa
   Zamrożenie testów RED nie jest więc bezwzględne — modyfikacja wymaga jawnej
   zgody użytkownika i jest udokumentowana (patrz też hygiene: usunięte z testu
   nieaktualne komentarze sugerujące brak implementacji).
-- **Klasyfikacja po cenie ma tolerancję `eps`** — przy poziomach stopów bardzo
-  blisko siebie lub przy szumie cenowym granicznym możliwa błędna klasyfikacja
-  pojedynczej transakcji; nie wpływa na poprawność samej egzekucji SL/TP przez
-  vbt, tylko na dokładność raportowanego licznika.
-- **Multi-symbol surfacing poza zakresem.** `_count_stop_exits` operuje na
-  ścieżce single-symbol (`portfolio.trades.records_readable` jako płaski
-  DataFrame). Gałąź multi-symbol (`_build_multi_symbol_result`, Faza 10) SL/TP
-  egzekwuje poprawnie (parametry broadcastują się po kolumnach w `from_signals`),
-  ale **nie zwraca per-symbol liczników wyjść SL/TP** — świadome cięcie zakresu
-  tej fazy, odłożone na przyszłą pracę.
+- **Klasyfikacja liczników pozostaje rekonstrukcją** (vbt OSS nie etykietuje
+  wyjść SL/TP w rekordach transakcji); nie wpływa na poprawność samej egzekucji
+  SL/TP przez vbt, tylko na dokładność raportowanego licznika.
+  **Ograniczenia rezydualne po przejściu na warunek triggera (2026-07-16):**
+  - sygnał exit na barze, którego close przekroczył poziom stopu → oba warunki
+    spełnione naraz; transakcja liczona **jako stop** (rozstrzygnięcie
+    deterministyczne — vbt i tak sprawdziłby stop na tym barze);
+  - poziom SL rekonstruowany z `Avg Entry Price` (fill z poślizgiem), a dla
+    `sl_trail` z ekstremum close w oknie pozycji — zgodne z egzekucją vbt dla
+    danych close-only, ale przybliżone, gdyby silnik dostał kiedyś pełny OHLC;
+  - **dokładne etykiety** dałyby dopiero rekordy `OHLCSTX`/`StopType` vbt —
+    wymagają prowadzenia pełnego OHLC przez cały pipeline (dziś silnik operuje
+    wyłącznie na close); odnotowane jako możliwy kierunek, nie drop-in.
+- **Multi-symbol surfacing — ZREALIZOWANE po fazie** (review-backlog
+  2026-07-15, patrz „Decyzja" wyżej): `_count_stop_exits_multi` zwraca liczniki
+  per symbol w zagnieżdżonym `raw`; pierwotne cięcie zakresu Fazy 12 zamknięte.
+  Testy: `test_portfolio_risk_multi.py` oraz przypadki graniczne heurystyki
+  w `test_portfolio_risk_extra.py`.
 - **`from_orders`/event-driven order-func poza zakresem** — patrz opcja B wyżej;
   obecne pokrycie (`from_signals`) wystarcza dla wymagań fazy, pełna symulacja
   zdarzeniowa z niestandardowymi regułami wyjścia to praca przyszła.

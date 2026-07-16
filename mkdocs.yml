@@ -65,3 +65,4 @@ nav:
       - ADR-0003 Advanced Portfolio + Risk: adr/0003-advanced-portfolio-risk.md
       - ADR-0004 QSAdapter Analytics + Tearsheets: adr/0004-qsadapter-analytics-tearsheets.md
       - ADR-0005 Dynamic Introspection Registry: adr/0005-dynamic-introspection-registry.md
+      - ADR-0006 Walk-Forward Optimization: adr/0006-walk-forward-optimization.md
