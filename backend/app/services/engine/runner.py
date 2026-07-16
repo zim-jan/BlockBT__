@@ -161,6 +161,13 @@ def _execute_dag_backtest(engine, dag_dict: dict[str, Any]) -> dict[str, Any]:
         if key in result:
             payload[key] = result[key]
 
+    # Review 2026-07-16: raw (m.in. liczniki Stop Loss/Take Profit Exits z Fazy 12)
+    # musi trafić do payloadu jobu — metrics silnika są zawsze niepuste, więc
+    # fallback `if not metrics` wyżej nigdy nie scalał raw i liczniki ginęły
+    # przed zapisem do DB/API (potwierdzone testami manualnymi faz 10-14).
+    if "raw" in result:
+        payload["raw"] = _serialize_metrics(result["raw"])
+
     return payload
 
 
