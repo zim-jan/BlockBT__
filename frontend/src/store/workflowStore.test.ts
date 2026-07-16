@@ -85,6 +85,94 @@ describe('workflowStore', () => {
     expect(node.data.fees).toBe(0.001)
   })
 
+  // Review 2026-07-16: edycja JAKIEGOKOLWIEK pola w JAKIMKOLWIEK bloku czyści
+  // błędy bloków; wyniki udanych przebiegów zostają (poza resetem zależności).
+  describe('auto-czyszczenie błędów przy edycji pól', () => {
+    it('clears own error and FAILED status when editing a failed portfolio node', () => {
+      const store = useWorkflowStore.getState()
+      store.addNode('portfolioNode')
+      const portfolioId = useWorkflowStore.getState().nodes.find(n => n.type === 'portfolioNode')!.id
+
+      useWorkflowStore.getState().updatePortfolioResult(null, 'FAILED', 1, 'boom')
+      useWorkflowStore.getState().updateNodeData(portfolioId, { fees: 0.002 } as any)
+
+      const portfolio = useWorkflowStore.getState().nodes.find(n => n.id === portfolioId)!
+      expect(portfolio.data.error).toBeUndefined()
+      expect(portfolio.data.jobStatus).toBeUndefined()
+      expect(portfolio.data.fees).toBe(0.002)
+    })
+
+    it('clears own error when editing a failed optimizer node', () => {
+      const store = useWorkflowStore.getState()
+      store.addNode('optimizerNode')
+      const optimizerId = useWorkflowStore.getState().nodes.find(n => n.type === 'optimizerNode')!.id
+
+      useWorkflowStore.getState().updateOptimizerResult(null, null, null, 'FAILED', 1, 'boom')
+      useWorkflowStore.getState().updateNodeData(optimizerId, { nTrials: 50 } as any)
+
+      const optimizer = useWorkflowStore.getState().nodes.find(n => n.id === optimizerId)!
+      expect(optimizer.data.error).toBeUndefined()
+      expect(optimizer.data.jobStatus).toBeUndefined()
+    })
+
+    it('clears own error when editing a failed WFO node', () => {
+      const store = useWorkflowStore.getState()
+      store.addNode('wfoNode')
+      const wfoId = useWorkflowStore.getState().nodes.find(n => n.type === 'wfoNode')!.id
+
+      useWorkflowStore.getState().updateWfoResult(null, 'FAILED', 1, 'boom')
+      useWorkflowStore.getState().updateNodeData(wfoId, { windowSize: '180d' } as any)
+
+      const wfo = useWorkflowStore.getState().nodes.find(n => n.id === wfoId)!
+      expect(wfo.data.error).toBeUndefined()
+      expect(wfo.data.jobStatus).toBeUndefined()
+      expect(wfo.data.windowSize).toBe('180d')
+    })
+
+    it('clears errors on OTHER blocks too (any edit anywhere clears all errors)', () => {
+      const store = useWorkflowStore.getState()
+      store.addNode('portfolioNode')
+      store.addNode('wfoNode')
+      const nodes = useWorkflowStore.getState().nodes
+      const portfolioId = nodes.find(n => n.type === 'portfolioNode')!.id
+      const wfoId = nodes.find(n => n.type === 'wfoNode')!.id
+
+      useWorkflowStore.getState().updateWfoResult(null, 'FAILED', 1, 'boom')
+      // Edycja pola w INNYM bloku (portfolio) musi zdjąć błąd z WFO
+      useWorkflowStore.getState().updateNodeData(portfolioId, { fees: 0.002 } as any)
+
+      const wfo = useWorkflowStore.getState().nodes.find(n => n.id === wfoId)!
+      expect(wfo.data.error).toBeUndefined()
+      expect(wfo.data.jobStatus).toBeUndefined()
+    })
+
+    it('clears indicator sandbox error on its own edit (przyszły writer Fazy 11)', () => {
+      const store = useWorkflowStore.getState()
+      store.addNode('indicatorNode')
+      const indicatorId = useWorkflowStore.getState().nodes.find(n => n.type === 'indicatorNode')!.id
+
+      useWorkflowStore.getState().updateNodeData(indicatorId, { error: 'sandbox error' } as any)
+      useWorkflowStore.getState().updateNodeData(indicatorId, { smaFast: 15 } as any)
+
+      const indicator = useWorkflowStore.getState().nodes.find(n => n.id === indicatorId)!
+      expect(indicator.data.error).toBeUndefined()
+      expect(indicator.data.smaFast).toBe(15)
+    })
+
+    it('keeps successful results when editing the execution node itself', () => {
+      const store = useWorkflowStore.getState()
+      store.addNode('portfolioNode')
+      const portfolioId = useWorkflowStore.getState().nodes.find(n => n.type === 'portfolioNode')!.id
+
+      useWorkflowStore.getState().updatePortfolioResult({ total_return_pct: 10 } as any, 'COMPLETED', 1)
+      useWorkflowStore.getState().updateNodeData(portfolioId, { fees: 0.002 } as any)
+
+      const portfolio = useWorkflowStore.getState().nodes.find(n => n.id === portfolioId)!
+      expect(portfolio.data.jobStatus).toBe('COMPLETED')
+      expect(portfolio.data.metrics).toEqual({ total_return_pct: 10 })
+    })
+  })
+
   // TimeShift usunięty (review 2026-07-16): silnik auto-shiftuje sygnały;
   // kaskadę inwalidacji pinujemy na signalNode (nadal węzeł zależności)
   it('updating signalNode invalidates downstream execution nodes', () => {

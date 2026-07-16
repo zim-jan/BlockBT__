@@ -96,17 +96,32 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
     set((s) => {
       const updatedNode = s.nodes.find((n) => n.id === nodeId)
       const isDependencyNode = updatedNode && ['dataNode', 'indicatorNode', 'signalNode'].includes(updatedNode.type ?? '')
-      
+
       return {
         nodes: s.nodes.map((n) => {
+          // Review 2026-07-16: edycja pola w DOWOLNYM bloku czyści błędy wszystkich
+          // bloków — stan FAILED przestaje być aktualny po zmianie konfiguracji.
+          // Wyniki udanych przebiegów zostają (kasuje je tylko reset zależności niżej).
+          const cur = n.data as Record<string, unknown>
+          const clearError: Record<string, unknown> =
+            cur.jobStatus === 'FAILED'
+              ? { error: undefined, jobStatus: undefined }
+              : cur.error != null
+                ? { error: undefined }
+                : {}
+
           if (n.id === nodeId) {
-            return { ...n, data: { ...n.data, ...data } }
+            // Jawne wpisy z `data` wygrywają z czyszczeniem (np. hook ustawia error/jobStatus)
+            return { ...n, data: { ...cur, ...clearError, ...data } }
           }
           // If a dependency node was updated, reset execution nodes completely
           if (isDependencyNode && ['portfolioNode', 'optimizerNode', 'wfoNode'].includes(n.type ?? '')) {
             // eslint-disable-next-line @typescript-eslint/no-unused-vars
-            const { jobStatus, metrics, jobId, error, isOutdated, results, bestParameters, bestValue, trials, ...restData } = n.data as any;
+            const { jobStatus, metrics, jobId, error, isOutdated, results, bestParameters, bestValue, trials, ...restData } = cur as any;
             return { ...n, data: restData }
+          }
+          if ('error' in clearError) {
+            return { ...n, data: { ...cur, ...clearError } }
           }
           return n
         }),
