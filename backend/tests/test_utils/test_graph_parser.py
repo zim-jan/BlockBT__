@@ -71,7 +71,8 @@ def test_valid_graph():
 
 
 def test_valid_graph_shortcut_indicators_to_execution():
-    """3-node flow: Data → Indicator → Execution (skipping LogicOperators/TimeShift)."""
+    """3-node flow: Data → Indicator → Execution jest poprawny (review 2026-07-16):
+    silnik shiftuje sygnały automatycznie, węzeł TimeShift nie jest już wymagany."""
     nodes = [
         make_node("n1", "DataIngestion"),
         make_node("n2", "Indicators"),
@@ -79,12 +80,10 @@ def test_valid_graph_shortcut_indicators_to_execution():
     ]
     edges = [
         make_edge("e1", "n1", "n2"),
-        make_edge("e2", "n2", "n3"),  # Indicators -> Execution 
+        make_edge("e2", "n2", "n3"),  # Indicators -> Execution
     ]
     parser = GraphParser(nodes, edges)
-    # This should now raise a validation error because of missing TimeShift
-    with pytest.raises(GraphValidationError, match="Look-ahead Bias"):
-        parser.validate()
+    parser.validate()  # Nie może rzucić — auto-shift w silniku zastępuje wymóg TimeShift
 
 
 def test_no_execution_node():

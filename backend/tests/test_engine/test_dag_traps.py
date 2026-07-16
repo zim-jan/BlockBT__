@@ -19,8 +19,9 @@ def test_zero_cost_fallacy_trap():
     assert "fees" in str(exc_info.value)
 
 
-def test_look_ahead_bias_trap():
-    """TDD: Węzeł Execution musi być poprzedzony węzłem TimeShift."""
+def test_look_ahead_bias_auto_shift_no_time_shift_required():
+    """Review 2026-07-16: ochrona przed look-ahead przeniesiona do silnika
+    (bezwarunkowy fshift po generate_signals) — graf bez TimeShift jest poprawny."""
     nodes = [
         DataIngestionNode(id="data-1", type="dataNode", params=DataIngestionParams(symbol="BTC", timeframe="1d")),
         IndicatorsNode(id="ind-1", type="indicatorNode", params=IndicatorsParams(windows=[14])),
@@ -29,12 +30,11 @@ def test_look_ahead_bias_trap():
     ]
     edges = [
         DAGEdge(id="e1", source="data-1", target="ind-1"),
-        DAGEdge(id="e2", source="ind-1", target="exec-1")  # Błąd: Brak TimeShift pomiędzy ind-1 a exec-1
+        DAGEdge(id="e2", source="ind-1", target="exec-1")  # OK: silnik auto-shiftuje sygnały
     ]
 
     parser = GraphParser(nodes=nodes, edges=edges)
-    with pytest.raises(GraphValidationError, match="Look-ahead Bias"):
-        parser.validate()
+    parser.validate()  # Nie może rzucić
 
 
 def test_overfitting_trap():

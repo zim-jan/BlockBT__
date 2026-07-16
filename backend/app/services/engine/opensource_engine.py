@@ -389,15 +389,14 @@ class OpenSourceEngine(BaseStrategyEngine):
         # Indicators & LogicOperators (close: Series single lub DataFrame multi-symbol)
         entries, exits = IndicatorService.generate_signals(close, flat_params, vbt)
 
-        # Apply TimeShift if LogicOperators node with time_shift present (Look-ahead Bias prevention)
-        logic_nodes = [n for n in nodes if n.get("category") == "LogicOperators"]
-        for logic_node in logic_nodes:
-            lp = logic_node.get("params", {})
-            if lp.get("operator_type") == "time_shift":
-                shift = int(lp.get("shift_periods", 1))
-                entries = self.apply_time_shift(entries, shift)
-                exits = self.apply_time_shift(exits, shift)
-                logger.info(f"Applied fshift({shift}) for Look-ahead Bias prevention.")
+        # Look-ahead Bias prevention (review 2026-07-16): bezwarunkowy fshift(1)
+        # zaraz po wygenerowaniu sygnałów — użytkownik nie stawia węzła TimeShift.
+        # Jawne węzły LogicOperators z operator_type=="time_shift" w starych
+        # zapisach DAG są celowo ignorowane (no-op) — to jedyne miejsce aplikacji
+        # shiftu, więc podwójny shift jest niemożliwy z konstrukcji.
+        entries = self.apply_time_shift(entries, 1)
+        exits = self.apply_time_shift(exits, 1)
+        logger.debug("Auto fshift(1) applied to entries/exits (look-ahead prevention).")
 
         # Execution
         initial_capital = float(exec_params.get("init_cash", exec_params.get("initialCapital", 10000.0)))

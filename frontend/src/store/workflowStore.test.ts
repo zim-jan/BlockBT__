@@ -85,19 +85,21 @@ describe('workflowStore', () => {
     expect(node.data.fees).toBe(0.001)
   })
 
-  it('updating timeShiftNode invalidates downstream execution nodes', () => {
+  // TimeShift usunięty (review 2026-07-16): silnik auto-shiftuje sygnały;
+  // kaskadę inwalidacji pinujemy na signalNode (nadal węzeł zależności)
+  it('updating signalNode invalidates downstream execution nodes', () => {
     const store = useWorkflowStore.getState()
-    store.addNode('timeShiftNode')
+    store.addNode('signalNode')
     store.addNode('portfolioNode')
     const nodes = useWorkflowStore.getState().nodes
-    const timeShiftId = nodes.find(n => n.type === 'timeShiftNode')!.id
+    const signalId = nodes.find(n => n.type === 'signalNode')!.id
     const portfolioId = nodes.find(n => n.type === 'portfolioNode')!.id
 
     useWorkflowStore.getState().updateNodeData(portfolioId, {
       jobStatus: 'COMPLETED', metrics: { total_return_pct: 10 } as any, jobId: 5,
     } as any)
 
-    useWorkflowStore.getState().updateNodeData(timeShiftId, { shift_periods: 3 } as any)
+    useWorkflowStore.getState().updateNodeData(signalId, { signalType: 'ranking' } as any)
 
     const portfolio = useWorkflowStore.getState().nodes.find(n => n.id === portfolioId)!
     expect(portfolio.data.jobStatus).toBeUndefined()

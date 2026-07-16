@@ -20,7 +20,6 @@ export const NODE_TYPE_CATEGORY_MAP: Record<string, NodeCategory> = {
   dataNode: 'DataIngestion',
   indicatorNode: 'Indicators',
   signalNode: 'LogicOperators',
-  timeShiftNode: 'LogicOperators',
   portfolioNode: 'Execution',
   optimizerNode: 'Meta',
   wfoNode: 'Meta',
@@ -166,11 +165,6 @@ export interface IndicatorNodeData extends Record<string, unknown> {
 
 export interface SignalNodeData extends Record<string, unknown> {
   signalType: 'sma_crossover' | 'ranking' | 'mapping' | 'distribution'
-}
-
-export interface TimeShiftNodeData extends Record<string, unknown> {
-  operator_type: 'time_shift'
-  shift_periods: number
 }
 
 export interface ParameterBound {

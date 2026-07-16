@@ -42,9 +42,10 @@ def _dag(symbols: list[str], exec_params: dict) -> dict:
 def test_multi_symbol_stop_exit_counts_per_symbol():
     """AAPL łamie SL (100→90), MSFT łamie TP (100→112) — liczniki rozdzielone per symbol."""
     engine = OpenSourceEngine()
+    # Bar wyściółkowy [0]: auto-shift silnika (ADR-0007) przesuwa entries o 1.
     df = _long_df({
-        "AAPL": [100.0, 90.0, 92.0, 94.0, 93.0, 95.0],
-        "MSFT": [100.0, 112.0, 120.0, 118.0, 130.0, 125.0],
+        "AAPL": [100.0, 100.0, 90.0, 92.0, 94.0, 93.0, 95.0],
+        "MSFT": [100.0, 100.0, 112.0, 120.0, 118.0, 130.0, 125.0],
     })
     result = engine.run_dag_backtest(
         df, _dag(["AAPL", "MSFT"], {"sl_stop": 0.05, "tp_stop": 0.10})
@@ -81,9 +82,10 @@ def test_multi_symbol_no_stops_no_raw_counters():
 def test_multi_symbol_only_sl_configured():
     """Tylko sl_stop ustawiony → w raw per symbol jest wyłącznie licznik SL."""
     engine = OpenSourceEngine()
+    # Bar wyściółkowy [0]: auto-shift silnika (ADR-0007) przesuwa entries o 1.
     df = _long_df({
-        "AAPL": [100.0, 90.0, 92.0, 94.0, 93.0, 95.0],
-        "MSFT": [100.0, 112.0, 120.0, 118.0, 130.0, 125.0],
+        "AAPL": [100.0, 100.0, 90.0, 92.0, 94.0, 93.0, 95.0],
+        "MSFT": [100.0, 100.0, 112.0, 120.0, 118.0, 130.0, 125.0],
     })
     result = engine.run_dag_backtest(df, _dag(["AAPL", "MSFT"], {"sl_stop": 0.05}))
 

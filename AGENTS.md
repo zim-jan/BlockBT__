@@ -180,6 +180,11 @@ Jesteś Głównym Architektem i Programistą w projekcie BlockBT. Pracujesz w ry
     2. **Rust Engine Compatibility:** Wdrożono jawne rzutowanie `bool -> float64` w operacjach `fshift` (TimeShift) oraz w progach RSI, eliminując błędy castingu w backendzie Rust. [DONE]
     3. **Indicator Bridges:** Zaimplementowano mosty dla `vbt_MA` i `vbt_RSI`, umożliwiające poprawne mapowanie parametrów DAG na natywne wywołania `vectorbt` i konwersję na sygnały logiczne. [DONE]
     4. **TDD Verification:** Wszystkie 60 testów backendowych przechodzi, weryfikacja manualna potwierdza stabilność przepływu Data -> Indicator -> Signal -> TimeShift -> Portfolio. [DONE]
+  * AKTUALIZACJA (2026-07-17, decyzja Janka z review 2026-07-16, ADR-0007): blok
+    TimeShift usunięty z kanwy — silnik bezwarunkowo auto-shiftuje entries/exits
+    o 1 okres po generate_signals(); walidator nie wymaga już węzła TimeShift,
+    a jawne węzły time_shift w starych DAG-ach są no-op (brak podwójnego shiftu).
+    Poprawny minimalny przepływ: Data -> Indicator -> Portfolio.
 
 * **Faza 10: Broadcasting i Multi-wymiarowość (Filar 1)** [DONE]
     Cel: Macierze. Brak pętli. Szybkość. [DONE]

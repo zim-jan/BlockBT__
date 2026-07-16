@@ -10,7 +10,6 @@ import FloatingConnectionLine from './edges/FloatingConnectionLine'
 import DataNode from './nodes/DataNode'
 import IndicatorNode from './nodes/IndicatorNode'
 import {SignalNode} from './nodes/SignalNode'
-import {TimeShiftNode} from './nodes/TimeShiftNode'
 import {PortfolioNode} from './nodes/PortfolioNode'
 import OptimizerNode from './nodes/OptimizerNode'
 import {WfoNode} from './nodes/WfoNode'
@@ -19,7 +18,6 @@ const nodeTypes: any = {
   dataNode: DataNode,
   indicatorNode: IndicatorNode,
   signalNode: SignalNode,
-  timeShiftNode: TimeShiftNode,
   portfolioNode: PortfolioNode,
   optimizerNode: OptimizerNode,
   wfoNode: WfoNode,
@@ -109,7 +107,6 @@ export function WorkflowEditor() {
           <button onClick={() => addNode('dataNode')} className="toolbar-btn">Add Data Node</button>
           <button onClick={() => addNode('indicatorNode')} className="toolbar-btn">Add Indicator Node</button>
           <button onClick={() => addNode('signalNode')} className="toolbar-btn">Add Signal Node</button>
-          <button onClick={() => addNode('timeShiftNode')} className="toolbar-btn" style={{ backgroundColor: '#f59e0b', color: '#000' }}>⏩ Add TimeShift</button>
           <button onClick={() => addNode('portfolioNode')} className="toolbar-btn">Add Portfolio Node</button>
           <button onClick={() => addNode('optimizerNode')} className="toolbar-btn">Add Optimizer Node</button>
           <button onClick={() => addNode('wfoNode')} className="toolbar-btn">Add WFO Node</button>

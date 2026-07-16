@@ -95,7 +95,7 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
   updateNodeData: (nodeId, data) =>
     set((s) => {
       const updatedNode = s.nodes.find((n) => n.id === nodeId)
-      const isDependencyNode = updatedNode && ['dataNode', 'indicatorNode', 'signalNode', 'timeShiftNode'].includes(updatedNode.type ?? '')
+      const isDependencyNode = updatedNode && ['dataNode', 'indicatorNode', 'signalNode'].includes(updatedNode.type ?? '')
       
       return {
         nodes: s.nodes.map((n) => {
@@ -129,14 +129,10 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
         point_in_time_enforcement: true // NOWE
       },
       indicatorNode: { indicatorType: 'sma_crossover', smaFast: 10, smaSlow: 30 },
+      // TimeShift usunięty (review 2026-07-16): silnik auto-shiftuje sygnały,
+      // signalNode nie niesie już operator_type/shift_periods
       signalNode: {
         signalType: 'sma_crossover',
-        operator_type: 'time_shift', // NOWE (Domyślnie wymuszamy shift)
-        shift_periods: 1
-      },
-      timeShiftNode: {
-        operator_type: 'time_shift',
-        shift_periods: 1
       },
       portfolioNode: {
         init_cash: 10000,

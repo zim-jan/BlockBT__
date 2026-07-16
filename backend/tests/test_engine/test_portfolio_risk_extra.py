@@ -42,7 +42,9 @@ def test_trailing_stop_counted_relative_to_peak():
     Gdyby licznik używał poziomu od wejścia, trailing byłby błędnie 0 (regresja z review).
     """
     engine = OpenSourceEngine()
-    df = pd.DataFrame({"close": [100.0, 130, 120, 115, 110]})
+    # Bar wyściółkowy [0]: auto-shift silnika (ADR-0007) przesuwa entries/exits o 1 —
+    # wejście wypełnia się na zamierzonej cenie z pierwotnego scenariusza.
+    df = pd.DataFrame({"close": [100.0, 100.0, 130, 120, 115, 110]})
     trail = engine.run_dag_backtest(df, _dag({"sl_stop": 0.05, "sl_trail": True}))
     fixed = engine.run_dag_backtest(df, _dag({"sl_stop": 0.05}))
     assert trail["raw"]["Stop Loss Exits"] > 0
@@ -104,7 +106,9 @@ def test_signal_exit_near_stop_level_not_counted_as_sl():
     Maska exits na barze wyjścia rozstrzyga: to wyjście sygnałowe → licznik SL = 0.
     """
     engine = OpenSourceEngine()
-    df = pd.DataFrame({"close": [100.0, 95.1, 96.0, 97.0, 98.0]})
+    # Bar wyściółkowy [0]: auto-shift silnika (ADR-0007) przesuwa entries/exits o 1 —
+    # wejście wypełnia się na zamierzonej cenie z pierwotnego scenariusza.
+    df = pd.DataFrame({"close": [100.0, 100.0, 95.1, 96.0, 97.0, 98.0]})
     result = engine.run_dag_backtest(
         df, _dag({"sl_stop": 0.05}, code=_ENTRY_BAR0_EXIT_BAR1)
     )
@@ -116,7 +120,9 @@ def test_gap_through_stop_counted_despite_signal_exit_same_bar():
     koincydencji sygnału exit na tym samym barze — o klasyfikacji decyduje warunek
     triggera (close bara wyjścia za poziomem stopu), nie maska sygnałów."""
     engine = OpenSourceEngine()
-    df = pd.DataFrame({"close": [100.0, 90.0, 96.0, 97.0, 98.0]})
+    # Bar wyściółkowy [0]: auto-shift silnika (ADR-0007) przesuwa entries/exits o 1 —
+    # wejście wypełnia się na zamierzonej cenie z pierwotnego scenariusza.
+    df = pd.DataFrame({"close": [100.0, 100.0, 90.0, 96.0, 97.0, 98.0]})
     result = engine.run_dag_backtest(
         df, _dag({"sl_stop": 0.05}, code=_ENTRY_BAR0_EXIT_BAR1)
     )
@@ -143,7 +149,9 @@ def test_stop_hit_counted_despite_zone_exit_mask():
     Warunek triggera (close za poziomem) klasyfikuje deterministycznie: to stop.
     """
     engine = OpenSourceEngine()
-    df = pd.DataFrame({"close": [100.0, 95.05, 96.0, 97.0, 98.0]})
+    # Bar wyściółkowy [0]: auto-shift silnika (ADR-0007) przesuwa entries/exits o 1 —
+    # wejście wypełnia się na zamierzonej cenie z pierwotnego scenariusza.
+    df = pd.DataFrame({"close": [100.0, 100.0, 95.05, 96.0, 97.0, 98.0]})
     result = engine.run_dag_backtest(
         df, _dag({"sl_stop": 0.05}, code=_ENTRY_BAR0_EXIT_ZONE)
     )
