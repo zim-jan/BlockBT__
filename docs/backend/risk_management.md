@@ -57,22 +57,31 @@ if size is not None:
 niezależny od wersji — wewnętrzny enum `StopType` (`TP=2`) nie jest publicznym,
 stabilnym API. Dlatego silnik **rekonstruuje** liczniki po fakcie:
 
-`_count_stop_exits` iteruje zamknięte transakcje (`portfolio.trades.records_readable`)
-i klasyfikuje każdą po relacji ceny wyjścia (`Avg Exit Price`) do ceny wejścia
-(`Avg Entry Price`) względem ustawionego poziomu stopu, z tolerancją `eps=1e-3`:
+`_classify_stop_exits` (wspólny rdzeń `_count_stop_exits` /
+`_count_stop_exits_multi`) iteruje zamknięte transakcje
+(`portfolio.trades.records_readable`) i klasyfikuje każdą po **warunku
+uruchomienia stopu**: przy danych close-only vbt fill-uje każde wyjście (stop
+i sygnał) na close bara, więc cena fill-a nie rozróżnia stopu od wyjścia
+sygnałowego — rozróżnia je trigger, bo vbt sprawdza stopy na każdym barze
+(close bara wyjścia za poziomem ⇔ stop zadziałał):
 
-- **Long, Stop Loss:** `exit_price <= entry * (1 - sl_stop) * (1 + eps)`
-- **Long, Take Profit:** `exit_price >= entry * (1 + tp_stop) * (1 - eps)`
+- **Long, Stop Loss:** `close_bara_wyjścia <= poziom`, gdzie poziom = `entry * (1 - sl_stop)`
+  (dla `sl_trail=True` — od biegnącego ekstremum ceny w oknie pozycji),
+- **Long, Take Profit:** `close_bara_wyjścia >= entry * (1 + tp_stop)`,
 - **Short:** symetrycznie (znaki odwrócone).
 
 Wynik trafia do `result["raw"]["Stop Loss Exits"]` / `["Take Profit Exits"]`
-**tylko gdy dany stop był ustawiony** w węźle Execution.
+**tylko gdy dany stop był ustawiony** w węźle Execution; na gałęzi multi-symbol
+(review 2026-07-15) liczniki są per symbol w zagnieżdżonym
+`result["raw"][symbol][...]`. Runner kopiuje `raw` do payloadu jobu
+(review 2026-07-16), więc liczniki są widoczne w `GET /api/backtest/{id}`
+pod kluczem `metrics.raw`.
 
-!!! warning "Zakres: single-symbol"
-    Surfacing liczników SL/TP działa na ścieżce single-symbol. Gałąź multi-symbol
-    (Faza 10, `is_multi_symbol: true`) egzekwuje SL/TP poprawnie (broadcasting po
-    kolumnach w `from_signals`), ale **nie zwraca per-symbol liczników wyjść** —
-    świadome cięcie zakresu tej fazy (patrz ADR-0003).
+!!! note "Ograniczenie rezydualne"
+    Sygnał exit na barze, którego close przekroczył poziom stopu, jest liczony
+    jako stop (oba warunki spełnione naraz — rozstrzygnięcie deterministyczne).
+    Dokładne etykiety dałyby dopiero rekordy `OHLCSTX`/`StopType` vbt, które
+    wymagają pełnego OHLC w całym pipeline (patrz ADR-0003).
 
 ## Schema (`ExecutionParams`)
 

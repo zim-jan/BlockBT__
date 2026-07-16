@@ -81,6 +81,43 @@ Wybrano **opcję 2** z optymalizacją in-sample przez **Optunę**:
   (kontrakt `JobService` → kolumny `OptimizationJob`), a raporty okien trafiają do
   `trials_data.trials` czytanego przez `WfoNode`.
 
+### Aktualizacja po review integracyjnym (2026-07-16)
+
+- **Konfiguracja przebiegu jako obiekt `WfoConfig`** (okna, tryb, `param_bounds`,
+  `n_trials`, `metric`) — jedna wartość zamiast 6 parametrów przewlekanych przez
+  sygnatury API → runner → `run_wfo` → `_evaluate_window`; `asdict(config)` jest
+  wprost zawartością kolumny `bounds_definition` (koniec duplikacji `mode` /
+  `window_size` w `parameters_snapshot`).
+- **Odporność na awarie okien:** błąd optymalizacji IS **lub** backtestu OOS
+  trafia do raportu okna (`error`, metryki `0.0`); okna z błędem są **wykluczane
+  z agregatów**; awaria wszystkich okien → `RuntimeError` → job `FAILED`
+  (wcześniej: `COMPLETED` z `best_value=0.0`).
+- **Metryka celu honorowana end-to-end:** zawsze obecna w `oos_metrics` okna,
+  steruje wyborem najlepszego okna; `best_value` = wartość metryki celu
+  w najlepszym oknie OOS (spójnie z kontraktem `OptunaOptimizer`, gdzie
+  `best_value` to wynik najlepszego triala — wcześniej zawsze łączny Total
+  Return, niezależnie od `metric`).
+- **Łączny Sharpe ze sklejonych zwrotów OOS** (annualizowany, `ddof=1`,
+  zwroty liczone wewnątrz okien z `equity_curve` silnika — bez artefaktu na
+  granicach okien); fallback do średniej per okno, gdy silnik nie zwraca
+  krzywej kapitału.
+- **Walidacje wejścia:** parametry-listy (tryb wektoryzowany silnika) odrzucane
+  jawnie; wynik silnika bez klucza `metrics` = błąd okna (koniec cichych
+  raportów all-zero); `ParameterBounds` walidowane na schemacie (min≤max,
+  `step>0`, `choices` dla categorical) → `422` zamiast awarii Optuny w tle.
+- **Wydajność:** okna wycinane `searchsorted`/`iloc` na posortowanym indeksie
+  (guard monotoniczności) zamiast masek O(N) per okno; `is_df` materializowane
+  tylko przy optymalizacji IS; Optuna dostaje **warm start** z najlepszych
+  parametrów poprzedniego okna (`enqueue_trial`).
+- **Zmiana zachowania (świadoma):** dane krótsze niż `window_size` + 1 obserwacja
+  OOS → `ValueError` z zakresem dat i liczbą wierszy → job `FAILED`; stub
+  poprzedniej wersji kończył się `COMPLETED`. Domyślne `365d` w `WfoNode` przy
+  ≤ roku danych wymaga krótszego okna — komunikat błędu prowadzi użytkownika.
+- **Raportowane `best_params` bez kluczy infrastrukturalnych** (`symbol`,
+  `data_source`, `timeframe`, `initial_capital`, daty, konfiguracja okien) —
+  silnik nadal dostaje pełny snapshot; snapshot w DB budowany z kluczami infra
+  **po** `payload.parameters` (użytkownik nie nadpisze `symbol`/kapitału).
+
 ## Konsekwencje
 
 **Pozytywne:**
@@ -96,9 +133,11 @@ Wybrano **opcję 2** z optymalizacją in-sample przez **Optunę**:
 **Negatywne / do pilnowania:**
 
 - Sekwencyjna pętla po oknach (bez wektoryzacji między oknami) — akceptowalne dla
-  interwałów dziennych; przy dużych `n_trials` × liczbie okien czas rośnie liniowo.
-- Uśredniony Sharpe okien to przybliżenie (poprawny Sharpe wymagałby sklejenia pełnej
-  krzywej zwrotów OOS) — udokumentowane, ewentualne rozszerzenie w przyszłości.
+  interwałów dziennych; przy dużych `n_trials` × liczbie okien czas rośnie liniowo
+  (warm start Optuny z poprzedniego okna skraca zbieżność).
+- Łączny Sharpe liczony ze sklejonych zwrotów OOS (patrz aktualizacja 2026-07-16);
+  przybliżeniem pozostaje tylko fallback (średnia per okno) dla silników bez
+  `equity_curve`.
 - Brak niezależnej długości OOS ≠ krok (świadome cięcie — patrz opcja 2).
 - `step_size` interpretowany kalendarzowo (`pd.Timedelta`), nie sesyjnie — przy danych
   z lukami okna mają różną liczbę obserwacji (raportowane w `is_rows`/`oos_rows`).

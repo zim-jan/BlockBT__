@@ -124,6 +124,17 @@ Osobna, natywna funkcja vbt do generowania masek wyjść SL/TP przed `from_signa
   klasyfikację stopu **wyłącznie w pasie `eps` wokół poziomu** (eliminacja
   fałszywych trafień „sygnał przypadkiem przy poziomie"); głębokie przebicie
   poziomu (gap) liczy się jako stop nawet przy koincydencji sygnału.
+- **Aktualizacja (review integracyjne 2026-07-16):** heurystykę pasa `eps`
+  zastąpiono klasyfikacją po **warunku triggera**. Obserwacja kluczowa: przy
+  danych close-only vbt fill-uje KAŻDE wyjście (stop i sygnał) na close bara,
+  więc cena fill-a z zasady nie rozróżnia stopu od sygnału — pas `eps` dawał
+  jednocześnie fałszywe trafienia i **systematyczny undercount** przy maskach
+  strefowych (sygnał typu `fast<slow` trzymający się przez cały trend
+  unieważniał każde realne trafienie stopu). Nowa reguła: vbt sprawdza stopy
+  na każdym barze, więc **close bara wyjścia za poziomem stopu ⇔ stop
+  zadziałał** — deterministycznie, bez maski `exits`, bez pasa `eps` i bez
+  narożnika podwójnego liczenia SL+TP (poziomy leżą po przeciwnych stronach
+  ceny wejścia).
 - **Schema:** `ExecutionParams` (`backend/app/schemas/dag.py`) — nowe pola
   `sl_stop: float | None` (0..1), `tp_stop: float | None` (0..1),
   `sl_trail: bool = False`, `size: float | None` (>0),
@@ -154,19 +165,19 @@ Osobna, natywna funkcja vbt do generowania masek wyjść SL/TP przed `from_signa
   Zamrożenie testów RED nie jest więc bezwzględne — modyfikacja wymaga jawnej
   zgody użytkownika i jest udokumentowana (patrz też hygiene: usunięte z testu
   nieaktualne komentarze sugerujące brak implementacji).
-- **Klasyfikacja po cenie ma tolerancję `eps`** — przy poziomach stopów bardzo
-  blisko siebie lub przy szumie cenowym granicznym możliwa błędna klasyfikacja
-  pojedynczej transakcji; nie wpływa na poprawność samej egzekucji SL/TP przez
-  vbt, tylko na dokładność raportowanego licznika.
-  **Doprecyzowanie po zawężeniu maską `exits` (2026-07-15) — ograniczenia
-  rezydualne:**
-  - stop i sygnał exit na tym samym barze z fillem w pasie `eps` → transakcja
-    liczona jako sygnałowa (świadomy kierunek błędu: wolimy NIE zawyżać
-    liczników stopów, wcześniejszy problem z review);
-  - poziomy SL i TP bliżej siebie niż szerokość pasa `eps` → pojedyncza
-    transakcja może zostać policzona w obu licznikach;
-  - `eps = max(1e-3, 2*slippage)` rośnie z poślizgiem — przy bardzo dużym
-    `slippage` pas tolerancji rozmywa rozróżnienie stop/sygnał.
+- **Klasyfikacja liczników pozostaje rekonstrukcją** (vbt OSS nie etykietuje
+  wyjść SL/TP w rekordach transakcji); nie wpływa na poprawność samej egzekucji
+  SL/TP przez vbt, tylko na dokładność raportowanego licznika.
+  **Ograniczenia rezydualne po przejściu na warunek triggera (2026-07-16):**
+  - sygnał exit na barze, którego close przekroczył poziom stopu → oba warunki
+    spełnione naraz; transakcja liczona **jako stop** (rozstrzygnięcie
+    deterministyczne — vbt i tak sprawdziłby stop na tym barze);
+  - poziom SL rekonstruowany z `Avg Entry Price` (fill z poślizgiem), a dla
+    `sl_trail` z ekstremum close w oknie pozycji — zgodne z egzekucją vbt dla
+    danych close-only, ale przybliżone, gdyby silnik dostał kiedyś pełny OHLC;
+  - **dokładne etykiety** dałyby dopiero rekordy `OHLCSTX`/`StopType` vbt —
+    wymagają prowadzenia pełnego OHLC przez cały pipeline (dziś silnik operuje
+    wyłącznie na close); odnotowane jako możliwy kierunek, nie drop-in.
 - **Multi-symbol surfacing — ZREALIZOWANE po fazie** (review-backlog
   2026-07-15, patrz „Decyzja" wyżej): `_count_stop_exits_multi` zwraca liczniki
   per symbol w zagnieżdżonym `raw`; pierwotne cięcie zakresu Fazy 12 zamknięte.
