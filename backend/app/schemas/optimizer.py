@@ -19,7 +19,7 @@ class ParameterBounds(BaseModel):
     choices: list[Any] | None = None
 
     @model_validator(mode="after")
-    def _validate_consistency(self) -> "ParameterBounds":
+    def _validate_consistency(self) -> ParameterBounds:
         if self.type == "categorical":
             if not self.choices:
                 raise ValueError("categorical bounds require a non-empty 'choices' list")
