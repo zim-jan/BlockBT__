@@ -24,6 +24,7 @@ import type {
     OptimizerNodeData,
     PortfolioNodeData,
     WfoNodeData,
+    WfoResults,
 } from '../types/types'
 import { NODE_TYPE_CATEGORY_MAP } from '../types/types'
 
@@ -56,12 +57,12 @@ interface WorkflowState {
   toggleEasyConnectMode: () => void
 
   // Node data setters
-  updateNodeData: (nodeId: string, data: Partial<DataNodeData & IndicatorNodeData & PortfolioNodeData & OptimizerNodeData>) => void
+  updateNodeData: (nodeId: string, data: Partial<DataNodeData & IndicatorNodeData & PortfolioNodeData & OptimizerNodeData & WfoNodeData>) => void
   addNode: (type: string) => void
   setJobState: (isRunning: boolean, jobId: number | null, status: JobStatus | null, error?: string | null) => void
   updatePortfolioResult: (metrics: BacktestMetrics | MultiBacktestResult | null, status: JobStatus, jobId: number, error?: string | null) => void
   updateOptimizerResult: (bestParams: Record<string, any> | null, bestValue: number | null, trials: any[] | null, status: JobStatus, jobId: number, error?: string | null) => void
-  updateWfoResult: (results: any, status: JobStatus, jobId: number, error?: string | null) => void
+  updateWfoResult: (results: WfoResults | null, status: JobStatus, jobId: number, error?: string | null) => void
   resetExecution: () => void
   clearCanvas: () => void
   setWorkflow: (nodes: Node[], edges: Edge[]) => void

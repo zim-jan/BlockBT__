@@ -11,7 +11,7 @@ const POLL_INTERVAL_MS = 2500
 const MAX_POLL_ATTEMPTS = 120 // 5-minute hard cap
 
 export function useWorkflowOptimization() {
-  const { nodes, edges, isRunning, setJobState, updateOptimizerResult, updateWfoResult } = useWorkflowStore()
+  const { nodes, edges, isRunning, setJobState, updateOptimizerResult, updateWfoResult, updateNodeData } = useWorkflowStore()
   const pollTimer = useRef<ReturnType<typeof setInterval> | null>(null)
 
   const stopPolling = useCallback(() => {
@@ -145,6 +145,9 @@ export function useWorkflowOptimization() {
     const wData = wfoNode.data as unknown as WfoNodeData
 
     setJobState(true, null, 'PENDING')
+    // Review 2026-07-16: status musi trafiać też do node.data — WfoNode czyta
+    // wyłącznie lokalne data.jobStatus, globalny setJobState nie daje mu feedbacku
+    updateNodeData(wfoNode.id, { jobStatus: 'PENDING', error: null, results: undefined })
 
     try {
       const stratRes = await api.strategies.create({
@@ -191,10 +194,22 @@ export function useWorkflowOptimization() {
 
           if (status === 'COMPLETED') {
             stopPolling()
-            updateWfoResult(jobData.trials_data, 'COMPLETED', jobId)
+            // Kompozycja wyników dla WfoNode: trials_data (okna + metryki zbiorcze OOS)
+            // + best_parameters/best_value z poziomu jobu
+            updateWfoResult(
+              {
+                ...(jobData.trials_data ?? {}),
+                best_parameters: jobData.best_parameters ?? null,
+                best_value: jobData.best_value ?? null,
+              },
+              'COMPLETED',
+              jobId
+            )
           } else if (status === 'FAILED') {
             stopPolling()
             updateWfoResult(null, 'FAILED', jobId, jobData.error_message)
+          } else {
+            updateNodeData(wfoNode.id, { jobStatus: status })
           }
         } catch (err) {
           console.error('Poll error:', err)
@@ -206,7 +221,7 @@ export function useWorkflowOptimization() {
       setJobState(false, null, 'FAILED', msg)
       updateWfoResult(null, 'FAILED', 0, msg)
     }
-  }, [nodes, edges, isRunning, setJobState, updateWfoResult, stopPolling])
+  }, [nodes, edges, isRunning, setJobState, updateWfoResult, updateNodeData, stopPolling])
 
   useEffect(() => () => stopPolling(), [stopPolling])
 

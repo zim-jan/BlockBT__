@@ -65,7 +65,14 @@ class JobService:
         if status == JobStatus.COMPLETED and results:
             job.best_parameters = results.get("best_params")
             job.best_value = results.get("best_value")
-            job.trials_data = {"trials": results.get("trials")}
+            # WFO (Faza 15): metryki zbiorcze OOS i liczniki okien muszą przetrwać
+            # zapis do DB — bez nich UI nie ma czego wyświetlić (review 2026-07-16).
+            # Wyniki Optuny tych kluczy nie mają, więc dla nich nic się nie zmienia.
+            trials_data: dict[str, Any] = {"trials": results.get("trials")}
+            for key in ("overall_metrics", "n_windows", "n_failed_windows", "method", "mode"):
+                if key in results:
+                    trials_data[key] = results[key]
+            job.trials_data = trials_data
             job.completed_at = _utcnow()
         elif status == JobStatus.FAILED:
             job.completed_at = _utcnow()

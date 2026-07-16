@@ -111,6 +111,33 @@ def test_trigger_wfo_with_optimization_e2e(db_session, monkeypatch):
     assert 3 <= data["best_parameters"]["sma_fast"] <= 10
 
 
+def test_wfo_persists_overall_metrics_for_ui(db_session, monkeypatch):
+    """Review Janka 2026-07-16: UI (WfoNode) nie miał czego wyświetlić — JobService
+    gubił metryki zbiorcze OOS przy zapisie. GET /api/optimizer/{id} musi zwracać
+    overall_metrics + liczniki okien w trials_data."""
+    _mock_market_data(monkeypatch)
+    strategy_id = _create_strategy()
+
+    payload = {
+        "strategy_id": strategy_id,
+        "symbol": "SYNTHETIC",
+        "window_size": "180d",
+        "step_size": "60d",
+        "parameters": {"sma_fast": 5, "sma_slow": 20},
+    }
+    response = client.post("/api/optimizer/wfo", json=payload)
+    assert response.status_code == 202
+    job_id = response.json()["data"]["job_id"]
+
+    trials_data = client.get(f"/api/optimizer/{job_id}").json()["data"]["trials_data"]
+
+    assert "Total Return [%]" in trials_data["overall_metrics"]
+    assert "Sharpe Ratio" in trials_data["overall_metrics"]
+    assert trials_data["n_windows"] == 4
+    assert trials_data["n_failed_windows"] == 0
+    assert trials_data["mode"] == "rolling"
+
+
 def test_trigger_wfo_user_params_cannot_override_infra_snapshot(db_session, monkeypatch):
     """Review 2026-07-16: payload.parameters nie nadpisuje kluczy infrastrukturalnych
     snapshotu (symbol/kapitał) — snapshot w DB odzwierciedla realny przebieg."""

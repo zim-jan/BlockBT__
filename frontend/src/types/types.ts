@@ -219,12 +219,36 @@ export interface PortfolioNodeData extends Record<string, unknown> {
   isOutdated?: boolean
 }
 
+/** Raport pojedynczego okna WFO (backend: WalkForwardOptimizer._evaluate_window). */
+export interface WfoWindowReport {
+  window_index: number
+  is_start?: string
+  is_end?: string
+  oos_start?: string
+  oos_end?: string
+  best_params?: Record<string, any>
+  oos_metrics?: Record<string, number>
+  /** Obecny tylko dla okien zakończonych awarią (fault tolerance per okno). */
+  error?: string
+}
+
+/** Wyniki WFO składane w hooku: trials_data z GET /api/optimizer/{id} + best_parameters/best_value jobu. */
+export interface WfoResults {
+  trials?: WfoWindowReport[]
+  overall_metrics?: Record<string, number>
+  n_windows?: number
+  n_failed_windows?: number
+  mode?: string
+  best_parameters?: Record<string, any> | null
+  best_value?: number | null
+}
+
 export interface WfoNodeData extends Record<string, unknown> {
   windowSize: string
   stepSize: string
   jobStatus?: JobStatus
   jobId?: number
-  results?: any
+  results?: WfoResults | null
   error?: string | null
   isOutdated?: boolean
 }
