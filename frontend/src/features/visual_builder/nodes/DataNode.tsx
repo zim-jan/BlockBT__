@@ -41,39 +41,32 @@ export function DataNode({ id, data }: NodeProps<DataNode>) {
           <option value="synthetic">Synthetic</option>
         </select>
 
-        {/* Symbol */}
+        {/* Symbol — multi-ticker działa dla każdego źródła, także synthetic (review 2026-07-16) */}
         <label className="rf-label">Symbol</label>
         <input
           value={data.symbol}
           onChange={(e) => updateNodeData(id as string, { symbol: e.target.value.toUpperCase() })}
-          placeholder={isSynthetic ? 'SYNTHETIC' : 'AAPL, MSFT'}
+          placeholder={isSynthetic ? 'SYNTA, SYNTB' : 'AAPL, MSFT'}
           className="rf-input"
-          disabled={isSynthetic}
         />
-        {!isSynthetic && (
-          <div className="rf-hint" style={{ fontSize: '11px' }}>Wiele tickerów: rozdziel przecinkami</div>
-        )}
+        <div className="rf-hint" style={{ fontSize: '11px' }}>Wiele tickerów: rozdziel przecinkami</div>
 
-        {/* Date range — hidden for synthetic */}
-        {!isSynthetic && (
-          <>
-            <label className="rf-label">Start Date</label>
-            <input
-              type="date"
-              value={data.startDate}
-              onChange={(e) => updateNodeData(id as string, { startDate: e.target.value })}
-              className="rf-input"
-            />
+        {/* Date range — generator synthetic też respektuje zakres dat */}
+        <label className="rf-label">Start Date</label>
+        <input
+          type="date"
+          value={data.startDate}
+          onChange={(e) => updateNodeData(id as string, { startDate: e.target.value })}
+          className="rf-input"
+        />
 
-            <label className="rf-label">End Date</label>
-            <input
-              type="date"
-              value={data.endDate}
-              onChange={(e) => updateNodeData(id as string, { endDate: e.target.value })}
-              className="rf-input"
-            />
-          </>
-        )}
+        <label className="rf-label">End Date</label>
+        <input
+          type="date"
+          value={data.endDate}
+          onChange={(e) => updateNodeData(id as string, { endDate: e.target.value })}
+          className="rf-input"
+        />
 
         {/* Timeframe */}
         <label className="rf-label">Timeframe</label>

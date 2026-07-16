@@ -66,3 +66,8 @@ class ConnectorRegistry:
             from app.services.connectors.alpaca import AlpacaConnector
 
             cls.register("alpaca", AlpacaConnector)
+
+        if "synthetic" not in cls._registry:
+            from app.services.connectors.synthetic import SyntheticConnector
+
+            cls.register("synthetic", SyntheticConnector)

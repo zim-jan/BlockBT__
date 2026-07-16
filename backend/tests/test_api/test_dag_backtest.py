@@ -132,6 +132,39 @@ def test_dag_capital_read_from_execution_node_only(db_session, monkeypatch):
     assert data["initial_capital"] == 5000.0
 
 
+def test_dag_backtest_synthetic_multi_symbol_completes(db_session):
+    """Review Janka 2026-07-16: źródło synthetic nie działało w ogóle
+    (Unknown connector 'synthetic') i nie wspierało wielu symboli.
+    Pełny run E2E offline: synthetic + 2 tickery -> COMPLETED, gałąź multi."""
+    strategy_id = _create_strategy(db_session)
+    dag = _valid_dag()
+    dag["nodes"][0]["params"] = {
+        "symbol": ["SYNTA", "SYNTB"],
+        "dataSource": "synthetic",
+        "timeframe": "1d",
+        "startDate": "2023-01-01",
+        "endDate": "2024-06-30",
+    }
+    # Realny payload UI zawsze niesie smaFast/smaSlow (defaulty schematu to None)
+    dag["nodes"][1]["params"] = {
+        "indicatorType": "sma_crossover",
+        "smaFast": 10,
+        "smaSlow": 30,
+    }
+    payload = {"strategy_id": strategy_id, "dag": dag}
+
+    response = client.post("/api/backtest/dag", json=payload)
+    assert response.status_code == 202
+    job_id = response.json()["data"]["id"]
+
+    data = client.get(f"/api/backtest/{job_id}").json()["data"]
+    assert data["error_message"] is None
+    assert data["status"] == "COMPLETED"
+    assert data["is_multi_symbol"] is True
+    assert data["symbols"] == ["SYNTA", "SYNTB"]
+    assert set(data["metrics"].keys()) == {"SYNTA", "SYNTB"}
+
+
 def test_trigger_dag_backtest_missing_execution(db_session):
     """DAG without Execution node → 422 Unprocessable."""
     strategy_id = _create_strategy(db_session)
