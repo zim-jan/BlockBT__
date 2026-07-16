@@ -8,13 +8,14 @@ from __future__ import annotations
 
 import itertools
 import math
+from dataclasses import dataclass, field
 from typing import Any
 
 import optuna
 import pandas as pd
 from loguru import logger
 
-from app.services.engine.opensource_engine import _setup_vbt
+from app.services.engine.opensource_engine import _setup_vbt, finite_or_zero
 
 # Initialize vbt once
 try:
@@ -171,10 +172,13 @@ class OptunaOptimizer:
         base_parameters: dict[str, Any],
         n_trials: int = 20,
         metric: str = "Total Return [%]",
+        initial_params: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         """Run Bayesian optimization.
 
         param_bounds: dict mapping param_name -> {min, max, type, ...}
+        initial_params: opcjonalny warm start — parametry kolejkowane jako pierwszy
+        trial (np. najlepsze parametry poprzedniego okna WFO zamiast zimnego TPE).
         """
         logger.info("Starting Optuna optimization (trials={})", n_trials)
 
@@ -215,6 +219,14 @@ class OptunaOptimizer:
                 return float("-inf")
 
         study = optuna.create_study(direction="maximize")
+        if initial_params:
+            # Warm start: tylko parametry objęte bounds (reszta i tak jest w base_parameters)
+            warm = {k: v for k, v in initial_params.items() if k in param_bounds}
+            if warm:
+                try:
+                    study.enqueue_trial(warm)
+                except Exception as e:  # noqa: BLE001 — warm start jest best-effort
+                    logger.warning("Optuna warm-start enqueue failed: {}", e)
         study.optimize(objective, n_trials=n_trials)
 
         # Format history
@@ -237,6 +249,42 @@ class OptunaOptimizer:
             "trials": trials_history,
         }
 
+# Klucze infrastrukturalne snapshotu parametrów (dane rynkowe / kapitał / konfiguracja
+# przebiegu) — NIE są parametrami strategii. Silnik dostaje pełny słownik (potrzebuje
+# np. initial_capital), ale raportowane best_params są z nich odfiltrowane, żeby nie
+# udawały wyniku optymalizacji (review 2026-07-16).
+_INFRA_PARAM_KEYS: frozenset[str] = frozenset(
+    {
+        "symbol",
+        "data_source",
+        "timeframe",
+        "initial_capital",
+        "start_date",
+        "end_date",
+        "window_size",
+        "step_size",
+        "mode",
+    }
+)
+
+
+@dataclass(frozen=True)
+class WfoConfig:
+    """Konfiguracja przebiegu Walk-Forward Optimization (Faza 15).
+
+    Jeden obiekt zamiast 6 parametrów przewlekanych przez sygnatury
+    API → runner → run_wfo → _evaluate_window (review 2026-07-16).
+    ``asdict(config)`` daje bezpośrednio zawartość kolumny ``bounds_definition``.
+    """
+
+    window_size: str = "365d"
+    step_size: str = "90d"
+    mode: str = "rolling"
+    param_bounds: dict[str, Any] | None = field(default=None)
+    n_trials: int = 15
+    metric: str = "Total Return [%]"
+
+
 class WalkForwardOptimizer:
     """Realna Walk-Forward Optimization (Faza 15).
 
@@ -254,17 +302,6 @@ class WalkForwardOptimizer:
 
     def __init__(self, engine: Any) -> None:
         self.engine = engine
-
-    @staticmethod
-    def _finite_or_zero(value: Any) -> float:
-        """Guard NaN/inf → 0.0 (spójnie z konwencją silnika dla metryk)."""
-        try:
-            v = float(value)
-        except (TypeError, ValueError):
-            return 0.0
-        if math.isnan(v) or math.isinf(v):
-            return 0.0
-        return v
 
     @classmethod
     def split_windows(
@@ -301,6 +338,8 @@ class WalkForwardOptimizer:
             raise ValueError(f"Unknown WFO mode: {mode!r}. Expected one of {cls._MODES}.")
         if len(index) == 0:
             return []
+        if not index.is_monotonic_increasing:
+            raise ValueError("WFO requires a sorted (monotonic increasing) DatetimeIndex.")
 
         is_td = pd.Timedelta(window_size)
         oos_td = pd.Timedelta(step_size)
@@ -327,13 +366,38 @@ class WalkForwardOptimizer:
                 break
 
             oos_end = is_end + oos_td
-            has_is = bool(((index >= is_start) & (index < is_end)).any())
-            has_oos = bool(((index >= is_end) & (index < oos_end)).any())
-            if has_is and has_oos:
+            # searchsorted na posortowanym indeksie: O(log N) zamiast masek O(N) per okno
+            i0 = index.searchsorted(is_start, side="left")
+            i1 = index.searchsorted(is_end, side="left")
+            i2 = index.searchsorted(oos_end, side="left")
+            if i1 > i0 and i2 > i1:
                 windows.append((is_start, is_end, is_end, oos_end))
             k += 1
 
         return windows
+
+    @staticmethod
+    def _returns_from_equity(equity_curve: Any) -> list[float]:
+        """Zwroty procentowe z krzywej kapitału silnika (lista ``{"date", "value"}``).
+
+        Zwroty liczone WEWNĄTRZ okna (pierwszy punkt odpada), więc sklejanie zwrotów
+        z kolejnych okien OOS nie tworzy artefaktu na granicy okien. Brak/za krótka
+        krzywa lub wartości niefinite → pusta lista (fallback na średnią per okno).
+        """
+        if not isinstance(equity_curve, list) or len(equity_curve) < 2:
+            return []
+        try:
+            values = [float(point["value"]) for point in equity_curve]
+        except (TypeError, KeyError, ValueError):
+            return []
+        returns: list[float] = []
+        for prev, curr in itertools.pairwise(values):
+            if prev == 0.0:
+                continue
+            r = curr / prev - 1.0
+            if math.isfinite(r):
+                returns.append(r)
+        return returns
 
     def _evaluate_window(
         self,
@@ -341,39 +405,78 @@ class WalkForwardOptimizer:
         window_index: int,
         bounds: tuple[pd.Timestamp, pd.Timestamp, pd.Timestamp, pd.Timestamp],
         parameters: dict[str, Any],
-        param_bounds: dict[str, Any] | None,
-        n_trials: int,
-        metric: str,
-    ) -> dict[str, Any]:
+        config: WfoConfig,
+        warm_start: dict[str, Any] | None = None,
+    ) -> tuple[dict[str, Any], dict[str, Any], list[float]]:
         """Przetwórz jedno okno WFO: optymalizacja IS (opcjonalna) + backtest OOS.
 
-        Zwraca raport okna (granice IS/OOS w ISO, ``best_params``, ``oos_metrics``
-        z guardem NaN/inf → 0.0; przy awarii backtestu OOS — metryki 0.0 + ``error``).
+        Awaria dowolnego etapu (optymalizacja IS lub backtest OOS) nie zrywa całego
+        przebiegu — okno dostaje metryki 0.0 + pole ``error`` (review 2026-07-16;
+        wcześniej wyjątek Optuny na IS wywalał cały job).
+
+        Returns
+        -------
+        tuple
+            ``(raport okna, best_params z optymalizacji IS — warm start dla
+            kolejnego okna, zwroty OOS z krzywej kapitału — do łącznego Sharpe'a)``.
         """
         is_start, is_end, oos_start, oos_end = bounds
         idx = data.index
-        is_df = data.loc[(idx >= is_start) & (idx < is_end)]
-        oos_df = data.loc[(idx >= oos_start) & (idx < oos_end)]
+        i0 = idx.searchsorted(is_start, side="left")
+        i1 = idx.searchsorted(is_end, side="left")
+        i2 = idx.searchsorted(oos_end, side="left")
+        oos_df = data.iloc[i1:i2]
+
+        error_msg: str | None = None
+        best_params = dict(parameters)
+        opt_best: dict[str, Any] = {}
 
         # 1) Optymalizacja in-sample (reuse istniejącego OptunaOptimizer)
-        if param_bounds:
-            optimizer = OptunaOptimizer(self.engine)
-            opt_result = optimizer.run_optimization(
-                param_bounds, is_df, parameters, n_trials=n_trials, metric=metric
-            )
-            best_params = {**parameters, **opt_result.get("best_params", {})}
-        else:
-            best_params = dict(parameters)
+        if config.param_bounds:
+            is_df = data.iloc[i0:i1]  # materializowane tylko gdy jest optymalizacja IS
+            try:
+                opt_result = OptunaOptimizer(self.engine).run_optimization(
+                    config.param_bounds,
+                    is_df,
+                    parameters,
+                    n_trials=config.n_trials,
+                    metric=config.metric,
+                    initial_params=warm_start,
+                )
+                opt_best = opt_result.get("best_params", {})
+                best_params = {**parameters, **opt_best}
+            except Exception as e:  # noqa: BLE001 — pojedyncze okno nie zrywa całego WFO
+                logger.error("WFO window {} in-sample optimization failed: {}", window_index, e)
+                error_msg = f"In-sample optimization failed: {e}"
 
-        # 2) Backtest out-of-sample na najlepszych parametrach
-        error_msg: str | None = None
-        try:
-            oos_result = self.engine.run_backtest(oos_df, best_params)
-            oos_raw = oos_result.get("metrics", {})
-        except Exception as e:  # noqa: BLE001 — pojedyncze okno nie zrywa całego WFO
-            logger.error("WFO window {} OOS backtest failed: {}", window_index, e)
-            oos_raw = {}
-            error_msg = str(e)
+        # 2) Backtest out-of-sample na najlepszych parametrach (pomijany po awarii IS —
+        #    wynik OOS na parametrach bazowych udawałby wynik optymalizacji)
+        oos_raw: dict[str, Any] = {}
+        oos_returns: list[float] = []
+        if error_msg is None:
+            try:
+                oos_result = self.engine.run_backtest(oos_df, best_params)
+                if "metrics" not in oos_result:
+                    # Np. gałąź wektoryzowana silnika — bez guarda kończyłoby się
+                    # cichym raportem all-zero (review 2026-07-16)
+                    raise ValueError(
+                        "engine returned no 'metrics' (unsupported result shape, "
+                        "e.g. vectorized run)"
+                    )
+                oos_raw = oos_result["metrics"] or {}
+                oos_returns = self._returns_from_equity(oos_result.get("equity_curve"))
+            except Exception as e:  # noqa: BLE001 — pojedyncze okno nie zrywa całego WFO
+                logger.error("WFO window {} OOS backtest failed: {}", window_index, e)
+                error_msg = str(e)
+
+        oos_metrics = {
+            "Total Return [%]": finite_or_zero(oos_raw.get("Total Return [%]")),
+            "Sharpe Ratio": finite_or_zero(oos_raw.get("Sharpe Ratio")),
+        }
+        # Metryka celu zawsze obecna w raporcie okna — wybór najlepszego okna
+        # i best_value działają dla dowolnej metryki, nie tylko dwóch domyślnych
+        if config.metric not in oos_metrics:
+            oos_metrics[config.metric] = finite_or_zero(oos_raw.get(config.metric))
 
         report: dict[str, Any] = {
             "window_index": window_index,
@@ -381,35 +484,51 @@ class WalkForwardOptimizer:
             "is_end": is_end.isoformat(),
             "oos_start": oos_start.isoformat(),
             "oos_end": oos_end.isoformat(),
-            "is_rows": int(len(is_df)),
+            "is_rows": int(i1 - i0),
             "oos_rows": int(len(oos_df)),
-            "best_params": best_params,
-            "oos_metrics": {
-                "Total Return [%]": self._finite_or_zero(oos_raw.get("Total Return [%]")),
-                "Sharpe Ratio": self._finite_or_zero(oos_raw.get("Sharpe Ratio")),
-            },
+            "best_params": {k: v for k, v in best_params.items() if k not in _INFRA_PARAM_KEYS},
+            "oos_metrics": oos_metrics,
         }
         if error_msg is not None:
             report["error"] = error_msg
-        return report
+        return report, opt_best, oos_returns
+
+    @staticmethod
+    def _annualized_sharpe(returns: list[float], periods_per_year: int = 252) -> float | None:
+        """Sharpe (rf=0) ze sklejonych zwrotów OOS; ``None`` gdy nieobliczalny.
+
+        Dokładna agregacja zamiast średniej arytmetycznej Sharpe'ów per okno
+        (review 2026-07-16) — średnia ignoruje różne długości okien i zmienność
+        między oknami. ``None`` (brak krzywych kapitału / zerowa zmienność) →
+        wywołujący spada na średnią per okno.
+        """
+        if len(returns) < 2:
+            return None
+        mean = sum(returns) / len(returns)
+        var = sum((r - mean) ** 2 for r in returns) / (len(returns) - 1)
+        if var <= 0.0:
+            return None
+        return mean / math.sqrt(var) * math.sqrt(periods_per_year)
 
     def run_wfo(
         self,
         data: pd.DataFrame,
         parameters: dict[str, Any],
-        window_size: str = "365d",
-        step_size: str = "90d",
-        mode: str = "rolling",
-        param_bounds: dict[str, Any] | None = None,
-        n_trials: int = 15,
-        metric: str = "Total Return [%]",
+        config: WfoConfig | None = None,
     ) -> dict[str, Any]:
         """Wykonaj pełną walk-forward optimization.
 
-        Dla każdego okna: jeśli podano ``param_bounds`` — optymalizacja parametrów
-        na danych in-sample przez ``OptunaOptimizer`` (reuse, bez duplikacji logiki);
-        w przeciwnym razie używane są stałe ``parameters`` (czysta ewaluacja
-        walk-forward). Następnie backtest out-of-sample na najlepszych parametrach.
+        Dla każdego okna: jeśli podano ``config.param_bounds`` — optymalizacja
+        parametrów na danych in-sample przez ``OptunaOptimizer`` (reuse, bez
+        duplikacji logiki; najlepsze parametry poprzedniego okna są warm startem
+        kolejnego); w przeciwnym razie używane są stałe ``parameters`` (czysta
+        ewaluacja walk-forward). Następnie backtest out-of-sample na najlepszych
+        parametrach.
+
+        Odporność na awarie (review 2026-07-16): błąd pojedynczego okna trafia do
+        jego raportu (``error``) i okno jest WYKLUCZONE z agregatów; awaria
+        wszystkich okien podnosi ``RuntimeError`` (job kończy się FAILED, nie
+        pseudo-sukcesem z zerami).
 
         Parameters
         ----------
@@ -417,76 +536,99 @@ class WalkForwardOptimizer:
             Dane rynkowe z kolumną ``close`` i ``DatetimeIndex``.
         parameters : dict[str, Any]
             Bazowe parametry strategii (nadpisywane przez wynik optymalizacji IS).
-        window_size : str
-            Długość okna in-sample (``pd.Timedelta``, np. ``"365d"``).
-        step_size : str
-            Długość okna out-of-sample i krok przesuwu (np. ``"90d"``).
-        mode : str
-            ``"rolling"`` lub ``"anchored"``.
-        param_bounds : dict[str, Any] | None
-            Zakresy parametrów dla optymalizacji IS (format ``OptunaOptimizer``);
-            ``None`` → brak optymalizacji, stałe parametry.
-        n_trials : int
-            Liczba prób Optuny per okno (ignorowane bez ``param_bounds``).
-        metric : str
-            Metryka celu optymalizacji i wyboru najlepszego okna OOS.
+            Wartości-listy (uruchamiające gałąź wektoryzowaną silnika) są odrzucane.
+        config : WfoConfig | None
+            Konfiguracja przebiegu (okna, tryb, bounds, metryka); ``None`` → domyślna.
 
         Returns
         -------
         dict[str, Any]
-            Raport: metryki per okno (``windows``/``trials``), łączne metryki OOS
-            (``overall_metrics``: zwrot składany geometrycznie, średni Sharpe;
-            guard NaN/inf → 0.0) oraz ``best_params``/``best_value`` dla JobService.
+            Raport: metryki per okno (``trials``), łączne metryki OOS
+            (``overall_metrics``: zwrot składany geometrycznie, Sharpe ze
+            sklejonych zwrotów OOS z fallbackiem na średnią per okno) oraz
+            ``best_params``/``best_value`` (wartość metryki celu w najlepszym
+            oknie OOS) dla JobService.
         """
+        config = config or WfoConfig()
         if "close" not in data.columns:
             raise KeyError("close")
         if not isinstance(data.index, pd.DatetimeIndex):
             data = data.copy()
             data.index = pd.to_datetime(data.index)
 
+        # Parametry-listy przełączają run_backtest w tryb wektoryzowany (bez klucza
+        # "metrics") — w WFO to zawsze błąd użytkownika, odrzucamy jawnie na wejściu
+        list_params = sorted(k for k, v in parameters.items() if isinstance(v, (list, tuple)))
+        if list_params:
+            raise ValueError(
+                f"WFO does not support list-valued (vectorized) parameters: {list_params}. "
+                "Use param_bounds for per-window optimization instead."
+            )
+
         logger.info(
             "Starting Walk-Forward Optimization | window={} step={} mode={} optimize={}",
-            window_size,
-            step_size,
-            mode,
-            bool(param_bounds),
+            config.window_size,
+            config.step_size,
+            config.mode,
+            bool(config.param_bounds),
         )
 
-        windows = self.split_windows(data.index, window_size, step_size, mode)
+        windows = self.split_windows(
+            data.index, config.window_size, config.step_size, config.mode
+        )
         if not windows:
             raise ValueError(
-                f"Data range too short for WFO: need at least window_size ({window_size}) "
-                f"plus one out-of-sample observation (step_size={step_size})."
+                f"Data range too short for WFO: need at least window_size "
+                f"({config.window_size}) plus one out-of-sample observation "
+                f"(step_size={config.step_size}); got {len(data)} rows spanning "
+                f"{data.index[0].date()} → {data.index[-1].date()}."
             )
 
-        window_reports = [
-            self._evaluate_window(
-                data, i, bounds, parameters, param_bounds, n_trials, metric
+        window_reports: list[dict[str, Any]] = []
+        stitched_returns: list[float] = []
+        warm_start: dict[str, Any] | None = None
+        for i, bounds in enumerate(windows):
+            report, opt_best, oos_returns = self._evaluate_window(
+                data, i, bounds, parameters, config, warm_start
             )
-            for i, bounds in enumerate(windows)
-        ]
+            window_reports.append(report)
+            stitched_returns.extend(oos_returns)
+            if opt_best:
+                warm_start = opt_best
 
-        # 3) Agregacja metryk OOS: zwrot składany geometrycznie + średni Sharpe
+        # 3) Agregacja metryk OOS — wyłącznie z okien udanych; komplet awarii = błąd jobu
+        successful = [w for w in window_reports if "error" not in w]
+        if not successful:
+            details = "; ".join(
+                f"window {w['window_index']}: {w['error']}" for w in window_reports
+            )
+            raise RuntimeError(
+                f"All {len(window_reports)} WFO windows failed: {details}"
+            )
+
         compound = 1.0
-        sharpe_sum = 0.0
-        for report in window_reports:
+        for report in successful:
             compound *= 1.0 + report["oos_metrics"]["Total Return [%]"] / 100.0
-            sharpe_sum += report["oos_metrics"]["Sharpe Ratio"]
+
+        overall_sharpe = self._annualized_sharpe(stitched_returns)
+        if overall_sharpe is None:
+            # Fallback (silnik bez equity_curve, np. atrapy w testach): średnia per okno
+            overall_sharpe = sum(w["oos_metrics"]["Sharpe Ratio"] for w in successful) / len(
+                successful
+            )
 
         overall_metrics = {
-            "Total Return [%]": self._finite_or_zero((compound - 1.0) * 100.0),
-            "Sharpe Ratio": self._finite_or_zero(sharpe_sum / len(window_reports)),
+            "Total Return [%]": finite_or_zero((compound - 1.0) * 100.0),
+            "Sharpe Ratio": finite_or_zero(overall_sharpe),
         }
 
-        # Najlepsze okno wg metryki celu (fallback: Total Return [%])
-        best_window = max(
-            window_reports,
-            key=lambda w: w["oos_metrics"].get(metric, w["oos_metrics"]["Total Return [%]"]),
-        )
+        # Najlepsze okno wg metryki celu (zawsze obecnej w oos_metrics)
+        best_window = max(successful, key=lambda w: w["oos_metrics"][config.metric])
 
         logger.info(
-            "WFO completed | windows={} overall_return={:.2f}% overall_sharpe={:.2f}",
+            "WFO completed | windows={} failed={} overall_return={:.2f}% overall_sharpe={:.2f}",
             len(window_reports),
+            len(window_reports) - len(successful),
             overall_metrics["Total Return [%]"],
             overall_metrics["Sharpe Ratio"],
         )
@@ -494,14 +636,16 @@ class WalkForwardOptimizer:
         return {
             "status": "COMPLETED",
             "method": "walk_forward",
-            "mode": mode,
-            "window": window_size,
-            "step": step_size,
+            "mode": config.mode,
+            "window": config.window_size,
+            "step": config.step_size,
             "n_windows": len(window_reports),
-            "windows": window_reports,
+            "n_failed_windows": len(window_reports) - len(successful),
             "overall_metrics": overall_metrics,
-            # Kontrakt JobService: best_parameters / best_value / trials_data w DB
+            # Kontrakt JobService: best_parameters / best_value / trials_data w DB;
+            # best_value = wartość metryki celu w najlepszym oknie OOS (spójnie
+            # z kontraktem OptunaOptimizer: best_value = wynik najlepszego triala)
             "best_params": best_window["best_params"],
-            "best_value": overall_metrics["Total Return [%]"],
+            "best_value": best_window["oos_metrics"][config.metric],
             "trials": window_reports,
         }

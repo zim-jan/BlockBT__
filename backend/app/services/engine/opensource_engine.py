@@ -65,6 +65,20 @@ def _setup_vbt() -> Any:
     
     return vbt
 
+
+def finite_or_zero(value: Any) -> float:
+    """Guard NaN/inf → 0.0 — wspólna konwencja metryk silnika i optymalizatorów.
+
+    Jedno źródło prawdy (review 2026-07-16): wcześniej zduplikowane jako metody
+    statyczne w ``OpenSourceEngine`` i ``WalkForwardOptimizer``.
+    """
+    try:
+        fval = float(value)
+    except (TypeError, ValueError):
+        return 0.0
+    return fval if np.isfinite(fval) else 0.0
+
+
 class OpenSourceEngine(BaseStrategyEngine):
     """Backtest engine using the public open-source ``vectorbt`` library.
 
@@ -665,12 +679,8 @@ class OpenSourceEngine(BaseStrategyEngine):
 
     @staticmethod
     def _finite_or_zero(value: Any) -> float:
-        """Faza 10: guard NaN/inf → 0.0 (używane dla liczników/wartości, np. Total Trades)."""
-        try:
-            fval = float(value)
-        except (TypeError, ValueError):
-            return 0.0
-        return fval if np.isfinite(fval) else 0.0
+        """Faza 10: guard NaN/inf → 0.0 (delegacja do wspólnego ``finite_or_zero``)."""
+        return finite_or_zero(value)
 
     @staticmethod
     def _finite_or_none(value: Any) -> float | None:

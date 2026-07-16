@@ -111,6 +111,45 @@ def test_trigger_wfo_with_optimization_e2e(db_session, monkeypatch):
     assert 3 <= data["best_parameters"]["sma_fast"] <= 10
 
 
+def test_trigger_wfo_user_params_cannot_override_infra_snapshot(db_session, monkeypatch):
+    """Review 2026-07-16: payload.parameters nie nadpisuje kluczy infrastrukturalnych
+    snapshotu (symbol/kapitał) — snapshot w DB odzwierciedla realny przebieg."""
+    _mock_market_data(monkeypatch)
+    strategy_id = _create_strategy()
+
+    payload = {
+        "strategy_id": strategy_id,
+        "symbol": "SYNTHETIC",
+        "initial_capital": 10000.0,
+        "window_size": "180d",
+        "step_size": "60d",
+        "parameters": {"symbol": "HACK", "initial_capital": 1.0, "sma_fast": 5},
+    }
+    response = client.post("/api/optimizer/wfo", json=payload)
+    assert response.status_code == 202
+    job_id = response.json()["data"]["job_id"]
+
+    data = client.get(f"/api/optimizer/{job_id}").json()["data"]
+    assert data["symbol"] == "SYNTHETIC"
+    assert data["initial_capital"] == 10000.0
+    # Klucze infra nie wyciekają do best_parameters jako "wynik optymalizacji"
+    assert "symbol" not in data["best_parameters"]
+    assert "initial_capital" not in data["best_parameters"]
+
+
+def test_trigger_wfo_inconsistent_bounds_rejected(db_session):
+    """Review 2026-07-16: min>max w param_bounds -> 422 na wejściu, zamiast
+    kryptycznej awarii całego jobu w Optunie w trakcie przebiegu."""
+    strategy_id = _create_strategy()
+    payload = {
+        "strategy_id": strategy_id,
+        "symbol": "SYNTHETIC",
+        "param_bounds": {"sma_fast": {"min": 12, "max": 2, "type": "int"}},
+    }
+    response = client.post("/api/optimizer/wfo", json=payload)
+    assert response.status_code == 422
+
+
 def test_trigger_wfo_invalid_mode_rejected(db_session):
     """Ścisła walidacja Pydantic: nieznany tryb -> 422."""
     strategy_id = _create_strategy()

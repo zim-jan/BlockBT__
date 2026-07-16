@@ -1,15 +1,36 @@
 from datetime import datetime
 from typing import Any, Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 
 class ParameterBounds(BaseModel):
-    min: float | int
-    max: float | int
+    """Zakres pojedynczego parametru dla optymalizacji (Optuna / WFO).
+
+    Review 2026-07-16: walidacja spójności na wejściu (min<=max, step>0, choices
+    dla categorical) — wcześniej np. min>max przechodziło do Optuny i wywalało
+    cały job kryptycznym wyjątkiem w trakcie przebiegu.
+    """
+
+    min: float | int | None = None
+    max: float | int | None = None
     step: float | int | None = None
-    type: str = "int"  # "int" or "float" or "categorical"
+    type: Literal["int", "float", "categorical"] = "int"
     choices: list[Any] | None = None
+
+    @model_validator(mode="after")
+    def _validate_consistency(self) -> "ParameterBounds":
+        if self.type == "categorical":
+            if not self.choices:
+                raise ValueError("categorical bounds require a non-empty 'choices' list")
+        else:
+            if self.min is None or self.max is None:
+                raise ValueError(f"'{self.type}' bounds require both 'min' and 'max'")
+            if self.min > self.max:
+                raise ValueError(f"'min' ({self.min}) must be <= 'max' ({self.max})")
+            if self.step is not None and self.step <= 0:
+                raise ValueError("'step' must be positive")
+        return self
 
 
 class OptimizationRequest(BaseModel):
