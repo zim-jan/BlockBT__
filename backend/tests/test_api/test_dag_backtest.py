@@ -80,6 +80,36 @@ def test_trigger_dag_backtest_success(db_session):
     assert "id" in data["data"]
 
 
+def test_dag_job_status_exposes_data_node_params(db_session, monkeypatch):
+    """Review Janka 2026-07-16: dla jobów DAG parameters_snapshot = {"dag": ...},
+    więc GET /api/backtest/{id} zwracał puste symbol/timeframe/daty. Metadane
+    muszą być czytane z węzła DataIngestion grafu."""
+    import app.api.backtest as backtest_mod
+
+    # Nie uruchamiaj realnego backtestu w tle (sieć/dane bez znaczenia dla schematu)
+    monkeypatch.setattr(backtest_mod, "run_vectorbt_backtest", lambda *a, **k: None)
+
+    strategy_id = _create_strategy(db_session)
+    dag = _valid_dag()
+    dag["nodes"][0]["params"] = {
+        "symbol": "MSFT",
+        "dataSource": "yahoo",
+        "timeframe": "1h",
+        "startDate": "2024-01-01",
+        "endDate": "2024-06-30",
+    }
+    payload = {"strategy_id": strategy_id, "dag": dag}
+    response = client.post("/api/backtest/dag", json=payload)
+    assert response.status_code == 202
+    job_id = response.json()["data"]["id"]
+
+    data = client.get(f"/api/backtest/{job_id}").json()["data"]
+    assert data["symbol"] == "MSFT"
+    assert data["timeframe"] == "1h"
+    assert data["start_date"] == "2024-01-01"
+    assert data["end_date"] == "2024-06-30"
+
+
 def test_trigger_dag_backtest_missing_execution(db_session):
     """DAG without Execution node → 422 Unprocessable."""
     strategy_id = _create_strategy(db_session)

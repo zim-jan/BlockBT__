@@ -3,7 +3,7 @@ import type {MetricValue, MultiBacktestResult, NormalizedMetrics, PortfolioNodeD
 import {useChatStore} from '../../../store/chatStore'
 import {useWorkflowStore} from '../../../store/workflowStore'
 import {useWorkflowExecution} from '../../../hooks/useWorkflowExecution'
-import Plot from 'react-plotly.js'
+import Plot from '../../../components/PlotlyPlot'
 import {CategoryBadge} from './CategoryBadge'
 
 interface Props {

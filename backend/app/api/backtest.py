@@ -26,10 +26,44 @@ router = APIRouter()
 # ---------------------------------------------------------------------------
 
 
+def _dag_view_params(params: dict[str, Any]) -> dict[str, Any]:
+    """Uzupełnia płaskie metadane widoku dla jobów DAG (review 2026-07-16).
+
+    Joby z POST /api/backtest/dag mają parameters_snapshot = {"dag": ...} —
+    bez płaskich kluczy symbol/timeframe/dat odpowiedź GET zwracała puste
+    stringi. Czytamy je z węzła DataIngestion, a kapitał z węzła Execution
+    (klucze camelCase pochodzą z eksportu frontendowego kanwy).
+    """
+    dag = params.get("dag")
+    if not isinstance(dag, dict):
+        return params
+
+    merged = dict(params)
+    nodes = dag.get("nodes", [])
+
+    data_node = next((n for n in nodes if n.get("category") == "DataIngestion"), None)
+    if data_node:
+        node_params = data_node.get("params", {})
+        merged.setdefault("symbol", node_params.get("symbol", ""))
+        merged.setdefault("data_source", node_params.get("dataSource", "yahoo"))
+        merged.setdefault("timeframe", node_params.get("timeframe", ""))
+        merged.setdefault("start_date", node_params.get("startDate", ""))
+        merged.setdefault("end_date", node_params.get("endDate", ""))
+
+    exec_node = next((n for n in nodes if n.get("category") == "Execution"), None)
+    if exec_node:
+        exec_params = exec_node.get("params", {})
+        capital = exec_params.get("init_cash", exec_params.get("initialCapital"))
+        if capital is not None:
+            merged.setdefault("initial_capital", capital)
+
+    return merged
+
+
 def _job_to_schema(job: BacktestJob) -> BacktestJobResponse:
     """Konwertuje model ORM BacktestJob na schemat BacktestJobResponse."""
     raw_metrics = job.metrics or {}
-    params = job.parameters_snapshot or {}
+    params = _dag_view_params(job.parameters_snapshot or {})
 
     # Helper to find values in raw_metrics or job attributes
     def get_metric(json_key: str, db_attr: Any):
