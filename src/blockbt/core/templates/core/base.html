@@ -1,0 +1,40 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="{% block meta_description %}BlockBT - Aplikacja do backtestingu strategii algorytmicznych{% endblock %}">
+    <title>{% block title %}BlockBT{% endblock %}</title>
+    <link rel="icon" type="image/svg+xml" href="{% static 'core/img/logo.svg' %}">
+    <link rel="stylesheet" href="{% static 'core/css/base.css' %}">
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <header class="header">
+        <div class="container header__inner">
+            <a href="{% url 'core:index' %}" class="header__logo">
+                <img src="{% static 'core/img/logo.svg' %}" alt="BlockBT Logo" class="header__logo-img">
+            </a>
+            <nav class="header__nav">
+                {% block nav_items %}
+                <a href="{% url 'core:index' %}" class="header__nav-link header__nav-link--brand">BlockBT</a>
+                {% endblock %}
+            </nav>
+        </div>
+    </header>
+
+    <main class="main">
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer class="footer">
+        <div class="container footer__inner">
+            <p class="footer__text">BlockBT - Backtesting strategii algorytmicznych</p>
+            <p class="footer__text">2026</p>
+        </div>
+    </footer>
+
+    {% block extra_js %}{% endblock %}
+</body>
+</html>
