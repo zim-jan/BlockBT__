@@ -1,107 +1,101 @@
-# 📈 BlockBT — Algorithmic Backtesting Ecosystem
+# BlockBT (Local Algorithmic Backtesting)
 
-BlockBT to zaawansowane środowisko do testowania strategii inwestycyjnych typu "Self-Hosted", zbudowane dla inżynierów i analityków Quant. System łączy potęgę biblioteki `vectorbt` z nowoczesnym interfejsem Streamlit oraz analityką AI.
+Projekt **BlockBT** to profesjonalne, w pełni lokalne środowisko do przeprowadzania backtestingu strategii algorytmicznych. Składa się z nowoczesnego interfejsu **React** (Vite) oraz szybkiego i asynchronicznego serwera **FastAPI**.
 
-## 🚀 Szybki Start (Instalacja)
+System jest tworzony zgodnie z zasadą "Air-Gapped": wszystkie Twoje dane giełdowe, strategie i integracje z LLM działają ściśle lokalnie lub w zamkniętym kontenerze Docker. Projekt nie posiada autoryzacji (zaprojektowany dla jednego użytkownika lokalnego).
 
-Aby uruchomić projekt lokalnie, wykonaj poniższe kroki:
+## Stos Technologiczny
 
-### Opcja A: Tradycyjny `pip`
+*   **Frontend**: React 18, TypeScript, Vite, Tailwind CSS, **React Flow 12 (@xyflow/react)**.
+*   **Backend**: Python 3.14+, FastAPI, Pydantic, SQLAlchemy. Zarządzanie zależnościami przy użyciu `uv`.
+*   **Silnik (Engine)**: Dwusilnikowa (Dual-Engine Ready) struktura z domyślnym silnikiem opartym na wektoryzowanym `vectorbt`.
+*   **Baza i Dane**: SQLite i lokalne pliki Parquet w katalogu `local_data/`.
+*   **Dokumentacja**: MkDocs (dostępna w `docs/` i budowana przez mkdocs-material).
+
+## Narzędzia Makefile
+
+Projekt zawiera `Makefile` ułatwiający codzienne zadania:
+
+*   `make dev` - Uruchamia backend i frontend (wymaga dwóch terminali).
+*   `make api` - Uruchamia tylko backend FastAPI.
+*   `make build-api` - Buduje obraz Docker dla backendu.
+*   `make rebuild-api` - Przebudowuje i restartuje kontener backendu.
+*   `make test` - Uruchamia pełną suitę testową pytest.
+*   `make clean` - Czyści cache i pliki tymczasowe.
+
+## Szybki Start (Docker Compose)
+
+Najprostsza metoda na uruchomienie pełnego środowiska z bazą danych, frontendem i backendem. Aplikacja mapuje wszystkie porty do bezpiecznego środowiska lokalnego (`127.0.0.1`).
+
 ```bash
-python -m venv .venv
-source .venv/bin/activate  # lub .venv\Scripts\activate na Windows
-pip install --upgrade pip
-pip install -e .
+docker-compose up --build
 ```
+*   **Frontend React:** `http://127.0.0.1:3000`
+*   **Backend API:** `http://127.0.0.1:8000/docs`
 
-### Opcja B: Nowoczesny `uv` (Zalecane — Szybciej ⚡)
-Jeśli masz zainstalowany [uv](https://github.com/astral-sh/uv):
-```bash
-uv venv
-source .venv/bin/activate
-uv pip install -e .
-```
-Możesz również po prostu uruchomić aplikację bez ręcznej aktywacji środowiska:
-```bash
-uv run streamlit run app.py
-```
+## Rozwój Lokalny (Development - Bez Kontenerów)
 
-### Opcja C:
-Usuń błędne środowisko: 
-```bash
-rm -rf .venv
-```
-Pobierz konkretną wersję Pythona (jeśli jej nie masz):
-```bash
-uv python install 3.12
-```
+Do szybkiej pracy i uruchamiania testów zalecamy użycie `uv` na swoim hoście.
 
-Utwórz środowisko twardo przypisane do 3.12:
-```bash
-uv venv --python 3.12
-
-```
-
-Aktywuj je w swoim terminalu (fish):
-```bash
-source .venv/bin/activate.fish
-```
-
-Ponów instalację:
-```bash
-uv pip install -e .
-```
-
-### 3. Konfiguracja (Baza Danych)
-Projekt korzysta z SQLite. Przy pierwszym uruchomieniu tabele zostaną utworzone automatycznie, lub możesz użyć migruacji:
-```bash
-alembic upgrade head
-```
-
-### 4. vectorbt i vectorbt.pro
-```bash
-# VectorBT OpenSource
-git clone https://github.com/przydan/vectorbt.git
-
-# VectorBT PRO
-unzip
-go to folder 
-uv pip install -U ".[base]"
-```
-
-### 4. Uruchomienie Aplikacji
-```bash
-streamlit run app.py
-```
-Aplikacja będzie dostępna pod adresem: [http://localhost:8501](http://localhost:8501)
-
-## 🏗️ Kluczowe Funkcje
-
-- **Dual-Engine Architecture**: Obsługa `vectorbt` (Open Source) oraz dynamiczne ładowanie ProEngine (BYOL).
-- **Visual Builder**: Kreator strategii typu Drag & Drop oparty na React Flow.
-- **AI Analyst**: Automatyczna interpretacja wyników backtestu przez lokalne modele LLM (Llama/Qwen via Ollama).
-- **Market Connectors**: Zintegrowane pobieranie danych z Yahoo Finance i Alpaca z cache'owaniem Parquet.
-- **Optimizer**: Poszukiwanie parametrów optymalnych metodą Bayesowską (Optuna).
-
-## 📚 Dokumentacja dla Deweloperów
-
-Jeśli chcesz rozszerzyć możliwości BlockBT, zajrzyj do dedykowanych przewodników w folderze `docs/developer/`:
-
-- [Mata Architektury](docs/developer/overview.md)
-- [Dodawanie Nowych API](docs/developer/extending_data.md)
-- [Rozszerzanie GUI i Węzłów](docs/developer/extending_gui.md)
-- [Zarządzanie Bazą Danych](docs/developer/extending_db.md)
-
-## 📚 Uruchomienie mkdocs
+### Krok 1: Inicjalizacja Backendu
 ```bash
 uv sync --extra dev
+uv run uvicorn backend.app.main:app --reload
+```
+Aplikacja automatycznie utworzy pustą bazę danych SQLite przy uruchomieniu (Lifespan Context Manager).
+
+### Krok 2: Uruchomienie Frontendu React
+W oddzielnym terminalu:
+```bash
+cd frontend
+npm install
+npm run dev --host 0.0.0.0
+```
+
+### Krok 3: Budowanie Dokumentacji
+Aby wygenerować i przeczytać profesjonalną dokumentację MkDocs w języku polskim:
+```bash
 uv run mkdocs serve
 ```
 
-```bash
-dd if=/dev/urandom bs=32 count=1 2>/dev/null | openssl base64
+## Architektura DAG (Phase 9)
+
+BlockBT używa skierowanego grafu acyklicznego (DAG) do opisu strategii backtestingowych. Frontend Visual Builder eksportuje graf jako JSON i wysyła go do backendu.
+
+### Endpoint: `POST /api/backtest/dag`
+
+Przyjmuje strukturę `DAGBacktestRequest`:
+```json
+{
+  "strategy_id": 1,
+  "dag": {
+    "nodes": [...],
+    "edges": [...],
+    "meta_nodes": [...]
+  }
+}
 ```
 
-## 👤 Autor & Licencja
-Stworzone przez: **przydan**
-Licencja: MIT / Proprietary (dla modułów PRO)
+### Kategorie Węzłów
+
+| Kategoria | Rola | Dozwolone połączenia wychodzące |
+|-----------|------|-------------------------------|
+| **DataIngestion** | Źródło danych (vbt.YFData) | Indicators, Execution |
+| **Indicators** | Transformacje (SMA, MACD) | LogicOperators, Execution |
+| **LogicOperators** | Maski logiczne (entries/exits) oraz **TimeShift** (prewencja Look-ahead bias) | Execution |
+| **Execution** | Portfel (vbt.Portfolio.from_signals) | — |
+| **Meta** | Optymalizatory (parametry) | — (via target_nodes) |
+
+### Walidacja
+
+Backend `GraphParser` automatycznie sprawdza:
+- Brak cykli (algorytm Kahna)
+- Zgodność typów portów (COMPATIBILITY_MATRIX)
+- Dokładnie jeden węzeł Execution
+- Brak osieroconych węzłów (wszystkie ścieżki prowadzą do Execution)
+
+## Wytyczne Deweloperskie (Skrót)
+- Piszemy komentarze i docstringi po polsku (API i klucze JSON pozostają w języku angielskim).
+- Utrzymujemy ścisłą walidację schematów Pydantic dla API FastAPI.
+- Plik `.env` i konfiguracja `pydantic-settings` mają rygorystyczne wartości bezpieczne (np. zapobieganie wysyłaniu nieautoryzowanych zapytań do serwerów chmurowych).
+- Ograniczenia `import sort` lintera dbają o kolejność, jeśli dodajesz import, dopisz go na końcu, `uv run ruff check --fix` naprawi to za Ciebie.

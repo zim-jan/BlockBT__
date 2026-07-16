@@ -1,0 +1,32 @@
+FROM python:3.12-slim
+
+# System deps required for numba (llvmlite) and scientific packages
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install uv
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
+
+WORKDIR /app
+
+# --- Layer 1: install blockbt declared dependencies ---
+COPY pyproject.toml uv.lock README.md ./
+COPY backend/ ./backend/
+RUN uv pip install --system -e .
+
+# --- Layer 2: install vendored open-source vectorbt ---
+# Copy only the repo files needed (skip .git, .venv, tests to keep image small)
+COPY vectorbt/setup.py vectorbt/pyproject.toml vectorbt/setup.cfg* ./vendor_vbt/
+COPY vectorbt/vectorbt/ ./vendor_vbt/vectorbt/
+RUN uv pip install --system ./vendor_vbt/
+
+# --- Layer 3: ensure uvicorn & fastapi are on PATH ---
+RUN uv pip install --system "uvicorn[standard]>=0.23" fastapi
+
+# Create local data dirs for Air-Gapped persistence (mounted as volumes)
+RUN mkdir -p /app/data/db /app/data/cache
+
+EXPOSE 8000
+
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
