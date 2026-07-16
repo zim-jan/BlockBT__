@@ -113,11 +113,38 @@ def test_signal_exit_near_stop_level_not_counted_as_sl():
 
 def test_gap_through_stop_counted_despite_signal_exit_same_bar():
     """Głębokie przebicie poziomu SL (gap 100→90) liczy się jako stop nawet przy
-    koincydencji sygnału exit na tym samym barze — sygnał unieważnia klasyfikację
-    wyłącznie w wąskim pasie eps wokół poziomu stopu."""
+    koincydencji sygnału exit na tym samym barze — o klasyfikacji decyduje warunek
+    triggera (close bara wyjścia za poziomem stopu), nie maska sygnałów."""
     engine = OpenSourceEngine()
     df = pd.DataFrame({"close": [100.0, 90.0, 96.0, 97.0, 98.0]})
     result = engine.run_dag_backtest(
         df, _dag({"sl_stop": 0.05}, code=_ENTRY_BAR0_EXIT_BAR1)
+    )
+    assert result["raw"]["Stop Loss Exits"] == 1
+
+
+# Custom indicator: wejście bar0, maska exits STREFOWA (True od bar1 do końca) —
+# typowa dla warunków typu fast<slow, gdzie sygnał trzyma się przez cały trend.
+_ENTRY_BAR0_EXIT_ZONE = (
+    "entries = pd.Series(False, index=close.index)\n"
+    "entries.iloc[0] = True\n"
+    "exits = pd.Series(False, index=close.index)\n"
+    "exits.iloc[1:] = True\n"
+)
+
+
+def test_stop_hit_counted_despite_zone_exit_mask():
+    """Review 2026-07-16: realne trafienie stopu przy STREFOWEJ masce exits.
+
+    Close bar1 = 95.05 przekracza poziom SL 95.095 (5% od fill-a wejścia 100.1) —
+    vbt uruchamia stop. Poprzednia heurystyka pasa eps unieważniała klasyfikację,
+    bo na barze wyjścia był też sygnał exit (maska strefowa), a fill nie był
+    "głęboko" za poziomem → systematyczny undercount stopów dla masek strefowych.
+    Warunek triggera (close za poziomem) klasyfikuje deterministycznie: to stop.
+    """
+    engine = OpenSourceEngine()
+    df = pd.DataFrame({"close": [100.0, 95.05, 96.0, 97.0, 98.0]})
+    result = engine.run_dag_backtest(
+        df, _dag({"sl_stop": 0.05}, code=_ENTRY_BAR0_EXIT_ZONE)
     )
     assert result["raw"]["Stop Loss Exits"] == 1
