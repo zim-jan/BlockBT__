@@ -41,6 +41,12 @@ function seedWfoCanvas() {
       position: { x: 0, y: 0 },
       data: { windowSize: '365d', stepSize: '90d' },
     },
+    {
+      id: 'p1',
+      type: 'portfolioNode',
+      position: { x: 0, y: 0 },
+      data: { init_cash: 7500, fees: 0.001, slippage: 0.001 },
+    },
   ]
   const edges: Edge[] = [
     { id: 'e1', source: 'd1', target: 'i1' },
@@ -93,6 +99,19 @@ describe('useWorkflowOptimization — runWfo node-level feedback', () => {
     })
 
     expect(wfoNodeData().jobStatus).toBe('RUNNING')
+  })
+
+  it('sends initial_capital read from the Portfolio node init_cash (review 2026-07-16)', async () => {
+    mockStatus.mockResolvedValue({ success: true, data: { status: 'RUNNING' }, error: null })
+    const { result } = renderHook(() => useWorkflowOptimization())
+
+    await act(async () => {
+      await result.current.runWfo()
+    })
+
+    const { api } = await import('../services/api')
+    const wfoPayload = (api.optimizer.triggerWfo as ReturnType<typeof vi.fn>).mock.calls[0][0]
+    expect(wfoPayload.initial_capital).toBe(7500)
   })
 
   it('stores composed results (trials_data + best_parameters/best_value) on COMPLETED', async () => {

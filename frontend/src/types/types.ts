@@ -157,7 +157,6 @@ export interface IndicatorNodeData extends Record<string, unknown> {
   indicatorType: IndicatorType
   smaFast: number
   smaSlow: number
-  initialCapital: number
   macdFast?: number
   macdSlow?: number
   macdSignal?: number

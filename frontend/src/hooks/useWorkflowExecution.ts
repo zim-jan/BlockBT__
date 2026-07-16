@@ -59,7 +59,9 @@ export function useWorkflowExecution() {
     const indicatorType: string = iData.indicatorType ?? 'sma_crossover'
     const smaFast: number = Number(iData.smaFast ?? 10)
     const smaSlow: number = Number(iData.smaSlow ?? 30)
-    const initialCapital: number = Number(iData.initialCapital ?? 10000)
+    // Kapitał początkowy czytany z bloku Portfolio (review 2026-07-16)
+    const pData = portfolioNode.data as Record<string, unknown>
+    const initialCapital: number = Number(pData.init_cash ?? 10000)
     const codeContent: string = iData.codeContent ?? ""
 
     // SMA validation (only for SMA crossover)

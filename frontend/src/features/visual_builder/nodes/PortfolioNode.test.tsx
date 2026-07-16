@@ -146,6 +146,20 @@ describe('PortfolioNode', () => {
     expect(mockUpdateNodeData).toHaveBeenCalledWith('portfolio-4', { size: 100 })
   })
 
+  it('renders Initial Capital field and writes init_cash to store (review 2026-07-16)', () => {
+    mockUpdateNodeData.mockClear()
+
+    render(
+      <ReactFlowProvider>
+        <PortfolioNode id="portfolio-6" data={defaultData} />
+      </ReactFlowProvider>
+    )
+
+    const capInput = screen.getByLabelText(/Initial Capital/i) as HTMLInputElement
+    fireEvent.change(capInput, { target: { value: '5000' } })
+    expect(mockUpdateNodeData).toHaveBeenCalledWith('portfolio-6', { init_cash: 5000 })
+  })
+
   it('renders SL as percent from stored fraction', () => {
     render(
       <ReactFlowProvider>

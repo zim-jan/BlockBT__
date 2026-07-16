@@ -74,7 +74,9 @@ def test_indicators_node_complex():
     assert node.params.macdFast == 12
     assert node.params.macdSlow == 26
     assert node.params.macdSignal == 9
-    assert node.params.initialCapital == 5000.0
+    # initialCapital usunięte z IndicatorsParams (review 2026-07-16): kapitał żyje
+    # w ExecutionParams.init_cash; pole w starych zapisach jest po cichu ignorowane
+    assert not hasattr(node.params, "initialCapital")
     assert node.params.codeContent == "print('hello')"
     assert node.params.windows == [10, 20]
 

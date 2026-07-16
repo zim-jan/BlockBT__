@@ -46,6 +46,10 @@ export function useWorkflowOptimization() {
     const dData = dataNode.data as unknown as DataNodeData
     const iData = indicatorNode.data as unknown as IndicatorNodeData
     const oData = optimizerNode.data as unknown as OptimizerNodeData
+    // Kapitał z bloku Portfolio, jeśli jest na kanwie (review 2026-07-16);
+    // flow optymalizacji nie wymaga węzła Portfolio — wtedy default 10000
+    const portfolioNode = nodes.find((n) => n.type === 'portfolioNode')
+    const initialCapital = Number((portfolioNode?.data as Record<string, unknown> | undefined)?.init_cash ?? 10000)
 
     setJobState(true, null, 'PENDING')
 
@@ -56,7 +60,7 @@ export function useWorkflowOptimization() {
         code_content: "",
         parameters: {
           strategy_type: iData.indicatorType,
-          initial_capital: iData.initialCapital,
+          initial_capital: initialCapital,
           symbol: dData.symbol,
         }
       })
@@ -70,7 +74,7 @@ export function useWorkflowOptimization() {
         timeframe: dData.timeframe,
         start_date: dData.startDate,
         end_date: dData.endDate,
-        initial_capital: iData.initialCapital,
+        initial_capital: initialCapital,
         metric: oData.metric,
         n_trials: oData.nTrials,
         param_bounds: oData.paramBounds as any,
@@ -143,6 +147,9 @@ export function useWorkflowOptimization() {
     const dData = dataNode.data as unknown as DataNodeData
     const iData = indicatorNode.data as unknown as IndicatorNodeData
     const wData = wfoNode.data as unknown as WfoNodeData
+    // Kapitał z bloku Portfolio, jeśli jest na kanwie (review 2026-07-16)
+    const portfolioNode = nodes.find((n) => n.type === 'portfolioNode')
+    const initialCapital = Number((portfolioNode?.data as Record<string, unknown> | undefined)?.init_cash ?? 10000)
 
     setJobState(true, null, 'PENDING')
     // Review 2026-07-16: status musi trafiać też do node.data — WfoNode czyta
@@ -155,7 +162,7 @@ export function useWorkflowOptimization() {
         code_content: "",
         parameters: {
           strategy_type: iData.indicatorType,
-          initial_capital: iData.initialCapital,
+          initial_capital: initialCapital,
           symbol: dData.symbol,
         }
       })
@@ -168,7 +175,7 @@ export function useWorkflowOptimization() {
         timeframe: dData.timeframe,
         start_date: dData.startDate,
         end_date: dData.endDate,
-        initial_capital: iData.initialCapital,
+        initial_capital: initialCapital,
         window_size: wData.windowSize,
         step_size: wData.stepSize,
       })

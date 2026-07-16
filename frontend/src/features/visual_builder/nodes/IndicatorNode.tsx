@@ -178,16 +178,7 @@ export function IndicatorNode({ id, data }: NodeProps<IndicatorNode>) {
           </>
         )}
 
-        {/* Portfolio capital */}
-        <label className="rf-label">Initial Capital ($)</label>
-        <input
-          type="number"
-          min={100}
-          step={1000}
-          value={data.initialCapital}
-          onChange={(e) => updateNodeData(id as string, { initialCapital: Number(e.target.value) })}
-          className="rf-input"
-        />
+        {/* Kapitał początkowy przeniesiony do bloku Portfolio (review 2026-07-16) */}
       </div>
 
       <Handle 

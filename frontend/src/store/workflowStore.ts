@@ -128,7 +128,7 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
         symbol: 'AAPL', dataSource: 'yahoo', startDate: '2023-01-01', endDate: '2025-01-01', timeframe: '1d',
         point_in_time_enforcement: true // NOWE
       },
-      indicatorNode: { indicatorType: 'sma_crossover', smaFast: 10, smaSlow: 30, initialCapital: 10000 },
+      indicatorNode: { indicatorType: 'sma_crossover', smaFast: 10, smaSlow: 30 },
       signalNode: {
         signalType: 'sma_crossover',
         operator_type: 'time_shift', // NOWE (Domyślnie wymuszamy shift)

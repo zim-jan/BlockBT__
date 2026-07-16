@@ -109,6 +109,25 @@ export function PortfolioNode({ id, data }: Props) {
         )}
       </div>
       <div className="rf-node__body">
+        {/* Kapitał początkowy symulacji — jedyne źródło init_cash (review 2026-07-16) */}
+        <div style={{ marginBottom: '8px' }}>
+          <label htmlFor={`${id}-init-cash`} className="rf-label" style={{ fontSize: '11px' }}>Initial Capital ($)</label>
+          <input
+            id={`${id}-init-cash`}
+            type="number"
+            min={100}
+            step={1000}
+            value={data.init_cash ?? 10000}
+            onChange={(e) => {
+              const val = Number(e.target.value)
+              if (!Number.isFinite(val) || val <= 0) return
+              updateNodeData(id, { init_cash: val } as any)
+            }}
+            className="rf-input"
+            style={{ fontSize: '12px' }}
+          />
+        </div>
+
         {/* Transaction Cost Controls — always visible */}
         <div className="rf-cost-controls" style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
           <div style={{ flex: 1 }}>

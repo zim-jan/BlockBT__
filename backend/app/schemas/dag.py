@@ -27,10 +27,11 @@ class DataIngestionNode(BaseNode):
 
 
 class IndicatorsParams(BaseModel):
+    # initialCapital usunięte (review 2026-07-16): kapitał żyje wyłącznie
+    # w ExecutionParams.init_cash; nieznane pola starych zapisów są ignorowane
     indicatorType: str = "sma_crossover"
     smaFast: int | None = None
     smaSlow: int | None = None
-    initialCapital: float | None = None
     macdFast: int | None = None
     macdSlow: int | None = None
     macdSignal: int | None = None
