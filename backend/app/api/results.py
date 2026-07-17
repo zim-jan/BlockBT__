@@ -122,7 +122,13 @@ def get_tearsheet(job_id: int) -> ApiResponse[TearsheetResponse]:
 
 @router.post("/{job_id}/analyze", response_model=ApiResponse[AIAnalysisResponse])
 async def analyze_simulation_result(job_id: int) -> ApiResponse[AIAnalysisResponse]:
-    """Generate an AI analysis report for a completed simulation."""
+    """Generate an AI analysis report for a completed simulation.
+
+    Audyt 2026-07-17: sesja DB jest zamykana PRZED wywołaniem LLM (potrafi
+    trwać dziesiątki sekund) — wcześniej otwarta sesja trzymana przez await
+    blokowała pulę połączeń; persystencja odbywa się w drugiej, krótkiej sesji.
+    """
+    # 1) Krótka sesja: walidacja + zebranie danych do promptu
     with get_session() as db:
         job = db.get(BacktestJob, job_id)
         if not job:
@@ -134,9 +140,14 @@ async def analyze_simulation_result(job_id: int) -> ApiResponse[AIAnalysisRespon
             )
 
         if job.ai_analysis_report:
-            return ApiResponse(success=True, data=AIAnalysisResponse(prompt=None, report=job.ai_analysis_report))
+            return ApiResponse(
+                success=True,
+                data=AIAnalysisResponse(prompt=None, report=job.ai_analysis_report),
+            )
 
-        result = job.metrics or {}
+        # Kopia — nie mutujemy ORM-owego JSON-a job.metrics (audyt 2026-07-17:
+        # wcześniejsza mutacja in-place wstrzykiwała m.in. pd.Series do atrybutu ORM)
+        result = dict(job.metrics or {})
         result["symbol"] = job.parameters_snapshot.get("symbol", "UNKNOWN")
         result["timeframe"] = job.parameters_snapshot.get("timeframe", "1d")
         result["engine_name"] = job.parameters_snapshot.get("engine_name", "opensource")
@@ -159,23 +170,30 @@ async def analyze_simulation_result(job_id: int) -> ApiResponse[AIAnalysisRespon
         strategy_name = job.strategy.name if job.strategy else "Unknown Strategy"
         raw_params = job.parameters_snapshot
 
-        payload = ReportBuilder.build(
-            result=result, strategy_name=strategy_name, raw_params=raw_params
-        )
-        prompt = payload.to_prompt()
-        
         # Fetch the default system prompt, or fallback to the hardcoded default
         from sqlalchemy import select
 
         from app.models.orm import SystemPrompt
         from app.services.mcp.llm_client import _SYSTEM_PROMPT
-        
+
         system_prompt = db.execute(
             select(SystemPrompt).where(SystemPrompt.is_default == True) # noqa: E712
         ).scalar_one_or_none()
         system_content = system_prompt.content if system_prompt else _SYSTEM_PROMPT
-        
-        report = await OllamaClient().generate_report(prompt, system=system_content)
+
+    payload = ReportBuilder.build(
+        result=result, strategy_name=strategy_name, raw_params=raw_params
+    )
+    prompt = payload.to_prompt()
+
+    # 2) LLM poza sesją — żadne połączenie z puli nie jest trzymane przez await
+    report = await OllamaClient().generate_report(prompt, system=system_content)
+
+    # 3) Krótka sesja: persystencja raportu i historii czatu
+    with get_session() as db:
+        job = db.get(BacktestJob, job_id)
+        if not job:
+            raise HTTPException(status_code=404, detail="Simulation Result not found")
         job.ai_analysis_report = report
 
         # Zapisanie promptu (user) i raportu (assistant) do tabeli ChatMessage
@@ -183,8 +201,8 @@ async def analyze_simulation_result(job_id: int) -> ApiResponse[AIAnalysisRespon
         db.add(ChatMessage(job_id=job.id, role="assistant", content=report))
 
         db.commit()
-        data = AIAnalysisResponse(prompt=prompt, report=job.ai_analysis_report)
-        return ApiResponse(success=True, data=data)
+
+    return ApiResponse(success=True, data=AIAnalysisResponse(prompt=prompt, report=report))
 
 
 @router.get("/{job_id}/chat", response_model=ApiResponse[list[ChatMessageResponse]])
@@ -207,7 +225,15 @@ def get_chat_history(job_id: int) -> ApiResponse[list[ChatMessageResponse]]:
 
 @router.post("/{job_id}/chat", response_model=ApiResponse[ChatMessageResponse])
 async def add_chat_message(job_id: int, request: ChatRequest) -> ApiResponse[ChatMessageResponse]:
-    """Pobiera wiadomość analityka, przekazuje kontekst i zwraca odpowiedź LLM."""
+    """Pobiera wiadomość analityka, przekazuje kontekst i zwraca odpowiedź LLM.
+
+    Audyt 2026-07-17: wcześniej ``flush()`` otwierał transakcję ZAPISU
+    trzymaną przez cały await LLM — każdy inny pisarz SQLite dostawał
+    ``database is locked``. Teraz: krótka sesja na odczyt historii →
+    LLM poza sesją → druga krótka sesja zapisuje parę wiadomości atomowo
+    (błąd LLM = zero zapisów, bez rollbacku po fakcie).
+    """
+    # 1) Krótka sesja: walidacja + odczyt historii czatu
     with get_session() as db:
         job = db.get(BacktestJob, job_id)
         if not job:
@@ -218,26 +244,27 @@ async def add_chat_message(job_id: int, request: ChatRequest) -> ApiResponse[Cha
                 status_code=400, detail="Cannot start chat without initial AI analysis report."
             )
 
-        # Zapisz wiadomość analityka, ale nie commituj
-        user_message = ChatMessage(job_id=job.id, role="user", content=request.content)
-        db.add(user_message)
-        db.flush()  # pobranie ID i uwzględnienie w sesji bez zatwierdzania transakcji
-
-        # Przygotuj historię czatu dla Ollamy
         history = sorted(job.chat_messages, key=lambda m: m.created_at)
         llm_messages = [{"role": m.role, "content": m.content} for m in history]
 
-        # Wywołanie Ollamy (async)
-        client = OllamaClient()
-        response_content = await client.chat(llm_messages)
+    # Nowa wiadomość analityka dokładana do kontekstu bez zapisu do DB
+    llm_messages.append({"role": "user", "content": request.content})
 
-        if response_content.startswith("[ERROR]"):
-            db.rollback()
-            raise HTTPException(status_code=500, detail=response_content)
+    # 2) Wywołanie Ollamy poza sesją/transakcją
+    response_content = await OllamaClient().chat(llm_messages)
 
+    if response_content.startswith("[ERROR]"):
+        raise HTTPException(status_code=500, detail=response_content)
+
+    # 3) Krótka sesja: atomowy zapis pary user/assistant
+    with get_session() as db:
+        job = db.get(BacktestJob, job_id)
+        if not job:
+            raise HTTPException(status_code=404, detail="Simulation Result not found")
+
+        user_message = ChatMessage(job_id=job.id, role="user", content=request.content)
         assistant_message = ChatMessage(job_id=job.id, role="assistant", content=response_content)
-        db.add(assistant_message)
-
+        db.add_all([user_message, assistant_message])
         db.commit()
         db.refresh(assistant_message)
 
@@ -248,4 +275,4 @@ async def add_chat_message(job_id: int, request: ChatRequest) -> ApiResponse[Cha
             content=assistant_message.content,
             created_at=assistant_message.created_at,
         )
-        return ApiResponse(success=True, data=data)
+    return ApiResponse(success=True, data=data)
