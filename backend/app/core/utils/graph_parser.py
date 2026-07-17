@@ -29,6 +29,12 @@ class GraphParser:
             self.adj_list[edge.source].append(edge.target)
             self.in_degree[edge.target] += 1
 
+    # Audyt 2026-07-17: operatory deklarujące transformację sygnałów, której
+    # silnik (run_dag_backtest) nie wykonuje — cichy no-op dawałby wynik innej
+    # strategii niż zbudowana. Pass-through pozostają: time_shift (no-op,
+    # ADR-0007) i cross_validation (marker walidatora dla Overfitting Trap).
+    _UNSUPPORTED_OPERATORS = frozenset({"crossover", "crossunder", "typing_cast"})
+
     def validate(self) -> None:
         """Runs all validations on the graph."""
         self._validate_execution_count()
@@ -37,6 +43,7 @@ class GraphParser:
         self._validate_no_cycles()
         self._validate_reachability()
         self._validate_financial_traps()
+        self._validate_supported_topology()
 
     def _validate_execution_count(self) -> None:
         """Max one Execution node per graph."""
@@ -149,3 +156,39 @@ class GraphParser:
         # 2. Look-ahead Bias (review 2026-07-16): wymóg jawnego węzła TimeShift
         # usunięty — ochrona przeniesiona do silnika, który bezwarunkowo
         # przesuwa entries/exits o 1 okres (OpenSourceEngine.run_dag_backtest).
+
+    def _validate_supported_topology(self) -> None:
+        """Odrzuca topologie, których silnik nie wykonuje (audyt 2026-07-17).
+
+        ``run_dag_backtest`` wykonuje dokładnie jeden łańcuch
+        DataIngestion → Indicators → Execution (węzły LogicOperators są
+        pass-through). Wcześniej drugi wskaźnik, drugie źródło danych czy
+        aktywny operator logiczny były po cichu ignorowane — użytkownik
+        dostawał wynik INNEJ strategii niż zbudowana na kanwie.
+        """
+        data_count = sum(1 for n in self.nodes.values() if n.category == "DataIngestion")
+        if data_count > 1:
+            raise GraphValidationError(
+                f"Nieobsługiwana topologia: silnik wykonuje dokładnie jeden węzeł DataIngestion "
+                f"(znaleziono {data_count}). Wiele tickerów podaje się listą w polu symbol "
+                f"jednego węzła Data."
+            )
+
+        indicators_count = sum(1 for n in self.nodes.values() if n.category == "Indicators")
+        if indicators_count > 1:
+            raise GraphValidationError(
+                f"Nieobsługiwana topologia: silnik wykonuje dokładnie jeden węzeł Indicators "
+                f"(znaleziono {indicators_count}) — łączenie sygnałów wielu wskaźników nie jest "
+                f"jeszcze wspierane."
+            )
+
+        for node in self.nodes.values():
+            if node.category != "LogicOperators":
+                continue
+            operator = getattr(node.params, "operator_type", None)
+            if operator in self._UNSUPPORTED_OPERATORS:
+                raise GraphValidationError(
+                    f"Nieobsługiwany operator logiczny {operator!r} (węzeł {node.id}): "
+                    f"silnik nie wykonuje tej operacji — węzeł zostałby po cichu zignorowany, "
+                    f"a wynik nie odpowiadałby zbudowanej strategii."
+                )
