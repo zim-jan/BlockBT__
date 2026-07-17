@@ -56,3 +56,15 @@ def test_overfitting_trap():
     parser = GraphParser(nodes=nodes, edges=edges)
     with pytest.raises(GraphValidationError, match="Overfitting Trap"):
         parser.validate()
+
+# Audyt 2026-07-17: dwa pola kapitału z cichym przesłanianiem — legacy zapis
+# z samym initialCapital dostawał domyślne init_cash=10000 (model_dump zawsze
+# emituje oba pola, a silnik czyta init_cash w pierwszej kolejności).
+def test_execution_params_initial_capital_alias():
+    params = ExecutionParams(initialCapital=50000.0)
+    assert params.init_cash == 50000.0
+
+
+def test_execution_params_init_cash_wins_when_both_set():
+    params = ExecutionParams(init_cash=7000.0, initialCapital=50000.0)
+    assert params.init_cash == 7000.0

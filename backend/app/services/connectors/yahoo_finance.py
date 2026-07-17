@@ -78,8 +78,12 @@ class YahooFinanceConnector(BaseDataConnector):
             )
             df = data.get()  # Returns a combined DataFrame
         except Exception as e:
+            # Audyt 2026-07-17: nie połykamy realnej przyczyny (sieć/rate-limit/
+            # zły ticker) w mylące "No data returned" — propagujemy typowany błąd
             logger.error("vbt.YFData failed to download data for {}: {}", symbol, e)
-            return pd.DataFrame()
+            raise ConnectionError(
+                f"Yahoo Finance download failed for {symbol!r}: {e}"
+            ) from e
 
         if df.empty:
             logger.warning("vbt.YFData returned no data for {} ({} → {})", symbol, start, end)
@@ -119,13 +123,20 @@ class YahooFinanceConnector(BaseDataConnector):
     @staticmethod
     def _map_timeframe(timeframe: str) -> str:
         """Map generic BlockBT timeframe strings to yfinance ``interval`` codes."""
+        # Audyt 2026-07-17: "4h" było cicho mapowane na 60m BEZ resamplingu —
+        # użytkownik dostawał bary godzinowe opisane jako 4-godzinne.
+        if timeframe == "4h":
+            raise ValueError(
+                "Timeframe '4h' nie jest wspierany przez konektor Yahoo Finance "
+                "(yfinance nie ma interwału 4h, a resampling nie jest zaimplementowany). "
+                "Użyj '1h' albo '1d'."
+            )
         mapping = {
             "1m": "1m",
             "5m": "5m",
             "15m": "15m",
             "30m": "30m",
             "1h": "60m",
-            "4h": "60m",  # yfinance has no 4h; use 60m + resample
             "1d": "1d",
             "1w": "1wk",
             "1M": "1mo",

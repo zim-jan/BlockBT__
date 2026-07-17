@@ -60,8 +60,12 @@ def _dag_view_params(params: dict[str, Any]) -> dict[str, Any]:
     return merged
 
 
-def _job_to_schema(job: BacktestJob) -> BacktestJobResponse:
-    """Konwertuje model ORM BacktestJob na schemat BacktestJobResponse."""
+def _job_to_schema(job: BacktestJob, include_curve: bool = True) -> BacktestJobResponse:
+    """Konwertuje model ORM BacktestJob na schemat BacktestJobResponse.
+
+    ``include_curve=False`` (lista jobów, audyt 2026-07-17): equity_curve to
+    tysiące punktów per job — lista ma być lekka, pełna krzywa tylko w GET /{id}.
+    """
     raw_metrics = job.metrics or {}
     params = _dag_view_params(job.parameters_snapshot or {})
 
@@ -122,7 +126,7 @@ def _job_to_schema(job: BacktestJob) -> BacktestJobResponse:
             metrics=nested_metrics,
             parameters=params,
             error_message=job.error_message,
-            equity_curve=raw_metrics.get("equity_curve"),
+            equity_curve=raw_metrics.get("equity_curve") if include_curve else None,
             is_multi_symbol=True,
             symbols=symbols,
         )
@@ -146,7 +150,7 @@ def _job_to_schema(job: BacktestJob) -> BacktestJobResponse:
         max_drawdown_pct=job.max_drawdown_pct,
         num_trades=job.num_trades,
         final_capital=job.final_capital,
-        equity_curve=raw_metrics.get("equity_curve"),
+        equity_curve=raw_metrics.get("equity_curve") if include_curve else None,
         is_multi_symbol=False,
     )
 
@@ -251,5 +255,6 @@ def list_jobs() -> ApiResponse[list[BacktestJobResponse]]:
     """Zwraca listę wszystkich zadań backtestowania posortowanych od najnowszych."""
     with get_session() as db:
         jobs = db.query(BacktestJob).order_by(BacktestJob.created_at.desc()).all()
-        data = [_job_to_schema(j) for j in jobs]
+        # Audyt 2026-07-17: lista bez equity_curve (multi-MB payload przy wielu jobach)
+        data = [_job_to_schema(j, include_curve=False) for j in jobs]
         return ApiResponse(success=True, data=data)

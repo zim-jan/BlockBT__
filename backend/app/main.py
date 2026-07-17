@@ -73,7 +73,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         executor = get_reusable_executor()
         executor.shutdown(wait=True)
         logger.info("Loky executor shut down pomyślnie.")
-    except (ImportError, Exception) as e:
+    except Exception as e:  # noqa: BLE001 — cleanup best-effort przy shutdownie
         logger.debug(f"Pominięto czyszczenie loky: {e}")
 
     logger.info("API BlockBT zostało zamknięte.")
@@ -125,6 +125,18 @@ async def log_requests(request: Request, call_next):
     
     # Pomiń logowanie dla /api/health żeby nie śmiecić logów
     if request.url.path != "/api/health":
+        # Audyt 2026-07-17: cap na logowane body — pełne DAG-i/krzywe potrafią
+        # mieć megabajty i zaśmiecały logi oraz pamięć
+        _BODY_LOG_LIMIT = 2000
+        body_repr = body_json
+        if body_repr is not None:
+            body_text = (
+                body_repr
+                if isinstance(body_repr, str)
+                else json.dumps(body_repr, ensure_ascii=False)
+            )
+            if len(body_text) > _BODY_LOG_LIMIT:
+                body_repr = f"{body_text[:_BODY_LOG_LIMIT]}… [truncated, {len(body_text)} chars]"
         log_data = {
             "method": request.method,
             "url": str(request.url),
@@ -132,7 +144,7 @@ async def log_requests(request: Request, call_next):
             "status_code": response.status_code,
             "process_time_ms": round(process_time * 1000, 2),
             "query_params": dict(request.query_params),
-            "body": body_json
+            "body": body_repr
         }
         logger.info(f"API Request: {request.method} {request.url.path} - "
                     f"{response.status_code}\nData: "

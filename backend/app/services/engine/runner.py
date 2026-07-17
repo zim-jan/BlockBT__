@@ -32,6 +32,12 @@ def _serialize_metric_value(v: Any) -> Any:
     """Faza 10: pojedyncza metryka → typ JSON-safe (skalar/np/pd → python; NaN/inf → None)."""
     try:
         if isinstance(v, (np.ndarray, pd.Series)):
+            # Audyt 2026-07-17: guard pustej/wielowartościowej serii — pusta
+            # rzucała IndexError (nieprzechwytywany) i wywalała cały job
+            if len(v) == 0:
+                return None
+            if len(v) > 1:
+                logger.warning("Metryka wektorowa ({} wartości) zredukowana do pierwszej.", len(v))
             val = v.iloc[0] if hasattr(v, "iloc") else v[0]
             return float(val)
         if isinstance(v, (np.integer, int)):

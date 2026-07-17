@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 
 import numpy as np
 import pandas as pd
@@ -86,3 +86,15 @@ class TestYahooFinanceConnector:
         loaded = load_parquet(path)
 
         pd.testing.assert_frame_equal(df, loaded, check_freq=False)
+
+
+# Audyt 2026-07-17: "4h" było po cichu mapowane na 60m BEZ resamplingu —
+# użytkownik dostawał bary godzinowe opisane jako 4-godzinne. Uczciwy błąd
+# zamiast złej granulacji danych.
+def test_timeframe_4h_rejected_loudly():
+    import pytest
+
+    from app.services.connectors.yahoo_finance import YahooFinanceConnector
+
+    with pytest.raises(ValueError, match="4h"):
+        YahooFinanceConnector._map_timeframe("4h")

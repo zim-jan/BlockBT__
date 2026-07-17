@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from abc import ABC, abstractmethod
 from pathlib import Path
 
@@ -155,8 +156,25 @@ class BaseDataConnector(ABC):
         keep = [c for c in ("open", "high", "low", "close", "volume") if c in df.columns]
         return df[keep].astype(float)
 
+    # Audyt 2026-07-17: komponenty ścieżki cache pochodzą wprost z parametrów
+    # węzła DAG (frontend) — bez sanityzacji wartość "../../evil" uciekała
+    # poza katalog cache przy zapisie Parquet (path traversal).
+    _SAFE_PATH_COMPONENT = re.compile(r"^[A-Za-z0-9._-]+$")
+
     def _cache_path(self, symbol: str, start: str, end: str, timeframe: str) -> Path:
         safe_sym = symbol.upper().replace("/", "_")
+        for name, value in (
+            ("symbol", safe_sym),
+            ("start", start),
+            ("end", end),
+            ("timeframe", timeframe),
+        ):
+            text = str(value)
+            if ".." in text or not self._SAFE_PATH_COMPONENT.fullmatch(text):
+                raise ValueError(
+                    f"Niebezpieczny komponent ścieżki cache: {name}={value!r} "
+                    f"(dozwolone znaki: litery, cyfry, '.', '_', '-')."
+                )
         fname = f"{start}_{end}_{timeframe}.parquet"
         return self._cache_dir / safe_sym / fname
 

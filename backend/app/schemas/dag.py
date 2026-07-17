@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Annotated, Any, Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 
 class BaseNode(BaseModel):
@@ -67,6 +67,15 @@ class ExecutionParams(BaseModel):
     size: float | None = Field(default=None, gt=0.0)
     # Whitelist typów sizingu vectorbt: amount | value | percent.
     size_type: Literal["amount", "value", "percent"] = "amount"
+
+    @model_validator(mode="after")
+    def _sync_capital_alias(self) -> ExecutionParams:
+        """Audyt 2026-07-17: legacy zapisy z samym ``initialCapital`` dostawały
+        domyślne ``init_cash=10000`` (model_dump emituje oba pola, silnik czyta
+        init_cash w pierwszej kolejności) — kapitał był cicho ignorowany."""
+        if "init_cash" not in self.model_fields_set and "initialCapital" in self.model_fields_set:
+            self.init_cash = self.initialCapital
+        return self
 
 
 class ExecutionNode(BaseNode):

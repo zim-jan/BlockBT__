@@ -273,17 +273,14 @@ class OpenSourceEngine(BaseStrategyEngine):
             # Convert MultiIndex to list of dictionaries
             results_list = []
             for i in range(len(total_return)):
-                tr_val = float(total_return.iloc[i])
-                
-                # Sharpe Ratio can be NaN if no trades or zero volatility
-                sr_val = float(sharpe.iloc[i]) if not np.isnan(sharpe.iloc[i]) else 0.0
-                
-                dd_val = float(drawdown.iloc[i])
-                tc_val = int(trades_count.iloc[i])
-                fv_val = float(final_value.iloc[i])
-                
-                # Win Rate can be NaN if no trades
-                wr_val = float(win_rate.iloc[i]) if not np.isnan(win_rate.iloc[i]) else 0.0
+                # Audyt 2026-07-17: isfinite zamiast isnan — Sharpe przy zerowej
+                # zmienności bywa ±inf i przechodził do JSON jako niepoprawny token
+                tr_val = finite_or_zero(total_return.iloc[i])
+                sr_val = finite_or_zero(sharpe.iloc[i])
+                dd_val = finite_or_zero(drawdown.iloc[i])
+                tc_val = int(finite_or_zero(trades_count.iloc[i]))
+                fv_val = finite_or_zero(final_value.iloc[i])
+                wr_val = finite_or_zero(win_rate.iloc[i])
 
                 results_list.append({
                     "metrics": {

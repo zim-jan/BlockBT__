@@ -40,7 +40,13 @@ def get_simulation_result(job_id: int) -> ApiResponse[dict[str, Any]]:
                 "total_return_pct": job.total_return_pct,
                 "sharpe_ratio": job.sharpe_ratio,
                 "max_drawdown_pct": job.max_drawdown_pct,
-                "win_rate_pct": job.metrics.get("win_rate_pct") if job.metrics else None,
+                # Audyt 2026-07-17: silnik zapisuje "Win Rate [%]" — stary klucz
+                # win_rate_pct zostaje jako fallback dla historycznych jobów
+                "win_rate_pct": (
+                    job.metrics.get("Win Rate [%]", job.metrics.get("win_rate_pct"))
+                    if job.metrics
+                    else None
+                ),
             },
             "ai_analysis_report": job.ai_analysis_report,
             "error_log": job.error_message,
@@ -155,7 +161,7 @@ async def analyze_simulation_result(job_id: int) -> ApiResponse[AIAnalysisRespon
         result["total_return_pct"] = job.total_return_pct
         result["sharpe_ratio"] = job.sharpe_ratio
         result["max_drawdown_pct"] = job.max_drawdown_pct
-        result["win_rate_pct"] = result.get("win_rate_pct")
+        result["win_rate_pct"] = result.get("Win Rate [%]", result.get("win_rate_pct"))
         result["num_trades"] = job.num_trades
         result["final_capital"] = job.final_capital
 

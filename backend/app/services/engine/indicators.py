@@ -93,6 +93,11 @@ class IndicatorService:
             # str.format sięga atrybutów przez pola '{0.__globals__}' → obejście
             # zakazu dunderów; wskaźnik liczbowy nie potrzebuje formatowania stringów.
             "format", "format_map",
+            # Audyt 2026-07-17: trwała mutacja stanu GLOBALNEGO współdzielonego
+            # między requestami — do exec trafiają realne singletony modułów
+            # np/pd/vbt, więc np. vbt.settings['engine']=... albo np.seterr(...)
+            # zmieniało zachowanie WSZYSTKICH kolejnych backtestów w procesie.
+            "settings", "seterr", "set_printoptions", "set_option", "setattr",
         }
     )
 

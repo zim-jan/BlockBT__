@@ -70,8 +70,9 @@ class JobService:
         job.status = status
         if error_message:
             job.error_message = error_message
-        
-        if status == JobStatus.COMPLETED:
+
+        # FAILED to też stan terminalny (audyt 2026-07-17) — spójnie z jobami optymalizacji
+        if status in (JobStatus.COMPLETED, JobStatus.FAILED):
             job.completed_at = _utcnow()
 
         if metrics:
