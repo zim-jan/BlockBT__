@@ -126,6 +126,9 @@ allowlista funkcji numpy zamiast denylisty, plus zamrożone proxy modułów) to
   atrybutów + ekspozycja realnych modułów jest niedomykalna przez enumerację.
 - Trwałe skażenie współdzielonych `np`/`pd`/`vbt` możliwe (przypisanie atrybutu) —
   proces długożyjący dziedziczy skażenie między requestami.
+  *Aktualizacja (audyt 2026-07-17):* najczęstsze wektory mutacji globalnej
+  (`vbt.settings`, `np.seterr`, `set_option`/`set_printoptions`, `setattr`)
+  dopisane do denylisty atrybutów — nadal defense-in-depth, nie twarda granica.
 - Komunikat błędu `generate_custom` przekazuje tekst wyjątku do logów/klienta
   (drobny info-disclosure) — **świadomie zachowane** dla użyteczności debugowania
   w aplikacji lokalnej.

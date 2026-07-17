@@ -67,3 +67,4 @@ nav:
       - ADR-0005 Dynamic Introspection Registry: adr/0005-dynamic-introspection-registry.md
       - ADR-0006 Walk-Forward Optimization: adr/0006-walk-forward-optimization.md
       - ADR-0007 Usunięcie bloku TimeShift (auto-shift): adr/0007-usuniecie-bloku-timeshift-auto-shift.md
+      - ADR-0008 Parytet egzekucji optymalizatora: adr/0008-parytet-egzekucji-optymalizatora.md
