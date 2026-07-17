@@ -82,6 +82,28 @@ export interface BacktestMetrics {
   initial_capital: number
   final_capital: number | null
   equity_curve?: { date: string; value: number }[]
+  allocation?: AllocationAnalysis | null
+}
+
+// ───────────────────────────────────────────────
+// ADR-0009: analiza alokacji kapitału po backteście
+// ───────────────────────────────────────────────
+
+/** Statystyki alokacji per symbol (wartości w %) */
+export interface AllocationSummaryRow {
+  avg_exposure_pct: number | null
+  max_exposure_pct: number | null
+  time_in_market_pct: number | null
+  final_equity_share_pct: number | null
+}
+
+/** Timeline wag (ułamki 0..1: symbole + "cash") + summary per symbol */
+export interface AllocationAnalysis {
+  timeline: {
+    dates: string[]
+    weights: Record<string, number[]>
+  }
+  summary: Record<string, AllocationSummaryRow>
 }
 
 // ───────────────────────────────────────────────
@@ -112,6 +134,7 @@ export interface MultiBacktestResult {
   symbols: string[]
   metrics: Record<string, Record<string, MetricValue>>
   equity_curve: Record<string, EquityPoint[]>
+  allocation?: AllocationAnalysis | null
 }
 
 export interface BacktestJobData {
