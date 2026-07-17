@@ -173,6 +173,112 @@ describe('PortfolioNode', () => {
 })
 
 
+// ADR-0009: sekcja analizy alokacji kapitału (timeline wag + summary per symbol)
+describe('PortfolioNode — analiza alokacji (ADR-0009)', () => {
+  const defaultData = { jobStatus: undefined, metrics: undefined, jobId: undefined, error: undefined }
+
+  const singleAllocation = {
+    timeline: {
+      dates: ['2024-01-01', '2024-01-02'],
+      weights: { AAPL: [0.0, 0.6], cash: [1.0, 0.4] },
+    },
+    summary: {
+      AAPL: {
+        avg_exposure_pct: 42.5,
+        max_exposure_pct: 100.0,
+        time_in_market_pct: 61.3,
+        final_equity_share_pct: 100.0,
+      },
+    },
+  }
+
+  const singleMetrics = {
+    engine: 'vectorbt',
+    symbol: 'AAPL',
+    total_return_pct: 15.5,
+    sharpe_ratio: 1.8,
+    max_drawdown_pct: -5.2,
+    num_trades: 10,
+    final_capital: 11550,
+    equity_curve: [],
+  }
+
+  it('renders allocation summary for single-symbol results', () => {
+    render(
+      <ReactFlowProvider>
+        <PortfolioNode
+          id="portfolio-a1"
+          data={{
+            ...defaultData,
+            jobStatus: 'COMPLETED' as const,
+            metrics: { ...singleMetrics, allocation: singleAllocation } as any,
+          }}
+        />
+      </ReactFlowProvider>
+    )
+
+    expect(screen.getByText(/Allocation/i)).toBeInTheDocument()
+    expect(screen.getByText('42.5%')).toBeInTheDocument()
+    expect(screen.getByText('61.3%')).toBeInTheDocument()
+  })
+
+  it('renders allocation rows per symbol for multi-symbol results', () => {
+    const multiMetrics = {
+      is_multi_symbol: true,
+      symbols: ['ALFA', 'BETA'],
+      metrics: {
+        ALFA: { 'Total Return [%]': 1.0 },
+        BETA: { 'Total Return [%]': 2.0 },
+      },
+      equity_curve: {},
+      allocation: {
+        timeline: {
+          dates: ['2024-01-01'],
+          weights: { ALFA: [0.3], BETA: [0.2], cash: [0.5] },
+        },
+        summary: {
+          ALFA: {
+            avg_exposure_pct: 33.3,
+            max_exposure_pct: 90.0,
+            time_in_market_pct: 44.4,
+            final_equity_share_pct: 55.1,
+          },
+          BETA: {
+            avg_exposure_pct: 22.2,
+            max_exposure_pct: 80.0,
+            time_in_market_pct: 66.6,
+            final_equity_share_pct: 44.9,
+          },
+        },
+      },
+    }
+
+    render(
+      <ReactFlowProvider>
+        <PortfolioNode id="portfolio-a2" data={{ ...defaultData, jobStatus: 'COMPLETED' as const, metrics: multiMetrics as any }} />
+      </ReactFlowProvider>
+    )
+
+    expect(screen.getByText(/Allocation/i)).toBeInTheDocument()
+    expect(screen.getByText('55.1%')).toBeInTheDocument()
+    expect(screen.getByText('44.9%')).toBeInTheDocument()
+  })
+
+  it('omits the allocation section when the result has no allocation block', () => {
+    render(
+      <ReactFlowProvider>
+        <PortfolioNode
+          id="portfolio-a3"
+          data={{ ...defaultData, jobStatus: 'COMPLETED' as const, metrics: singleMetrics as any }}
+        />
+      </ReactFlowProvider>
+    )
+
+    expect(screen.queryByText(/Allocation/i)).toBeNull()
+  })
+})
+
+
 // Audyt 2026-07-17: wpisanie 0 w SL/TP wysyłało sl_stop/tp_stop = 0, a backend
 // wymaga gt=0 → 422 z surowym komunikatem Pydantic. Zero = wyczyszczenie stopa.
 describe('PortfolioNode — SL/TP zero (audyt 2026-07-17)', () => {
