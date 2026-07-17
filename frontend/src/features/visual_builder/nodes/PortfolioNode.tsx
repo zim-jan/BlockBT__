@@ -1,5 +1,5 @@
 import {Handle, Position} from '@xyflow/react'
-import type {MetricValue, MultiBacktestResult, NormalizedMetrics, PortfolioNodeData} from '../../../types/types'
+import type {AllocationAnalysis, MetricValue, MultiBacktestResult, NormalizedMetrics, PortfolioNodeData} from '../../../types/types'
 import {useChatStore} from '../../../store/chatStore'
 import {useWorkflowStore} from '../../../store/workflowStore'
 import {useWorkflowExecution} from '../../../hooks/useWorkflowExecution'
@@ -67,6 +67,81 @@ function normalizeRawMetrics(raw: Record<string, MetricValue> | undefined): Norm
 
 function isMultiResult(metrics: PortfolioNodeData['metrics']): metrics is MultiBacktestResult {
   return !!metrics && (metrics as MultiBacktestResult).is_multi_symbol === true
+}
+
+/**
+ * ADR-0009: sekcja analizy alokacji kapitału — stacked-area 100% (wagi symboli
+ * + cash w czasie) i tabela podsumowania per symbol. Wspólna dla single i multi.
+ */
+function AllocationSection({ allocation }: { allocation: AllocationAnalysis }) {
+  const { timeline, summary } = allocation
+  const weightKeys = Object.keys(timeline?.weights ?? {})
+  const symbols = Object.keys(summary ?? {})
+  if (weightKeys.length === 0 && symbols.length === 0) return null
+
+  // "cash" zawsze jako ostatnia warstwa wykresu (spójna kolejność stosu)
+  const orderedKeys = [...weightKeys.filter((k) => k !== 'cash'), ...(weightKeys.includes('cash') ? ['cash'] : [])]
+
+  return (
+    <details open className="rf-metrics-accordion mt-4">
+      <summary className="rf-metrics-accordion__summary font-medium cursor-pointer">📊 Allocation</summary>
+
+      {timeline && timeline.dates.length > 0 && (
+        <div className="rf-chart mt-2 border rounded overflow-hidden bg-white" style={{ height: '160px' }}>
+          <Plot
+            data={orderedKeys.map((key) => ({
+              x: timeline.dates,
+              y: (timeline.weights[key] ?? []).map((w) => w * 100),
+              name: key,
+              type: 'scatter' as const,
+              mode: 'lines' as const,
+              stackgroup: 'one',
+              line: { width: 0.5, ...(key === 'cash' ? { color: '#9ca3af' } : {}) },
+            }))}
+            layout={{
+              autosize: true,
+              margin: { l: 0, r: 0, b: 0, t: 0 },
+              xaxis: { visible: false },
+              yaxis: { visible: false, range: [0, 100] },
+              showlegend: true,
+              legend: { orientation: 'h', font: { size: 9 } },
+              paper_bgcolor: 'rgba(0,0,0,0)',
+              plot_bgcolor: 'rgba(0,0,0,0)',
+            }}
+            config={{ displayModeBar: false, responsive: true }}
+            style={{ width: '100%', height: '100%' }}
+            useResizeHandler
+          />
+        </div>
+      )}
+
+      {symbols.length > 0 && (
+        <table className="rf-alloc-table mt-2 w-full" style={{ fontSize: '11px' }}>
+          <thead>
+            <tr className="text-left" style={{ color: '#6b7280' }}>
+              <th>Symbol</th>
+              <th>Avg exp.</th>
+              <th>In market</th>
+              <th>Final share</th>
+            </tr>
+          </thead>
+          <tbody>
+            {symbols.map((sym) => {
+              const row = summary[sym]
+              return (
+                <tr key={sym}>
+                  <td className="font-medium">{sym}</td>
+                  <td>{fmt(row.avg_exposure_pct, 1, '%')}</td>
+                  <td>{fmt(row.time_in_market_pct, 1, '%')}</td>
+                  <td>{fmt(row.final_equity_share_pct, 1, '%')}</td>
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
+      )}
+    </details>
+  )
 }
 
 export function PortfolioNode({ id, data }: Props) {
@@ -312,6 +387,8 @@ export function PortfolioNode({ id, data }: Props) {
               </div>
             )}
 
+            {metrics.allocation && <AllocationSection allocation={metrics.allocation} />}
+
             <div className="rf-action-row mt-4 flex justify-center">
               <button
                 onClick={() => {
@@ -363,6 +440,8 @@ export function PortfolioNode({ id, data }: Props) {
                 />
               </div>
             )}
+
+            {metrics.allocation && <AllocationSection allocation={metrics.allocation} />}
 
             <div className="rf-action-row mt-4 flex justify-center">
               <button

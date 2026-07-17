@@ -49,6 +49,9 @@ class BacktestJobResponse(BaseModel):
     final_capital: float | None = None
     # Faza 10: single-symbol -> lista punktów; multi-symbol -> {symbol: [punkty]}.
     equity_curve: list[dict[str, Any]] | dict[str, list[dict[str, Any]]] | None = None
+    # ADR-0009: analiza alokacji kapitału (timeline wag + summary per symbol);
+    # tylko w GET /{id} — lista jobów pozostaje lekka (jak equity_curve).
+    allocation: dict[str, Any] | None = None
     # Faza 10 (review): flaga i lista tickerów dla wyniku multi-symbol.
     # Dzięki temu frontend rozpoznaje gałąź multi (jd.is_multi_symbol) przez realny endpoint.
     is_multi_symbol: bool | None = None

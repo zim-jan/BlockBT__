@@ -127,6 +127,7 @@ def _job_to_schema(job: BacktestJob, include_curve: bool = True) -> BacktestJobR
             parameters=params,
             error_message=job.error_message,
             equity_curve=raw_metrics.get("equity_curve") if include_curve else None,
+            allocation=raw_metrics.get("allocation") if include_curve else None,
             is_multi_symbol=True,
             symbols=symbols,
         )
@@ -151,6 +152,7 @@ def _job_to_schema(job: BacktestJob, include_curve: bool = True) -> BacktestJobR
         num_trades=job.num_trades,
         final_capital=job.final_capital,
         equity_curve=raw_metrics.get("equity_curve") if include_curve else None,
+        allocation=raw_metrics.get("allocation") if include_curve else None,
         is_multi_symbol=False,
     )
 

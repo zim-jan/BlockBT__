@@ -139,6 +139,7 @@ export function useWorkflowExecution() {
                 symbols: jd.symbols ?? Object.keys(jd.metrics ?? {}),
                 metrics: jd.metrics ?? {},
                 equity_curve: jd.equity_curve ?? {},
+                allocation: jd.allocation ?? null,
               }
               updatePortfolioResult(multiResult, 'COMPLETED', jobId)
               return
@@ -162,6 +163,7 @@ export function useWorkflowExecution() {
               final_capital: jd.final_capital ?? rawMetrics.final_capital ?? initialCapital,
               win_rate_pct: rawMetrics.win_rate_pct ?? null,
               equity_curve: jd.equity_curve || rawMetrics.equity_curve,
+              allocation: jd.allocation ?? null,
             }
             
             if (import.meta.env.DEV) console.log('📦 useWorkflowExecution: Formatted metrics for store:', finalMetrics)

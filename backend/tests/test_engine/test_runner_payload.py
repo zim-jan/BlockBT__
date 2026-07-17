@@ -79,3 +79,30 @@ def test_execute_dag_backtest_surfaces_raw_multi(monkeypatch):
     assert payload["is_multi_symbol"] is True
     assert payload["raw"]["AAPL"]["Stop Loss Exits"] == 1
     assert payload["raw"]["MSFT"]["Stop Loss Exits"] == 0
+
+
+def test_execute_dag_backtest_surfaces_allocation(monkeypatch):
+    """ADR-0009: blok allocation z wyniku silnika trafia do payloadu jobu."""
+    _mock_fetch(monkeypatch)
+    allocation = {
+        "timeline": {"dates": ["2024-01-01"], "weights": {"AAPL": [0.4], "cash": [0.6]}},
+        "summary": {
+            "AAPL": {
+                "avg_exposure_pct": 40.0,
+                "max_exposure_pct": 90.0,
+                "time_in_market_pct": 50.0,
+                "final_equity_share_pct": 100.0,
+            }
+        },
+    }
+    engine = FakeDagEngine(
+        {
+            "metrics": {"Total Return [%]": 5.0},
+            "equity_curve": [{"date": "2024-01-01", "value": 10000.0}],
+            "allocation": allocation,
+        }
+    )
+
+    payload = runner_mod._execute_dag_backtest(engine, _DAG)
+
+    assert payload["allocation"] == allocation
