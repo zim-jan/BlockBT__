@@ -162,8 +162,9 @@ def _execute_dag_backtest(engine, dag_dict: dict[str, Any]) -> dict[str, Any]:
     safe_metrics = _serialize_metrics(metrics)
 
     # Faza 10: przenieś pola multi-symbol / krzywą kapitału z wyniku silnika (nie gub ich).
+    # ADR-0009: analogicznie blok allocation (analiza alokacji kapitału).
     payload: dict[str, Any] = dict(safe_metrics)
-    for key in ("equity_curve", "is_multi_symbol", "symbols"):
+    for key in ("equity_curve", "is_multi_symbol", "symbols", "allocation"):
         if key in result:
             payload[key] = result[key]
 
