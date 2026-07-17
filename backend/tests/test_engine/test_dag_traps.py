@@ -1,11 +1,17 @@
 import pytest
 from pydantic import ValidationError
-from app.schemas.dag import (
-    DataIngestionNode, IndicatorsNode, LogicOperatorsNode,
-    ExecutionNode, MetaNode, DAGEdge, DataIngestionParams,
-    IndicatorsParams, LogicOperatorsParams, ExecutionParams
-)
+
 from app.core.utils.graph_parser import GraphParser, GraphValidationError
+from app.schemas.dag import (
+    DAGEdge,
+    DataIngestionNode,
+    DataIngestionParams,
+    ExecutionNode,
+    ExecutionParams,
+    IndicatorsNode,
+    IndicatorsParams,
+    MetaNode,
+)
 
 
 def test_zero_cost_fallacy_trap():

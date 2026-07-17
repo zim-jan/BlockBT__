@@ -1,11 +1,53 @@
 from __future__ import annotations
 
+import math
 from typing import Any
 
 from loguru import logger
 from sqlalchemy.orm import Session
 
 from app.models.orm import BacktestJob, JobStatus, OptimizationJob, _utcnow
+
+
+def _finite(value: Any) -> float | None:
+    """float(value) jeśli skończone, inaczej None (guard NaN/inf/str)."""
+    try:
+        fval = float(value)
+    except (TypeError, ValueError):
+        return None
+    return fval if math.isfinite(fval) else None
+
+
+def _aggregate_multi_symbol(metrics: dict[str, Any]) -> dict[str, float | None]:
+    """Agregat equal-weight metryk per-symbol → kolumny skalarne jobu.
+
+    Audyt 2026-07-17: dla wyniku multi-symbol ``metrics`` to zagnieżdżona mapa
+    per ticker — ``metrics.get("Total Return [%]")`` zwracało None i kolumny
+    skalarne (widoczne na listach jobów) zapisywały się jako NULL. Każdy symbol
+    jest symulowany niezależnie z pełnym init_cash, więc uczciwy agregat to:
+    średnia metryk wskaźnikowych (po wartościach skończonych), suma liczników
+    transakcji i suma kapitału końcowego.
+    """
+    symbols = metrics.get("symbols")
+    if not isinstance(symbols, list):
+        symbols = [k for k, v in metrics.items() if isinstance(v, dict) and k != "raw"]
+    per_symbol = [metrics[s] for s in symbols if isinstance(metrics.get(s), dict)]
+
+    def mean_of(key: str) -> float | None:
+        vals = [f for m in per_symbol if (f := _finite(m.get(key))) is not None]
+        return sum(vals) / len(vals) if vals else None
+
+    def sum_of(key: str) -> float | None:
+        vals = [f for m in per_symbol if (f := _finite(m.get(key))) is not None]
+        return sum(vals) if vals else None
+
+    return {
+        "Total Return [%]": mean_of("Total Return [%]"),
+        "Sharpe Ratio": mean_of("Sharpe Ratio"),
+        "Max Drawdown [%]": mean_of("Max Drawdown [%]"),
+        "Total Trades": sum_of("Total Trades"),
+        "Final Value": sum_of("Final Value"),
+    }
 
 
 class JobService:
@@ -34,11 +76,17 @@ class JobService:
 
         if metrics:
             job.metrics = metrics
-            job.total_return_pct = metrics.get("Total Return [%]")
-            job.sharpe_ratio = metrics.get("Sharpe Ratio")
-            job.max_drawdown_pct = metrics.get("Max Drawdown [%]")
-            job.num_trades = metrics.get("Total Trades")
-            job.final_capital = metrics.get("Final Value")
+            # Multi-symbol: kolumny skalarne z agregatu equal-weight (audyt 2026-07-17)
+            scalars = (
+                _aggregate_multi_symbol(metrics)
+                if metrics.get("is_multi_symbol")
+                else metrics
+            )
+            job.total_return_pct = scalars.get("Total Return [%]")
+            job.sharpe_ratio = scalars.get("Sharpe Ratio")
+            job.max_drawdown_pct = scalars.get("Max Drawdown [%]")
+            job.num_trades = scalars.get("Total Trades")
+            job.final_capital = scalars.get("Final Value")
 
         db.commit()
         db.refresh(job)

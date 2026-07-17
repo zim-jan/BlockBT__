@@ -79,6 +79,44 @@ def finite_or_zero(value: Any) -> float:
     return fval if np.isfinite(fval) else 0.0
 
 
+# ---------------------------------------------------------------------------
+# Annualizacja wg timeframe (audyt 2026-07-17): jedno źródło prawdy dla
+# vbt ``freq`` i liczby okresów w roku. Konwencja: kalendarz giełdowy US
+# (252 sesje/rok, sesja 6.5h). Nieznany timeframe → dzienne + ostrzeżenie.
+# ---------------------------------------------------------------------------
+_TIMEFRAME_MAP: dict[str, tuple[str, int]] = {
+    "1m": ("1min", 98280),   # 252 * 390 min sesji
+    "5m": ("5min", 19656),
+    "15m": ("15min", 6552),
+    "30m": ("30min", 3276),
+    "60m": ("60min", 1638),  # 252 * 6.5
+    "1h": ("60min", 1638),
+    "4h": ("240min", 410),   # ~252 * 1.625
+    "1d": ("D", 252),
+    "1w": ("W", 52),
+    "1wk": ("W", 52),
+    "1mo": ("30D", 12),      # przybliżenie: vbt wymaga freq konwertowalnego na Timedelta
+}
+
+
+def freq_for_timeframe(timeframe: str) -> str:
+    """Pandas ``freq`` dla vectorbt odpowiadający timeframe'owi danych."""
+    entry = _TIMEFRAME_MAP.get(str(timeframe).lower())
+    if entry is None:
+        logger.warning("Unknown timeframe {!r} — falling back to daily freq.", timeframe)
+        return "D"
+    return entry[0]
+
+
+def periods_per_year_for_timeframe(timeframe: str) -> int:
+    """Liczba okresów w roku do annualizacji (Sharpe) dla danego timeframe'u."""
+    entry = _TIMEFRAME_MAP.get(str(timeframe).lower())
+    if entry is None:
+        logger.warning("Unknown timeframe {!r} — annualizing as daily (252).", timeframe)
+        return 252
+    return entry[1]
+
+
 class OpenSourceEngine(BaseStrategyEngine):
     """Backtest engine using the public open-source ``vectorbt`` library.
 
@@ -125,6 +163,14 @@ class OpenSourceEngine(BaseStrategyEngine):
         # Build entries / exits using consolidated IndicatorService
         entries, exits = IndicatorService.generate_signals(data["close"], params, vbt)
 
+        # Parytet z run_dag_backtest (audyt 2026-07-17): ta ścieżka zasila
+        # Grid Search / Optunę / WFO — MUSI mieć identyczną semantykę egzekucji
+        # co ścieżka DAG: auto fshift(1) (prewencja look-ahead bias, ADR-0007)
+        # oraz slippage. Bez tego optymalizator oceniał strategie w warunkach
+        # nierealnie optymistycznych i best_params były systematycznie zawyżone.
+        entries = self.apply_time_shift(entries, 1)
+        exits = self.apply_time_shift(exits, 1)
+
         # Simulate
         initial_capital = float(params.get("initial_capital", 10000.0))
         fees_param = params.get("fees", 0.001)
@@ -132,6 +178,10 @@ class OpenSourceEngine(BaseStrategyEngine):
             fees = float(fees_param.get("commission_pct", 0.001))
         else:
             fees = float(fees_param)
+        slippage = float(params.get("slippage", 0.001))
+
+        symbol = params.get("symbol", "UNKNOWN")
+        timeframe = params.get("timeframe", "1d")
 
         is_vectorized = isinstance(entries, pd.DataFrame)
         logger.info(
@@ -147,11 +197,9 @@ class OpenSourceEngine(BaseStrategyEngine):
             exits,
             init_cash=initial_capital,
             fees=fees,
-            freq="D",  # vectorbt needs frequency for annualisation
+            slippage=slippage,
+            freq=freq_for_timeframe(timeframe),  # annualizacja wg timeframe'u danych
         )
-
-        symbol = params.get("symbol", "UNKNOWN")
-        timeframe = params.get("timeframe", "1d")
 
         if not is_vectorized:
             # Standard single result
@@ -404,7 +452,8 @@ class OpenSourceEngine(BaseStrategyEngine):
             price_data=close,
             entries=entries,
             exits=exits,
-            params=exec_params
+            params=exec_params,
+            timeframe=timeframe,
         )
 
         # Faza 12: parametry stopów czytane przed gałęzią multi — liczniki SL/TP
@@ -760,10 +809,12 @@ class OpenSourceEngine(BaseStrategyEngine):
         entries: pd.Series | pd.DataFrame,
         exits: pd.Series | pd.DataFrame,
         params: dict,
+        timeframe: str = "1d",
     ) -> Any:
         """
         Egzekucja portfela z wymuszonymi parametrami kosztowymi (Zero-Cost Fallacy).
         Faza 10: przy DataFrame (wiele symboli) from_signals broadcastuje po kolumnach.
+        Audyt 2026-07-17: ``timeframe`` steruje freq/annualizacją (wcześniej sztywne "D").
         """
         fees = float(params.get("fees", 0.001))
         slippage = float(params.get("slippage", 0.001))
@@ -782,7 +833,7 @@ class OpenSourceEngine(BaseStrategyEngine):
             "init_cash": init_cash,
             "fees": fees,
             "slippage": slippage,
-            "freq": "D",
+            "freq": freq_for_timeframe(timeframe),
         }
 
         sl_stop = params.get("sl_stop")

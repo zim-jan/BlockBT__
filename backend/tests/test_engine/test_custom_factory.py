@@ -1,5 +1,7 @@
 import pytest
+
 from app.services.engine.indicators import IndicatorService
+
 
 def test_custom_indicator_compilation():
     custom_code = """

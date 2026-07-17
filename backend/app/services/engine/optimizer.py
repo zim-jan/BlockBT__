@@ -15,7 +15,11 @@ import optuna
 import pandas as pd
 from loguru import logger
 
-from app.services.engine.opensource_engine import _setup_vbt, finite_or_zero
+from app.services.engine.opensource_engine import (
+    _setup_vbt,
+    finite_or_zero,
+    periods_per_year_for_timeframe,
+)
 
 # Initialize vbt once
 try:
@@ -610,7 +614,11 @@ class WalkForwardOptimizer:
         for report in successful:
             compound *= 1.0 + report["oos_metrics"]["Total Return [%]"] / 100.0
 
-        overall_sharpe = self._annualized_sharpe(stitched_returns)
+        # Audyt 2026-07-17: annualizacja wg timeframe'u danych (wcześniej sztywne 252)
+        overall_sharpe = self._annualized_sharpe(
+            stitched_returns,
+            periods_per_year_for_timeframe(parameters.get("timeframe", "1d")),
+        )
         if overall_sharpe is None:
             # Fallback (silnik bez equity_curve, np. atrapy w testach): średnia per okno
             overall_sharpe = sum(w["oos_metrics"]["Sharpe Ratio"] for w in successful) / len(

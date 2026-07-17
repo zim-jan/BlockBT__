@@ -1,4 +1,5 @@
 import pytest
+
 # To import spowoduje błąd, bo plik nie istnieje - i o to chodzi w TDD (RED phase)
 try:
     from app.services.engine.qsadapter import QSAdapterService
