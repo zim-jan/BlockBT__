@@ -125,6 +125,9 @@ class OpenSourceEngine(BaseStrategyEngine):
 
     ENGINE_NAME = "opensource"
 
+    # ADR-0009: cap punktów timeline'u alokacji (payload JSON w job.metrics)
+    _ALLOCATION_MAX_POINTS = 500
+
     def __init__(self) -> None:
         """Initialize the OpenSource engine, verifying dependencies are present."""
         super().__init__()
@@ -466,6 +469,8 @@ class OpenSourceEngine(BaseStrategyEngine):
         # Faza 10: gałąź multi-symbol — metryki i krzywe kapitału per ticker z wektorowych Series.
         if is_multi:
             result = self._build_multi_symbol_result(portfolio, close, timeframe)
+            # ADR-0009: struktura łącznego kapitału (wagi symboli + cash) w czasie
+            result["allocation"] = self._build_allocation_analysis(portfolio)
             # Review 2026-07-15: liczniki wyjść SL/TP per symbol w zagnieżdżonym raw
             # (result["raw"][symbol][...]) — spójnie z kontraktem is_multi_symbol (Faza 10);
             # klucze tylko dla stopów faktycznie ustawionych (jak w single-symbol).
@@ -533,6 +538,13 @@ class OpenSourceEngine(BaseStrategyEngine):
             "initial_capital": initial_capital,
             "final_capital": final_val,
             "equity_curve": equity_curve,
+            # ADR-0009: ekspozycja aktywa vs gotówka w czasie (single-symbol)
+            "allocation": self._build_allocation_analysis(
+                portfolio,
+                single_symbol=(
+                    str(symbol[0]) if isinstance(symbol, list) and symbol else str(symbol)
+                ),
+            ),
             "metrics": response_metrics,
             "raw": raw_stats,
         }
@@ -776,6 +788,75 @@ class OpenSourceEngine(BaseStrategyEngine):
             "metrics": metrics,
             "equity_curve": equity_curve,
         }
+
+    def _build_allocation_analysis(
+        self, portfolio: Any, single_symbol: str = "asset"
+    ) -> dict[str, Any] | None:
+        """
+        ADR-0009: analiza alokacji kapitału po backteście.
+
+        Portfel multi-symbol to niezależne kolumny (bez cash_sharing), więc
+        liczona jest struktura ŁĄCZNEGO kapitału: waga symbolu = wartość jego
+        pozycji / suma wartości wszystkich kolumn, a ``cash`` = suma gotówki /
+        suma wartości. W vbt ``value = cash + asset_value`` per kolumna, zatem
+        wagi + cash sumują się do 1 na każdym barze. ``single_symbol`` nazywa
+        jedyną serię, gdy portfel jest jednokolumnowy (Series).
+
+        Timeline jest downsamplowany do ``_ALLOCATION_MAX_POINTS`` punktów
+        (ostatni bar zawsze obecny). Zwraca ``None`` zamiast wywalać backtest,
+        gdy akcesory portfela zawiodą — alokacja to analiza dodatkowa.
+        """
+        try:
+            value = portfolio.value()
+            asset_value = portfolio.asset_value()
+            cash = portfolio.cash()
+        except Exception as e:  # noqa: BLE001 — analiza dodatkowa nie może ubić backtestu
+            logger.warning("Allocation analysis skipped (portfolio accessors failed): {}", e)
+            return None
+
+        if isinstance(value, pd.Series):
+            value = value.to_frame(single_symbol)
+            asset_value = asset_value.to_frame(single_symbol)
+            cash = cash.to_frame(single_symbol)
+
+        n = len(value.index)
+        if n == 0:
+            return None
+
+        total = value.sum(axis=1)
+        safe_total = total.replace(0.0, np.nan)
+        final_total = float(total.iloc[-1])
+
+        # Downsampling: równy krok + wymuszony ostatni bar (koniec symulacji)
+        step = max(1, -(-n // self._ALLOCATION_MAX_POINTS))
+        idx = list(range(0, n, step))
+        if idx[-1] != n - 1:
+            idx.append(n - 1)
+        dates = [str(d) for d in value.index[idx]]
+
+        weights: dict[str, list[float]] = {}
+        summary: dict[str, dict[str, float]] = {}
+        for col in value.columns:
+            sym = str(col)
+            col_weight = (asset_value[col] / safe_total).fillna(0.0)
+            # Ekspozycja w ramach kapitału przypisanego symbolowi (kolumny)
+            exposure = (asset_value[col] / value[col].replace(0.0, np.nan)).fillna(0.0)
+            weights[sym] = [finite_or_zero(w) for w in col_weight.iloc[idx]]
+            summary[sym] = {
+                "avg_exposure_pct": finite_or_zero(exposure.mean() * 100),
+                "max_exposure_pct": finite_or_zero(exposure.max() * 100),
+                "time_in_market_pct": finite_or_zero(
+                    (asset_value[col].abs() > 1e-9).mean() * 100
+                ),
+                "final_equity_share_pct": finite_or_zero(
+                    float(value[col].iloc[-1]) / final_total * 100 if final_total else 0.0
+                ),
+            }
+
+        cash_weight = (cash.sum(axis=1) / safe_total).fillna(0.0)
+        weights["cash"] = [finite_or_zero(w) for w in cash_weight.iloc[idx]]
+
+        return {"timeline": {"dates": dates, "weights": weights}, "summary": summary}
 
     def apply_typing_cast(self, tensor: pd.Series | pd.DataFrame, cast_type: str = "float64") -> np.ndarray:
         """
