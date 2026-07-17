@@ -35,6 +35,34 @@ import { NODE_TYPE_CATEGORY_MAP } from '../types/types'
 const initialNodes: Node[] = []
 const initialEdges: Edge[] = []
 
+// Typy węzłów wykonawczych (wyniki backtestu/optymalizacji/WFO)
+const EXECUTION_NODE_TYPES = ['portfolioNode', 'optimizerNode', 'wfoNode']
+
+// Audyt 2026-07-17: zmiana TOPOLOGII (connect/disconnect) unieważnia wyniki
+// i błędy tak samo jak edycja pól zależności — przepięcie grafu zostawiało
+// stare metryki COMPLETED jako rzekomo aktualne. Konfiguracja bloków zostaje.
+function invalidateAfterTopologyChange(nodes: Node[]): Node[] {
+  return nodes.map((n) => {
+    const cur = n.data as Record<string, unknown>
+    if (EXECUTION_NODE_TYPES.includes(n.type ?? '')) {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { jobStatus, metrics, jobId, error, isOutdated, results, bestParameters, bestValue, trials, ...restData } = cur as any
+      return { ...n, data: restData }
+    }
+    if (cur.error != null || cur.jobStatus === 'FAILED') {
+      return {
+        ...n,
+        data: {
+          ...cur,
+          error: undefined,
+          ...(cur.jobStatus === 'FAILED' ? { jobStatus: undefined } : {}),
+        },
+      }
+    }
+    return n
+  })
+}
+
 // ---------------------------------------------------------------------------
 // Store interface
 // ---------------------------------------------------------------------------
@@ -79,10 +107,21 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
     set((s) => ({ nodes: applyNodeChanges(changes, s.nodes) })),
 
   onEdgesChange: (changes) =>
-    set((s) => ({ edges: applyEdgeChanges(changes, s.edges) })),
+    set((s) => {
+      // Tylko zmiany strukturalne (usunięcie/dodanie krawędzi) unieważniają
+      // wyniki; select/hover nie dotykają danych węzłów
+      const structural = changes.some((c) => c.type === 'remove' || c.type === 'add')
+      return {
+        edges: applyEdgeChanges(changes, s.edges),
+        nodes: structural ? invalidateAfterTopologyChange(s.nodes) : s.nodes,
+      }
+    }),
 
   onConnect: (connection) =>
-    set((s) => ({ edges: addEdge({ ...connection, animated: true }, s.edges) })),
+    set((s) => ({
+      edges: addEdge({ ...connection, animated: true }, s.edges),
+      nodes: invalidateAfterTopologyChange(s.nodes),
+    })),
 
   isRunning: false,
   activeJobId: null,

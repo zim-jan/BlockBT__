@@ -193,3 +193,30 @@ def test_trigger_wfo_strategy_not_found(db_session):
     payload = {"strategy_id": 999999, "symbol": "SYNTHETIC"}
     response = client.post("/api/optimizer/wfo", json=payload)
     assert response.status_code == 404
+
+
+# Audyt 2026-07-17: window_size/step_size były wolnym stringiem parsowanym
+# dopiero przez pd.Timedelta w tle — literówka dawała 202 + cichy FAILED joba
+# z kryptycznym błędem pandas zamiast natychmiastowego 422.
+def test_trigger_wfo_invalid_window_size_rejected_422(db_session):
+    strategy_id = _create_strategy()
+    payload = {
+        "strategy_id": strategy_id,
+        "symbol": "SYNTHETIC",
+        "window_size": "abc",
+        "step_size": "60d",
+    }
+    response = client.post("/api/optimizer/wfo", json=payload)
+    assert response.status_code == 422
+
+
+def test_trigger_wfo_nonpositive_step_size_rejected_422(db_session):
+    strategy_id = _create_strategy()
+    payload = {
+        "strategy_id": strategy_id,
+        "symbol": "SYNTHETIC",
+        "window_size": "180d",
+        "step_size": "0d",
+    }
+    response = client.post("/api/optimizer/wfo", json=payload)
+    assert response.status_code == 422

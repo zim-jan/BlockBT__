@@ -173,6 +173,100 @@ describe('workflowStore', () => {
     })
   })
 
+  // Audyt 2026-07-17: zmiana TOPOLOGII (connect/disconnect krawędzi) musi
+  // invalidować wyniki i czyścić błędy tak samo jak edycja pól — przepięcie
+  // grafu zostawiało stare metryki COMPLETED jako rzekomo aktualne.
+  describe('inwalidacja przy zmianach krawędzi', () => {
+    it('onConnect resets execution results and clears errors everywhere', () => {
+      const store = useWorkflowStore.getState()
+      store.addNode('dataNode')
+      store.addNode('portfolioNode')
+      store.addNode('wfoNode')
+      const nodes = useWorkflowStore.getState().nodes
+      const dataId = nodes.find(n => n.type === 'dataNode')!.id
+      const portfolioId = nodes.find(n => n.type === 'portfolioNode')!.id
+      const wfoId = nodes.find(n => n.type === 'wfoNode')!.id
+
+      useWorkflowStore.getState().updatePortfolioResult({ total_return_pct: 10 } as any, 'COMPLETED', 1)
+      useWorkflowStore.getState().updateWfoResult(null, 'FAILED', 2, 'boom')
+
+      useWorkflowStore.getState().onConnect({
+        source: dataId, target: portfolioId, sourceHandle: null, targetHandle: null,
+      })
+
+      const after = useWorkflowStore.getState().nodes
+      const portfolio = after.find(n => n.id === portfolioId)!
+      const wfo = after.find(n => n.id === wfoId)!
+      expect(portfolio.data.jobStatus).toBeUndefined()
+      expect(portfolio.data.metrics).toBeUndefined()
+      expect(wfo.data.error).toBeUndefined()
+      expect(wfo.data.jobStatus).toBeUndefined()
+      // Krawędź faktycznie dodana
+      expect(useWorkflowStore.getState().edges).toHaveLength(1)
+    })
+
+    it('onEdgesChange remove resets execution results', () => {
+      const store = useWorkflowStore.getState()
+      store.addNode('dataNode')
+      store.addNode('portfolioNode')
+      const nodes = useWorkflowStore.getState().nodes
+      const dataId = nodes.find(n => n.type === 'dataNode')!.id
+      const portfolioId = nodes.find(n => n.type === 'portfolioNode')!.id
+
+      useWorkflowStore.getState().onConnect({
+        source: dataId, target: portfolioId, sourceHandle: null, targetHandle: null,
+      })
+      const edgeId = useWorkflowStore.getState().edges[0].id
+      useWorkflowStore.getState().updatePortfolioResult({ total_return_pct: 10 } as any, 'COMPLETED', 1)
+
+      useWorkflowStore.getState().onEdgesChange([{ type: 'remove', id: edgeId }])
+
+      const portfolio = useWorkflowStore.getState().nodes.find(n => n.id === portfolioId)!
+      expect(portfolio.data.jobStatus).toBeUndefined()
+      expect(portfolio.data.metrics).toBeUndefined()
+      expect(useWorkflowStore.getState().edges).toHaveLength(0)
+    })
+
+    it('onEdgesChange select does NOT reset results', () => {
+      const store = useWorkflowStore.getState()
+      store.addNode('dataNode')
+      store.addNode('portfolioNode')
+      const nodes = useWorkflowStore.getState().nodes
+      const dataId = nodes.find(n => n.type === 'dataNode')!.id
+      const portfolioId = nodes.find(n => n.type === 'portfolioNode')!.id
+
+      useWorkflowStore.getState().onConnect({
+        source: dataId, target: portfolioId, sourceHandle: null, targetHandle: null,
+      })
+      const edgeId = useWorkflowStore.getState().edges[0].id
+      useWorkflowStore.getState().updatePortfolioResult({ total_return_pct: 10 } as any, 'COMPLETED', 1)
+
+      useWorkflowStore.getState().onEdgesChange([{ type: 'select', id: edgeId, selected: true }])
+
+      const portfolio = useWorkflowStore.getState().nodes.find(n => n.id === portfolioId)!
+      expect(portfolio.data.jobStatus).toBe('COMPLETED')
+      expect(portfolio.data.metrics).toEqual({ total_return_pct: 10 })
+    })
+
+    it('konfiguracja bloków przeżywa inwalidację topologii', () => {
+      const store = useWorkflowStore.getState()
+      store.addNode('dataNode')
+      store.addNode('portfolioNode')
+      const nodes = useWorkflowStore.getState().nodes
+      const dataId = nodes.find(n => n.type === 'dataNode')!.id
+      const portfolioId = nodes.find(n => n.type === 'portfolioNode')!.id
+      useWorkflowStore.getState().updateNodeData(portfolioId, { sl_stop: 0.05 } as any)
+
+      useWorkflowStore.getState().onConnect({
+        source: dataId, target: portfolioId, sourceHandle: null, targetHandle: null,
+      })
+
+      const portfolio = useWorkflowStore.getState().nodes.find(n => n.id === portfolioId)!
+      expect(portfolio.data.sl_stop).toBe(0.05)
+      expect(portfolio.data.init_cash).toBe(10000)
+    })
+  })
+
   // TimeShift usunięty (review 2026-07-16): silnik auto-shiftuje sygnały;
   // kaskadę inwalidacji pinujemy na signalNode (nadal węzeł zależności)
   it('updating signalNode invalidates downstream execution nodes', () => {

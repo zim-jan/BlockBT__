@@ -1,7 +1,8 @@
 from datetime import datetime
 from typing import Any, Literal
 
-from pydantic import BaseModel, Field, model_validator
+import pandas as pd
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 
 class ParameterBounds(BaseModel):
@@ -68,6 +69,23 @@ class WalkForwardRequest(BaseModel):
     param_bounds: dict[str, ParameterBounds] | None = None
     n_trials: int = Field(default=15, ge=1, le=500)
     metric: str = "Total Return [%]"
+
+    @field_validator("window_size", "step_size")
+    @classmethod
+    def _validate_timedelta(cls, value: str) -> str:
+        """Audyt 2026-07-17: walidacja okien NA WEJŚCIU (422) — wcześniej wolny
+        string parsował dopiero pd.Timedelta w tle i literówka kończyła się
+        cichym FAILED joba z kryptycznym błędem pandas."""
+        try:
+            td = pd.Timedelta(value)
+        except ValueError as exc:
+            raise ValueError(
+                f"Invalid window/step size {value!r}: expected a pandas Timedelta "
+                f"string like '365d' or '90d'."
+            ) from exc
+        if td <= pd.Timedelta(0):
+            raise ValueError(f"Window/step size must be positive, got {value!r}.")
+        return value
 
 
 class OptimizationJobResponse(BaseModel):
