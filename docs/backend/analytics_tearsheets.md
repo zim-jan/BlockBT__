@@ -72,3 +72,35 @@ Plik: `backend/app/schemas/results.py`.
 - `backend/tests/test_engine/test_qsadapter.py` — kontrakt `generate_tearsheet`
   (dict, Series, pusty/kruchy portfel).
 - `backend/tests/test_api/test_tearsheet.py` — endpoint (200 / 404 / 400).
+
+## Analiza alokacji kapitału (ADR-0009)
+
+Każdy backtest DAG dokłada do wyniku blok `allocation` — strukturę łącznego
+kapitału w czasie, liczoną z akcesorów vbt (`value`, `asset_value`, `cash`)
+w momencie egzekucji (portfel nie jest persystowany):
+
+```json
+{
+  "timeline": {
+    "dates": ["2024-01-01", "..."],
+    "weights": {"AAPL": [0.0, 0.6], "MSFT": [0.0, 0.2], "cash": [1.0, 0.2]}
+  },
+  "summary": {
+    "AAPL": {
+      "avg_exposure_pct": 42.5,
+      "max_exposure_pct": 100.0,
+      "time_in_market_pct": 61.3,
+      "final_equity_share_pct": 55.1
+    }
+  }
+}
+```
+
+- Wagi (`asset_value_i / Σ value` + `cash`) sumują się do 1 na każdym punkcie;
+  timeline jest downsamplowany do ≤ 500 punktów (ostatni bar zawsze obecny).
+- Portfel multi-symbol to niezależne kolumny (bez `cash_sharing`) — analiza
+  pokazuje strukturę **sumy** portfeli, nie realną wspólną alokację (ADR-0009).
+- API: pole `allocation` tylko w `GET /api/backtest/{id}` (lista jobów lekka).
+- UI: sekcja „Allocation" w węźle Portfolio — stacked-area 100% + tabela
+  (średnia ekspozycja, % czasu w rynku, udział w kapitale końcowym).
+- Testy: `test_engine/test_allocation.py`, `test_api/test_allocation_api.py`.

@@ -68,3 +68,4 @@ nav:
       - ADR-0006 Walk-Forward Optimization: adr/0006-walk-forward-optimization.md
       - ADR-0007 Usunięcie bloku TimeShift (auto-shift): adr/0007-usuniecie-bloku-timeshift-auto-shift.md
       - ADR-0008 Parytet egzekucji optymalizatora: adr/0008-parytet-egzekucji-optymalizatora.md
+      - ADR-0009 Analiza alokacji kapitału: adr/0009-analiza-alokacji-kapitalu.md
