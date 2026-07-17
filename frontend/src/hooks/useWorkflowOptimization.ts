@@ -52,6 +52,16 @@ export function useWorkflowOptimization() {
     const initialCapital = Number((portfolioNode?.data as Record<string, unknown> | undefined)?.init_cash ?? 10000)
 
     setJobState(true, null, 'PENDING')
+    // Audyt 2026-07-17: status musi trafiać też do node.data — OptimizerNode
+    // czyta lokalne data.jobStatus (jak WfoNode); bez tego nieudana
+    // optymalizacja wyglądała jak brak reakcji. Czyścimy też stale wyniki.
+    updateNodeData(optimizerNode.id, {
+      jobStatus: 'PENDING',
+      error: null,
+      bestParameters: undefined,
+      bestValue: undefined,
+      trials: undefined,
+    })
 
     try {
       // Create a strategy first (or reuse logic if existing)
@@ -111,6 +121,9 @@ export function useWorkflowOptimization() {
           } else if (status === 'FAILED') {
             stopPolling()
             updateOptimizerResult(null, null, null, 'FAILED', jobId, jobData.error_message)
+          } else {
+            // PENDING/RUNNING na żywo do węzła (parytet z runWfo)
+            updateNodeData(optimizerNode.id, { jobStatus: status })
           }
         } catch (err) {
           console.error('Poll error:', err)
@@ -122,7 +135,7 @@ export function useWorkflowOptimization() {
       setJobState(false, null, 'FAILED', msg)
       updateOptimizerResult(null, null, null, 'FAILED', 0, msg)
     }
-  }, [nodes, edges, isRunning, setJobState, updateOptimizerResult, stopPolling])
+  }, [nodes, edges, isRunning, setJobState, updateOptimizerResult, updateNodeData, stopPolling])
 
   const runWfo = useCallback(async () => {
     if (isRunning) return

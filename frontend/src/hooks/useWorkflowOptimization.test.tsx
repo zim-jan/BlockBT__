@@ -65,6 +65,49 @@ function seedWfoCanvas() {
 const wfoNodeData = () =>
   useWorkflowStore.getState().nodes.find((n) => n.id === 'w1')?.data as Record<string, any>
 
+function seedOptimizerCanvas(optimizerData: Record<string, unknown> = {}) {
+  const nodes: Node[] = [
+    {
+      id: 'd1',
+      type: 'dataNode',
+      position: { x: 0, y: 0 },
+      data: { symbol: 'AAPL', dataSource: 'yahoo', timeframe: '1d', startDate: '2023-01-01', endDate: '2024-01-01' },
+    },
+    {
+      id: 'i1',
+      type: 'indicatorNode',
+      position: { x: 0, y: 0 },
+      data: { indicatorType: 'sma_crossover', smaFast: 10, smaSlow: 30 },
+    },
+    {
+      id: 'o1',
+      type: 'optimizerNode',
+      position: { x: 0, y: 0 },
+      data: {
+        metric: 'Total Return [%]',
+        nTrials: 10,
+        paramBounds: { sma_fast: { min: 5, max: 20, type: 'int' } },
+        ...optimizerData,
+      },
+    },
+  ]
+  const edges: Edge[] = [
+    { id: 'e1', source: 'd1', target: 'i1' },
+    { id: 'e2', source: 'i1', target: 'o1' },
+  ]
+  useWorkflowStore.setState({
+    nodes,
+    edges,
+    isRunning: false,
+    activeJobId: null,
+    jobStatus: null,
+    errorMessage: null,
+  })
+}
+
+const optimizerNodeData = () =>
+  useWorkflowStore.getState().nodes.find((n) => n.id === 'o1')?.data as Record<string, any>
+
 describe('useWorkflowOptimization — runWfo node-level feedback', () => {
   beforeEach(() => {
     vi.useFakeTimers()
@@ -145,6 +188,72 @@ describe('useWorkflowOptimization — runWfo node-level feedback', () => {
     expect(data.results.best_value).toBe(4.56)
     expect(data.results.overall_metrics['Sharpe Ratio']).toBe(1.23)
     expect(data.results.trials).toHaveLength(1)
+    expect(useWorkflowStore.getState().isRunning).toBe(false)
+  })
+})
+
+// Audyt 2026-07-17: runOptimization (w odróżnieniu od runWfo) nie pisał
+// statusu do node.data podczas biegu — OptimizerNode nie miał ŻADNEGO
+// feedbacku poza COMPLETED (nieudana optymalizacja wyglądała jak brak reakcji).
+describe('useWorkflowOptimization — runOptimization node-level feedback', () => {
+  beforeEach(() => {
+    vi.useFakeTimers()
+    mockStatus.mockReset()
+  })
+
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
+  it('sets PENDING on the Optimizer node immediately after trigger and clears stale results', async () => {
+    seedOptimizerCanvas({ jobStatus: 'COMPLETED', bestParameters: { sma_fast: 9 }, bestValue: 1.0 })
+    mockStatus.mockResolvedValue({ success: true, data: { status: 'RUNNING' }, error: null })
+    const { result } = renderHook(() => useWorkflowOptimization())
+
+    await act(async () => {
+      await result.current.runOptimization()
+    })
+
+    const data = optimizerNodeData()
+    expect(data.jobStatus).toBe('PENDING')
+    expect(data.bestParameters).toBeUndefined()
+    expect(data.bestValue).toBeUndefined()
+  })
+
+  it('propagates RUNNING to the Optimizer node while polling', async () => {
+    seedOptimizerCanvas()
+    mockStatus.mockResolvedValue({ success: true, data: { status: 'RUNNING' }, error: null })
+    const { result } = renderHook(() => useWorkflowOptimization())
+
+    await act(async () => {
+      await result.current.runOptimization()
+    })
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(POLL_MS)
+    })
+
+    expect(optimizerNodeData().jobStatus).toBe('RUNNING')
+  })
+
+  it('writes FAILED and the error message to the node when the job fails', async () => {
+    seedOptimizerCanvas()
+    mockStatus.mockResolvedValue({
+      success: true,
+      data: { status: 'FAILED', error_message: 'kaboom' },
+      error: null,
+    })
+    const { result } = renderHook(() => useWorkflowOptimization())
+
+    await act(async () => {
+      await result.current.runOptimization()
+    })
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(POLL_MS)
+    })
+
+    const data = optimizerNodeData()
+    expect(data.jobStatus).toBe('FAILED')
+    expect(data.error).toBe('kaboom')
     expect(useWorkflowStore.getState().isRunning).toBe(false)
   })
 })

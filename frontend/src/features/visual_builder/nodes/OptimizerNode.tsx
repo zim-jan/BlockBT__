@@ -85,13 +85,37 @@ export function OptimizerNode({ id, data }: NodeProps<OptimizerNode>) {
     alert('Parameters applied to Indicator node!')
   }
 
+  // Audyt 2026-07-17: stany PENDING/RUNNING/FAILED z node.data (parytet z WfoNode) —
+  // wcześniej jedynym renderowanym stanem był COMPLETED, a błędy znikały bez śladu.
+  const isPending = data.jobStatus === 'PENDING'
+  const isNodeRunning = data.jobStatus === 'RUNNING'
+  const isCompleted = data.jobStatus === 'COMPLETED'
+  const isFailed = data.jobStatus === 'FAILED'
+  const isBusy = isRunning || isPending || isNodeRunning
+
   return (
-    <div className="rf-node rf-node--optimizer" style={{ minWidth: showChart ? 320 : 210 }}>
+    <div
+      className={`rf-node rf-node--optimizer ${isCompleted ? 'rf-node--completed' : ''} ${isFailed ? 'rf-node--failed' : ''}`}
+      style={{ minWidth: showChart ? 320 : 210 }}
+    >
       <Handle type="target" position={Position.Left} style={{ zIndex: 10 }} />
       <div className="rf-node__header react-flow__node-drag-handle">
         <span className="rf-node__icon">🧪</span>
         <span className="rf-node__title">Optimizer</span>
         <CategoryBadge category="Meta" />
+        {data.jobStatus && (
+          <span className={`rf-status-pill ${
+            isPending ? 'rf-status-pill--pending' :
+            isNodeRunning ? 'rf-status-pill--running' :
+            isCompleted ? 'rf-status-pill--completed' :
+            'rf-status-pill--failed'
+          }`}>
+            {isPending && '⏳'}
+            {isNodeRunning && '⚙️'}
+            {isCompleted && '✅'}
+            {isFailed && '❌'}
+          </span>
+        )}
       </div>
 
       <div className="rf-node__body">
@@ -103,19 +127,19 @@ export function OptimizerNode({ id, data }: NodeProps<OptimizerNode>) {
           >
             🔄 Sync
           </button>
-          <button 
+          <button
             onClick={runOptimization}
-            disabled={isRunning}
+            disabled={isBusy}
             className="rf-btn-primary"
-            style={{ 
-              flex: 1.5, 
-              padding: '4px 8px', 
+            style={{
+              flex: 1.5,
+              padding: '4px 8px',
               fontSize: '11px',
-              backgroundColor: isRunning ? '#475569' : '#10b981',
+              backgroundColor: isBusy ? '#475569' : '#10b981',
               whiteSpace: 'nowrap'
             }}
           >
-            {isRunning ? '⏳ Optimizing' : '🚀 Optimize'}
+            {isBusy ? '⏳ Optimizing' : '🚀 Optimize'}
           </button>
         </div>
 
@@ -206,6 +230,12 @@ export function OptimizerNode({ id, data }: NodeProps<OptimizerNode>) {
               <OptimizationChart trials={data.trials as any[]} metricName={data.metric as string} />
             )}
           </div>
+        )}
+
+        {isFailed && (
+          <p className="rf-hint rf-hint--error text-center mt-2">
+            {(data.error as string) ?? 'Optimization failed'}
+          </p>
         )}
       </div>
 
