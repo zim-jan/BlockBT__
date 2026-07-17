@@ -172,3 +172,37 @@ describe('PortfolioNode', () => {
   })
 })
 
+
+// Audyt 2026-07-17: wpisanie 0 w SL/TP wysyłało sl_stop/tp_stop = 0, a backend
+// wymaga gt=0 → 422 z surowym komunikatem Pydantic. Zero = wyczyszczenie stopa.
+describe('PortfolioNode — SL/TP zero (audyt 2026-07-17)', () => {
+  const defaultData = { jobStatus: undefined, metrics: undefined, jobId: undefined, error: undefined }
+
+  it('treats 0 in Stop Loss as clearing the stop (undefined), not sl_stop=0', () => {
+    mockUpdateNodeData.mockClear()
+    render(
+      <ReactFlowProvider>
+        <PortfolioNode id="portfolio-5" data={defaultData} />
+      </ReactFlowProvider>
+    )
+
+    const slInput = screen.getByLabelText(/Stop Loss/i) as HTMLInputElement
+    fireEvent.change(slInput, { target: { value: '0' } })
+
+    expect(mockUpdateNodeData).toHaveBeenCalledWith('portfolio-5', { sl_stop: undefined })
+  })
+
+  it('treats 0 in Take Profit as clearing the stop (undefined), not tp_stop=0', () => {
+    mockUpdateNodeData.mockClear()
+    render(
+      <ReactFlowProvider>
+        <PortfolioNode id="portfolio-5" data={defaultData} />
+      </ReactFlowProvider>
+    )
+
+    const tpInput = screen.getByLabelText(/Take Profit/i) as HTMLInputElement
+    fireEvent.change(tpInput, { target: { value: '0' } })
+
+    expect(mockUpdateNodeData).toHaveBeenCalledWith('portfolio-5', { tp_stop: undefined })
+  })
+})

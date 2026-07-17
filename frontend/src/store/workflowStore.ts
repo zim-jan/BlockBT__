@@ -169,7 +169,24 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
 
   clearCanvas: () => set({ nodes: [], edges: [] }),
 
-  setWorkflow: (nodes, edges) => set({ nodes, edges }),
+  // Audyt 2026-07-17: load strategii — (1) licznik id musi przeskoczyć ponad
+  // najwyższy wczytany sufiks (inaczej addNode dubluje id wczytanego węzła),
+  // (2) zapisany stan wykonania (stare metryki/jobId) nie może udawać
+  // aktualnego wyniku po wczytaniu; konfiguracja bloków zostaje.
+  setWorkflow: (nodes, edges) => {
+    const maxSuffix = nodes.reduce((acc, n) => {
+      const suffix = Number(n.id.split('-').pop())
+      return Number.isFinite(suffix) ? Math.max(acc, suffix) : acc
+    }, 0)
+    nodeCounter = Math.max(nodeCounter, maxSuffix)
+
+    const cleanNodes = nodes.map((n) => {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { jobStatus, metrics, jobId, error, isOutdated, results, bestParameters, bestValue, trials, ...restData } = (n.data ?? {}) as any
+      return { ...n, data: restData }
+    })
+    set({ nodes: cleanNodes, edges })
+  },
 
   addNode: (type) => {
     nodeCounter++
@@ -318,10 +335,13 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
     const metaNodes = nodes
       .filter((n) => metaTypes.has(n.type ?? ''))
       .map((n) => {
-        // Infer target_nodes: nodes that this meta node connects to via edges
+        // target_nodes = węzły PODPIĘTE DO meta-węzła. UI wymusza kierunek
+        // Indicator -> Meta (meta jest targetem krawędzi), więc czytamy
+        // krawędzie PRZYCHODZĄCE — audyt 2026-07-17: z wychodzących
+        // target_nodes wychodziło puste w standardowej topologii.
         const targetIds = edges
-          .filter((e) => e.source === n.id)
-          .map((e) => e.target)
+          .filter((e) => e.target === n.id)
+          .map((e) => e.source)
         const { jobStatus: _js, jobId: _jid, error: _e, category: _cat, ...params } = n.data as Record<string, unknown>
         return {
           id: n.id,

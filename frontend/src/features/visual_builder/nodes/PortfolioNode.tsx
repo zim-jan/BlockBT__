@@ -177,7 +177,12 @@ export function PortfolioNode({ id, data }: Props) {
                 }
                 const pct = parseFloat(raw)
                 if (!Number.isFinite(pct)) return
-                const clamped = Math.min(100, Math.max(0, pct))
+                // Audyt 2026-07-17: 0 = wyczyszczenie stopa (backend wymaga sl_stop > 0)
+                if (pct <= 0) {
+                  updateNodeData(id, { sl_stop: undefined } as any)
+                  return
+                }
+                const clamped = Math.min(100, pct)
                 updateNodeData(id, { sl_stop: clamped / 100 } as any)
               }}
               className="rf-input"
@@ -202,7 +207,12 @@ export function PortfolioNode({ id, data }: Props) {
                 }
                 const pct = parseFloat(raw)
                 if (!Number.isFinite(pct)) return
-                const clamped = Math.min(100, Math.max(0, pct))
+                // Audyt 2026-07-17: 0 = wyczyszczenie stopa (backend wymaga tp_stop > 0)
+                if (pct <= 0) {
+                  updateNodeData(id, { tp_stop: undefined } as any)
+                  return
+                }
+                const clamped = Math.min(100, pct)
                 updateNodeData(id, { tp_stop: clamped / 100 } as any)
               }}
               className="rf-input"

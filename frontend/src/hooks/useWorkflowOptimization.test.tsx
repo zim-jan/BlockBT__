@@ -257,3 +257,77 @@ describe('useWorkflowOptimization — runOptimization node-level feedback', () =
     expect(useWorkflowStore.getState().isRunning).toBe(false)
   })
 })
+
+// Audyt 2026-07-17: guardy wejścia i odporność pollingu
+describe('useWorkflowOptimization — guardy (audyt 2026-07-17)', () => {
+  beforeEach(() => {
+    vi.useFakeTimers()
+    mockStatus.mockReset()
+  })
+
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
+  it('rejects multi-symbol input with an alert instead of sending "AAPL,MSFT" as one ticker', async () => {
+    seedOptimizerCanvas()
+    const dataNode = useWorkflowStore.getState().nodes.find((n) => n.id === 'd1')!
+    useWorkflowStore.setState({
+      nodes: useWorkflowStore.getState().nodes.map((n) =>
+        n.id === 'd1' ? { ...n, data: { ...dataNode.data, symbol: 'AAPL, MSFT' } } : n
+      ),
+    })
+    const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {})
+    const { api } = await import('../services/api')
+    ;(api.optimizer.trigger as ReturnType<typeof vi.fn>).mockClear()
+    const { result } = renderHook(() => useWorkflowOptimization())
+
+    await act(async () => {
+      await result.current.runOptimization()
+    })
+
+    expect((api.optimizer.trigger as ReturnType<typeof vi.fn>)).not.toHaveBeenCalled()
+    expect(alertSpy).toHaveBeenCalled()
+    alertSpy.mockRestore()
+  })
+
+  it('ignores a rapid double-trigger (single API call, single poll loop)', async () => {
+    seedOptimizerCanvas()
+    mockStatus.mockResolvedValue({ success: true, data: { status: 'RUNNING' }, error: null })
+    const { result } = renderHook(() => useWorkflowOptimization())
+
+    const { api } = await import('../services/api')
+    ;(api.optimizer.trigger as ReturnType<typeof vi.fn>).mockClear()
+
+    await act(async () => {
+      const first = result.current.runOptimization()
+      const second = result.current.runOptimization()
+      await Promise.all([first, second])
+    })
+
+    expect((api.optimizer.trigger as ReturnType<typeof vi.fn>)).toHaveBeenCalledTimes(1)
+  })
+
+  it('stops polling and surfaces the error after repeated poll failures', async () => {
+    seedOptimizerCanvas()
+    mockStatus.mockRejectedValue(new Error('connection refused'))
+    const { result } = renderHook(() => useWorkflowOptimization())
+
+    await act(async () => {
+      await result.current.runOptimization()
+    })
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(POLL_MS * 4)
+    })
+
+    const data = optimizerNodeData()
+    expect(data.jobStatus).toBe('FAILED')
+    expect(String(data.error)).toMatch(/connection refused/)
+    // Polling zatrzymany — kolejne ticki nie odpytują API
+    mockStatus.mockClear()
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(POLL_MS * 2)
+    })
+    expect(mockStatus).not.toHaveBeenCalled()
+  })
+})

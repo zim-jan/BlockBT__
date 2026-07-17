@@ -21,16 +21,20 @@ const MAX_POLL_ATTEMPTS = 120 // 5-minute hard cap
 export function useWorkflowExecution() {
   const { nodes, edges, isRunning, setJobState, updatePortfolioResult, resetExecution, exportDAG } = useWorkflowStore()
   const pollTimer = useRef<ReturnType<typeof setInterval> | null>(null)
+  // Audyt 2026-07-17: synchroniczny guard przed podwójnym triggerem
+  // (isRunning z closure aktualizuje się dopiero po re-renderze)
+  const inFlight = useRef(false)
 
   const stopPolling = useCallback(() => {
     if (pollTimer.current) {
       clearInterval(pollTimer.current)
       pollTimer.current = null
     }
+    inFlight.current = false
   }, [])
 
   const runBacktest = useCallback(async () => {
-    if (isRunning) return
+    if (isRunning || inFlight.current) return
 
     // 1. Extract and validate nodes
     const dataNode = nodes.find((n) => n.type === 'dataNode')
@@ -70,6 +74,7 @@ export function useWorkflowExecution() {
       return
     }
 
+    inFlight.current = true
     setJobState(true, null, 'PENDING')
 
     try {
@@ -104,6 +109,7 @@ export function useWorkflowExecution() {
 
       // 4. Poll for completion
       let attempts = 0
+      let pollFailures = 0
       pollTimer.current = setInterval(async () => {
         attempts++
         if (attempts > MAX_POLL_ATTEMPTS) {
@@ -115,6 +121,7 @@ export function useWorkflowExecution() {
           const statusRes = await api.backtest.status(jobId)
           const jobData = statusRes.data
           const status = jobData.status as JobStatus
+          pollFailures = 0
 
           setJobState(status !== 'COMPLETED' && status !== 'FAILED', jobId, status)
 
@@ -169,11 +176,21 @@ export function useWorkflowExecution() {
             updatePortfolioResult(null, 'FAILED', jobId, jobData.error_message)
           }
         } catch (err) {
+          // Audyt 2026-07-17: seryjne błędy pollingu → stop + realna przyczyna
+          // (wcześniej cicha pętla i po 5 min generyczny timeout)
           console.error('Poll error:', err)
+          pollFailures++
+          if (pollFailures >= 3) {
+            stopPolling()
+            const msg = err instanceof Error ? err.message : String(err)
+            setJobState(false, jobId, 'FAILED', msg)
+            updatePortfolioResult(null, 'FAILED', jobId, `Polling failed: ${msg}`)
+          }
         }
       }, POLL_INTERVAL_MS)
 
     } catch (err) {
+      inFlight.current = false
       const msg = err instanceof Error ? err.message : String(err)
       setJobState(false, null, 'FAILED', msg)
       updatePortfolioResult(null, 'FAILED', 0, msg)

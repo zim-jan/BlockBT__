@@ -27,8 +27,13 @@ class DataIngestionNode(BaseNode):
 
 
 class IndicatorsParams(BaseModel):
-    # initialCapital usunięte (review 2026-07-16): kapitał żyje wyłącznie
-    # w ExecutionParams.init_cash; nieznane pola starych zapisów są ignorowane
+    # Audyt 2026-07-17: extra="allow" — parametry dynamicznych wskaźników
+    # z registry (edytowane w UI per wskaźnik) muszą przetrwać walidację;
+    # wcześniej były wycinane i backtest liczył się na wartościach domyślnych
+    # bez ostrzeżenia. (initialCapital usunięte w review 2026-07-16 — kapitał
+    # żyje wyłącznie w ExecutionParams.init_cash.)
+    model_config = {"extra": "allow"}
+
     indicatorType: str = "sma_crossover"
     smaFast: int | None = None
     smaSlow: int | None = None
@@ -37,6 +42,15 @@ class IndicatorsParams(BaseModel):
     macdSignal: int | None = None
     codeContent: str | None = None
     windows: list[int] = Field(default_factory=lambda: [14])
+
+    @model_validator(mode="after")
+    def _drop_legacy_capital(self) -> IndicatorsParams:
+        """Kapitał żyje WYŁĄCZNIE w ExecutionParams.init_cash (review 2026-07-16) —
+        mimo extra="allow" legacy pola kapitału ze starych zapisów wycinamy."""
+        if self.__pydantic_extra__:
+            self.__pydantic_extra__.pop("initialCapital", None)
+            self.__pydantic_extra__.pop("initial_capital", None)
+        return self
 
 
 class IndicatorsNode(BaseNode):

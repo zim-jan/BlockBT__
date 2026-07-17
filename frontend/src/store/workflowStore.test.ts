@@ -314,3 +314,63 @@ describe('workflowStore', () => {
     expect(dataDagNode.params.symbol).toBe('AAPL')
   })
 })
+
+// Audyt 2026-07-17: target_nodes meta-węzłów było inferowane z krawędzi
+// WYCHODZĄCYCH, a UI wymusza podpięcie Indicator -> Meta (meta jest targetem
+// krawędzi) — w standardowej topologii target_nodes wychodziło puste.
+describe('exportDAG — meta target_nodes (audyt 2026-07-17)', () => {
+  it('infers target_nodes from INCOMING edges (Indicator -> Meta)', () => {
+    const store = useWorkflowStore.getState()
+    store.addNode('indicatorNode')
+    store.addNode('optimizerNode')
+    const nodes = useWorkflowStore.getState().nodes
+    const indicatorId = nodes.find(n => n.type === 'indicatorNode')!.id
+    const optimizerId = nodes.find(n => n.type === 'optimizerNode')!.id
+
+    useWorkflowStore.getState().onConnect({
+      source: indicatorId, target: optimizerId, sourceHandle: null, targetHandle: null,
+    })
+
+    const dag = useWorkflowStore.getState().exportDAG()
+    const meta = dag.meta_nodes.find(m => m.id === optimizerId)!
+    expect(meta.target_nodes).toEqual([indicatorId])
+  })
+})
+
+// Audyt 2026-07-17: setWorkflow (load strategii) nie podbijał nodeCounter —
+// kolejny addNode potrafił zdublować id wczytanego węzła; save utrwalał też
+// stan wykonania (stare metryki/jobId po wczytaniu udawały aktualne).
+describe('setWorkflow — load strategii (audyt 2026-07-17)', () => {
+  it('bumps nodeCounter above loaded ids (no id collision after load)', () => {
+    useWorkflowStore.getState().setWorkflow(
+      [{ id: 'dataNode-999', type: 'dataNode', position: { x: 0, y: 0 }, data: {} } as any],
+      []
+    )
+
+    useWorkflowStore.getState().addNode('dataNode')
+
+    const newNode = useWorkflowStore.getState().nodes.find(n => n.id !== 'dataNode-999')!
+    const suffix = Number(newNode.id.split('-').pop())
+    // Licznik MUSI przeskoczyć ponad najwyższy wczytany sufiks — inaczej
+    // kolejne addNode prędzej czy później zdubluje id wczytanego węzła
+    expect(suffix).toBeGreaterThan(999)
+  })
+
+  it('strips execution state (jobStatus/metrics/jobId/results) from loaded nodes', () => {
+    useWorkflowStore.getState().setWorkflow(
+      [{
+        id: 'portfolioNode-3', type: 'portfolioNode', position: { x: 0, y: 0 },
+        data: { init_cash: 5000, jobStatus: 'COMPLETED', metrics: { total_return_pct: 10 }, jobId: 42, error: 'old', results: { x: 1 } },
+      } as any],
+      []
+    )
+
+    const node = useWorkflowStore.getState().nodes[0]
+    expect(node.data.init_cash).toBe(5000)
+    expect(node.data.jobStatus).toBeUndefined()
+    expect(node.data.metrics).toBeUndefined()
+    expect(node.data.jobId).toBeUndefined()
+    expect(node.data.error).toBeUndefined()
+    expect(node.data.results).toBeUndefined()
+  })
+})

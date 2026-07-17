@@ -13,16 +13,22 @@ const MAX_POLL_ATTEMPTS = 120 // 5-minute hard cap
 export function useWorkflowOptimization() {
   const { nodes, edges, isRunning, setJobState, updateOptimizerResult, updateWfoResult, updateNodeData } = useWorkflowStore()
   const pollTimer = useRef<ReturnType<typeof setInterval> | null>(null)
+  // Audyt 2026-07-17: synchroniczny guard przed podwójnym triggerem —
+  // `isRunning` to wartość z closure, która aktualizuje się dopiero po
+  // re-renderze; szybki podwójny klik startował dwa przebiegi i osierocał
+  // pierwszy interval pollingu.
+  const inFlight = useRef(false)
 
   const stopPolling = useCallback(() => {
     if (pollTimer.current) {
       clearInterval(pollTimer.current)
       pollTimer.current = null
     }
+    inFlight.current = false
   }, [])
 
   const runOptimization = useCallback(async () => {
-    if (isRunning) return
+    if (isRunning || inFlight.current) return
 
     // 1. Identify nodes and validate connections
     const dataNode = nodes.find((n) => n.type === 'dataNode')
@@ -46,11 +52,21 @@ export function useWorkflowOptimization() {
     const dData = dataNode.data as unknown as DataNodeData
     const iData = indicatorNode.data as unknown as IndicatorNodeData
     const oData = optimizerNode.data as unknown as OptimizerNodeData
+
+    // Audyt 2026-07-17: backend OptimizationRequest.symbol to pojedynczy str —
+    // "AAPL,MSFT" przechodziło walidację i padało dopiero na fetchu danych
+    // (a błąd bywał niewidoczny). Uczciwy komunikat zamiast cichego FAILED.
+    if (String(dData.symbol ?? '').includes(',')) {
+      alert('Optymalizacja wspiera jeden symbol na raz. Zostaw w bloku Data pojedynczy ticker.')
+      return
+    }
+
     // Kapitał z bloku Portfolio, jeśli jest na kanwie (review 2026-07-16);
     // flow optymalizacji nie wymaga węzła Portfolio — wtedy default 10000
     const portfolioNode = nodes.find((n) => n.type === 'portfolioNode')
     const initialCapital = Number((portfolioNode?.data as Record<string, unknown> | undefined)?.init_cash ?? 10000)
 
+    inFlight.current = true
     setJobState(true, null, 'PENDING')
     // Audyt 2026-07-17: status musi trafiać też do node.data — OptimizerNode
     // czyta lokalne data.jobStatus (jak WfoNode); bez tego nieudana
@@ -94,6 +110,7 @@ export function useWorkflowOptimization() {
       setJobState(true, jobId, 'PENDING')
 
       let attempts = 0
+      let pollFailures = 0
       pollTimer.current = setInterval(async () => {
         attempts++
         if (attempts > MAX_POLL_ATTEMPTS) {
@@ -106,6 +123,7 @@ export function useWorkflowOptimization() {
           const statusRes = await api.optimizer.status(jobId)
           const jobData = statusRes.data as any
           const status = jobData.status as JobStatus
+          pollFailures = 0
 
           setJobState(status !== 'COMPLETED' && status !== 'FAILED', jobId, status)
 
@@ -126,11 +144,22 @@ export function useWorkflowOptimization() {
             updateNodeData(optimizerNode.id, { jobStatus: status })
           }
         } catch (err) {
+          // Audyt 2026-07-17: seryjne błędy pollingu przerywają pętlę i pokazują
+          // realną przyczynę — wcześniej cicha pętla kończyła się po 5 min
+          // generycznym timeoutem
           console.error('Poll error:', err)
+          pollFailures++
+          if (pollFailures >= 3) {
+            stopPolling()
+            const msg = err instanceof Error ? err.message : String(err)
+            setJobState(false, jobId, 'FAILED', msg)
+            updateOptimizerResult(null, null, null, 'FAILED', jobId, `Polling failed: ${msg}`)
+          }
         }
       }, POLL_INTERVAL_MS)
 
     } catch (err) {
+      inFlight.current = false
       const msg = err instanceof Error ? err.message : String(err)
       setJobState(false, null, 'FAILED', msg)
       updateOptimizerResult(null, null, null, 'FAILED', 0, msg)
@@ -138,7 +167,7 @@ export function useWorkflowOptimization() {
   }, [nodes, edges, isRunning, setJobState, updateOptimizerResult, updateNodeData, stopPolling])
 
   const runWfo = useCallback(async () => {
-    if (isRunning) return
+    if (isRunning || inFlight.current) return
 
     const dataNode = nodes.find((n) => n.type === 'dataNode')
     const indicatorNode = nodes.find((n) => n.type === 'indicatorNode')
@@ -160,10 +189,19 @@ export function useWorkflowOptimization() {
     const dData = dataNode.data as unknown as DataNodeData
     const iData = indicatorNode.data as unknown as IndicatorNodeData
     const wData = wfoNode.data as unknown as WfoNodeData
+
+    // Audyt 2026-07-17: WFO (jak optymalizacja) wspiera jeden symbol —
+    // "AAPL,MSFT" padałoby dopiero na fetchu danych w tle
+    if (String(dData.symbol ?? '').includes(',')) {
+      alert('Walk-Forward wspiera jeden symbol na raz. Zostaw w bloku Data pojedynczy ticker.')
+      return
+    }
+
     // Kapitał z bloku Portfolio, jeśli jest na kanwie (review 2026-07-16)
     const portfolioNode = nodes.find((n) => n.type === 'portfolioNode')
     const initialCapital = Number((portfolioNode?.data as Record<string, unknown> | undefined)?.init_cash ?? 10000)
 
+    inFlight.current = true
     setJobState(true, null, 'PENDING')
     // Review 2026-07-16: status musi trafiać też do node.data — WfoNode czyta
     // wyłącznie lokalne data.jobStatus, globalny setJobState nie daje mu feedbacku
@@ -197,6 +235,7 @@ export function useWorkflowOptimization() {
       setJobState(true, jobId, 'PENDING')
 
       let attempts = 0
+      let pollFailures = 0
       pollTimer.current = setInterval(async () => {
         attempts++
         if (attempts > MAX_POLL_ATTEMPTS) {
@@ -209,6 +248,7 @@ export function useWorkflowOptimization() {
           const statusRes = await api.optimizer.status(jobId)
           const jobData = statusRes.data as any
           const status = jobData.status as JobStatus
+          pollFailures = 0
 
           setJobState(status !== 'COMPLETED' && status !== 'FAILED', jobId, status)
 
@@ -232,11 +272,20 @@ export function useWorkflowOptimization() {
             updateNodeData(wfoNode.id, { jobStatus: status })
           }
         } catch (err) {
+          // Audyt 2026-07-17: seryjne błędy pollingu → stop + realna przyczyna
           console.error('Poll error:', err)
+          pollFailures++
+          if (pollFailures >= 3) {
+            stopPolling()
+            const msg = err instanceof Error ? err.message : String(err)
+            setJobState(false, jobId, 'FAILED', msg)
+            updateWfoResult(null, 'FAILED', jobId, `Polling failed: ${msg}`)
+          }
         }
       }, POLL_INTERVAL_MS)
 
     } catch (err) {
+      inFlight.current = false
       const msg = err instanceof Error ? err.message : String(err)
       setJobState(false, null, 'FAILED', msg)
       updateWfoResult(null, 'FAILED', 0, msg)

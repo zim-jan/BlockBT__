@@ -420,8 +420,12 @@ class OpenSourceEngine(BaseStrategyEngine):
         symbol = data_params.get("symbol", "UNKNOWN")
         timeframe = data_params.get("timeframe", "1d")
 
-        # Map DAG indicator parameters to IndicatorService format
+        # Map DAG indicator parameters to IndicatorService format.
+        # Audyt 2026-07-17: pass-through WSZYSTKICH parametrów węzła (spread) —
+        # parametry dynamicznych wskaźników registry (np. period, windows) były
+        # wycinane i backtest liczył się na domyślnych wartościach bez ostrzeżenia.
         flat_params = {
+            **ind_params,
             "strategy_type": ind_params.get("indicatorType", "sma_crossover"),
             "sma_fast": ind_params.get("smaFast", 10),
             "sma_slow": ind_params.get("smaSlow", 30),
