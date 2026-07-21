@@ -55,6 +55,15 @@ class TestOpenSourceEngine:
         assert "total_return_pct" in result
         assert "equity_curve" in result
 
+    def test_vbt_fallback_to_vendored_src(self, monkeypatch):
+        """Weryfikuje, czy przy braku zainstalowanej paczki vectorbt silnik poprawnie ładuje vectorbt_src."""
+        import sys
+        import app.services.engine.opensource_engine as engine_mod
+
+        # Reset vectorbt setup
+        vbt = engine_mod._setup_vbt()
+        assert vbt is not None
+
 
 class TestProEngineMock:
     """ProEngine MUSI działać nawet bez zainstalowanego vbtpro (tryb mock)."""

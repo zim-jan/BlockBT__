@@ -10,12 +10,12 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from loguru import logger
 
-# Prepend the vendored vectorbt path before importing local modules that might import vectorbt.
-# This prevents vectorbt from being mistakenly loaded as a namespace package
-# if the process is launched from the repository root.
-_vbt_path = Path(__file__).resolve().parents[2] / "vectorbt_src"
-if _vbt_path.exists() and str(_vbt_path) not in sys.path:
-    sys.path.insert(0, str(_vbt_path))
+try:
+    import vectorbt  # noqa: F401
+except ImportError:
+    _vbt_path = Path(__file__).resolve().parents[2] / "vectorbt_src"
+    if _vbt_path.exists() and str(_vbt_path) not in sys.path:
+        sys.path.insert(0, str(_vbt_path))
 
 from app.api import (
     backtest,
