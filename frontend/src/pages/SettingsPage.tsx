@@ -1,42 +1,90 @@
-import {useState} from 'react'
-import {Sidebar} from '../components/layout/Sidebar'
-import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query'
+import { useState, useEffect } from 'react'
+import { Sidebar } from '../components/layout/Sidebar'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { api } from '../services/api'
+import { 
+  Database, 
+  Bot, 
+  Users, 
+  CheckCircle2, 
+  AlertTriangle, 
+  Plus, 
+  Edit2, 
+  Trash2, 
+  Shield, 
+  UserPlus, 
+  Check, 
+  X,
+  Server,
+  Lock
+} from 'lucide-react'
 
 export function SettingsPage() {
-  const [activeTab, setActiveTab] = useState('data')
-  
-  // Tabs: 'data', 'engine', 'ai', 'general'
+  const [activeTab, setActiveTab] = useState<'data' | 'ai' | 'users'>('data')
+
   return (
     <div className="flex h-screen bg-surface text-on-surface overflow-hidden dark font-body">
       <Sidebar />
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden bg-background">
-        <header className="flex-none p-6 pb-4 border-b border-outline-variant/20 bg-surface-container-low backdrop-blur-sm sticky top-0 z-10">
-          <h2 className="font-headline text-xl font-bold tracking-tight">BlockBT Settings</h2>
-          <p className="font-label text-sm text-on-surface-variant mt-1">Configure your local backtesting environment.</p>
+        {/* Header */}
+        <header className="flex-none px-8 py-5 border-b border-outline-variant/20 bg-surface-container-low backdrop-blur-sm sticky top-0 z-10 flex items-center justify-between">
+          <div>
+            <h2 className="font-headline text-2xl font-bold tracking-tight text-on-surface">Settings</h2>
+            <p className="font-label text-xs text-on-surface-variant mt-1">Configure environment data, AI analysis prompts, and user access control.</p>
+          </div>
+          <div className="flex items-center gap-2 px-3 py-1 bg-surface-container border border-outline-variant/30 text-on-surface-variant font-label text-xs">
+            <Server className="w-3.5 h-3.5 text-primary" />
+            <span>Air-Gapped Local Environment</span>
+          </div>
         </header>
-        
-        <main className="flex-1 flex flex-col p-6 overflow-hidden bg-background">
-            <div className="border-b border-outline-variant/20 mb-6">
-                <nav className="-mb-px flex space-x-8">
-                  <button 
-                    onClick={() => setActiveTab('data')} 
-                    className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm ${activeTab === 'data' ? 'border-primary text-primary' : 'border-transparent text-on-surface-variant hover:text-on-surface hover:border-outline-variant'}`}
-                  >
-                    Data Providers
-                  </button>
-                  <button 
-                    onClick={() => setActiveTab('ai')} 
-                    className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm ${activeTab === 'ai' ? 'border-primary text-primary' : 'border-transparent text-on-surface-variant hover:text-on-surface hover:border-outline-variant'}`}
-                  >
-                    AI System Prompts
-                  </button>
-                </nav>
+
+        {/* Content Area */}
+        <main className="flex-1 flex flex-col p-8 overflow-y-auto bg-background">
+          <div className="max-w-5xl w-full mx-auto space-y-6">
+            {/* Tabs */}
+            <div className="border-b border-outline-variant/20">
+              <nav className="-mb-px flex space-x-8">
+                <button
+                  onClick={() => setActiveTab('data')}
+                  className={`whitespace-nowrap py-3.5 px-1 border-b-2 font-medium text-sm transition-colors flex items-center gap-2 ${
+                    activeTab === 'data'
+                      ? 'border-primary text-primary font-semibold'
+                      : 'border-transparent text-on-surface-variant hover:text-on-surface hover:border-outline-variant/50'
+                  }`}
+                >
+                  <Database className="w-4 h-4" />
+                  <span>Data Providers</span>
+                </button>
+                <button
+                  onClick={() => setActiveTab('ai')}
+                  className={`whitespace-nowrap py-3.5 px-1 border-b-2 font-medium text-sm transition-colors flex items-center gap-2 ${
+                    activeTab === 'ai'
+                      ? 'border-primary text-primary font-semibold'
+                      : 'border-transparent text-on-surface-variant hover:text-on-surface hover:border-outline-variant/50'
+                  }`}
+                >
+                  <Bot className="w-4 h-4" />
+                  <span>AI System Prompts</span>
+                </button>
+                <button
+                  onClick={() => setActiveTab('users')}
+                  className={`whitespace-nowrap py-3.5 px-1 border-b-2 font-medium text-sm transition-colors flex items-center gap-2 ${
+                    activeTab === 'users'
+                      ? 'border-primary text-primary font-semibold'
+                      : 'border-transparent text-on-surface-variant hover:text-on-surface hover:border-outline-variant/50'
+                  }`}
+                >
+                  <Users className="w-4 h-4" />
+                  <span>User Management</span>
+                </button>
+              </nav>
             </div>
-            
-            <div className="flex-1 overflow-y-auto">
-                {activeTab === 'data' && <DataSettingsTab />}
-                {activeTab === 'ai' && <AIPromptsTab />}
-            </div>
+
+            {/* Tab Views */}
+            {activeTab === 'data' && <DataSettingsTab />}
+            {activeTab === 'ai' && <AIPromptsTab />}
+            {activeTab === 'users' && <UsersTab />}
+          </div>
         </main>
       </div>
     </div>
@@ -45,15 +93,45 @@ export function SettingsPage() {
 
 function DataSettingsTab() {
   return (
-    <div className="max-w-3xl space-y-8">
-      <div>
-        <h3 className="text-lg font-medium leading-6 text-on-surface">Yahoo Finance</h3>
-        <p className="mt-1 text-sm text-on-surface-variant">Default free historical data source.</p>
-        <div className="mt-4">
-            <div className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-green-500"></div>
-                <span className="text-sm font-medium text-on-surface">Status: Ready (No API key required)</span>
-            </div>
+    <div className="space-y-6">
+      {/* Yahoo Finance Card */}
+      <div className="bg-surface-container-low border border-outline-variant/20 p-6 space-y-4">
+        <div className="flex items-center justify-between pb-4 border-b border-outline-variant/15">
+          <div>
+            <h3 className="font-headline text-lg font-bold text-on-surface flex items-center gap-2">
+              <Database className="w-5 h-5 text-primary" /> Yahoo Finance Provider
+            </h3>
+            <p className="font-label text-xs text-on-surface-variant mt-0.5">Primary connector for downloading free market historical price series.</p>
+          </div>
+          <span className="px-2.5 py-1 text-[11px] font-medium tracking-wide uppercase bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center gap-1.5">
+            <CheckCircle2 className="w-3.5 h-3.5" /> Ready (No API Key Required)
+          </span>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs text-on-surface-variant pt-2">
+          <div className="bg-surface-container border border-outline-variant/20 p-3.5 space-y-1">
+            <span className="font-semibold text-on-surface block">Default Data Source</span>
+            <p>Fetches OHLCV price series via `yfinance` connector with automatic Parquet caching.</p>
+          </div>
+          <div className="bg-surface-container border border-outline-variant/20 p-3.5 space-y-1">
+            <span className="font-semibold text-on-surface block">Offline Resilience</span>
+            <p>Downloaded market data is cached in binary Parquet files for repeated offline backtests.</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Cache Info Card */}
+      <div className="bg-surface-container-low border border-outline-variant/20 p-6 space-y-4">
+        <div className="flex items-center justify-between pb-4 border-b border-outline-variant/15">
+          <div>
+            <h3 className="font-headline text-lg font-bold text-on-surface flex items-center gap-2">
+              <Server className="w-5 h-5 text-primary" /> Parquet Storage Cache
+            </h3>
+            <p className="font-label text-xs text-on-surface-variant mt-0.5">Local binary cache directory stored under `backend/data/cache`.</p>
+          </div>
+        </div>
+        <div className="text-xs text-on-surface-variant">
+          <p>Cache TTL is set to <code className="text-primary bg-surface-container px-1.5 py-0.5">24 hours</code>. Re-downloading triggers automatically when requested date ranges fall outside cached bounds.</p>
         </div>
       </div>
     </div>
@@ -62,7 +140,7 @@ function DataSettingsTab() {
 
 function AIPromptsTab() {
   const queryClient = useQueryClient()
-  
+
   const { data: prompts, isLoading } = useQuery({
     queryKey: ['system-prompts'],
     queryFn: async () => {
@@ -72,10 +150,11 @@ function AIPromptsTab() {
       return json.data
     }
   })
-  
+
   const [editingId, setEditingId] = useState<number | null>(null)
   const [promptName, setPromptName] = useState('')
   const [promptContent, setPromptContent] = useState('')
+  const [showForm, setShowForm] = useState(false)
 
   const createMutation = useMutation({
     mutationFn: async () => {
@@ -89,8 +168,7 @@ function AIPromptsTab() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['system-prompts'] })
-      setPromptName('')
-      setPromptContent('')
+      handleCancel()
     }
   })
 
@@ -107,9 +185,7 @@ function AIPromptsTab() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['system-prompts'] })
-      setEditingId(null)
-      setPromptName('')
-      setPromptContent('')
+      handleCancel()
     }
   })
 
@@ -123,7 +199,7 @@ function AIPromptsTab() {
       queryClient.invalidateQueries({ queryKey: ['system-prompts'] })
     }
   })
-  
+
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
       const res = await fetch(`/api/settings/prompts/${id}`, { method: 'DELETE' })
@@ -138,108 +214,420 @@ function AIPromptsTab() {
     setEditingId(prompt.id)
     setPromptName(prompt.name)
     setPromptContent(prompt.content)
-    // Scroll to form
-    document.getElementById('prompt-form')?.scrollIntoView({ behavior: 'smooth' })
+    setShowForm(true)
   }
 
   const handleCancel = () => {
     setEditingId(null)
     setPromptName('')
     setPromptContent('')
+    setShowForm(false)
   }
 
-  if (isLoading) return <div className="text-on-surface-variant p-4">Loading prompts...</div>
+  if (isLoading) return <div className="text-on-surface-variant p-4 text-xs font-label">Loading AI prompts...</div>
 
   return (
-    <div className="max-w-4xl space-y-8">
-      <div>
-        <h3 className="text-lg font-medium leading-6 text-on-surface">System Prompts</h3>
-        <p className="mt-1 text-sm text-on-surface-variant">Manage AI roles and behaviors for backtest analysis.</p>
-        
-        <div className="mt-6 space-y-4">
-            {prompts?.map((prompt: any) => (
-                <div key={prompt.id} className={`p-4 rounded-lg border ${prompt.is_default ? 'border-primary bg-primary/5' : 'border-outline-variant/30 bg-surface-container-low'}`}>
-                    <div className="flex justify-between items-start mb-2">
-                        <div className="flex items-center gap-3">
-                            <h4 className="font-semibold text-on-surface">{prompt.name}</h4>
-                            {prompt.is_default && (
-                                <span className="px-2 py-0.5 rounded text-xs font-medium bg-primary/20 text-primary">Default</span>
-                            )}
-                        </div>
-                        <div className="flex gap-2">
-                             <button 
-                                onClick={() => handleEdit(prompt)}
-                                className="text-xs px-2 py-1 text-on-surface-variant hover:text-primary transition-colors"
-                             >
-                                Edit
-                             </button>
-                             {!prompt.is_default && (
-                                <button 
-                                    onClick={() => setDefaultMutation.mutate(prompt.id)}
-                                    className="text-xs px-2 py-1 text-on-surface-variant hover:text-primary transition-colors"
-                                >
-                                    Set Default
-                                </button>
-                             )}
-                             <button 
-                                onClick={() => deleteMutation.mutate(prompt.id)}
-                                className="text-xs px-2 py-1 text-on-surface-variant hover:text-red-400 transition-colors"
-                                disabled={prompt.is_default}
-                             >
-                                Delete
-                             </button>
-                        </div>
-                    </div>
-                    <pre className="text-sm text-on-surface-variant whitespace-pre-wrap font-sans bg-surface-container-highest p-3 rounded mt-2 border border-outline-variant/20">{prompt.content}</pre>
-                </div>
-            ))}
+    <div className="space-y-6">
+      {/* Prompts List Card */}
+      <div className="bg-surface-container-low border border-outline-variant/20 p-6 space-y-6">
+        <div className="flex items-center justify-between pb-4 border-b border-outline-variant/15">
+          <div>
+            <h3 className="font-headline text-lg font-bold text-on-surface flex items-center gap-2">
+              <Bot className="w-5 h-5 text-primary" /> AI Analyst Roles & System Prompts
+            </h3>
+            <p className="font-label text-xs text-on-surface-variant mt-0.5">Customize prompts used by LLM assistants to generate backtest diagnostic reports.</p>
+          </div>
+          {!showForm && (
+            <button
+              onClick={() => { setShowForm(true); setEditingId(null); setPromptName(''); setPromptContent('') }}
+              className="px-3 py-1.5 bg-primary/10 text-primary border border-primary/20 hover:bg-primary/20 text-xs font-medium uppercase tracking-wider transition-colors flex items-center gap-1.5"
+            >
+              <Plus className="w-3.5 h-3.5" /> Add Prompt
+            </button>
+          )}
         </div>
-      </div>
-      
-      <div id="prompt-form" className="pt-6 border-t border-outline-variant/20">
-        <h4 className="text-md font-medium text-on-surface mb-4">
-            {editingId ? 'Edit Prompt' : 'Add New Prompt'}
-        </h4>
+
+        {/* Form Overlay / Section */}
+        {showForm && (
+          <div className="bg-surface-container border border-outline-variant/30 p-5 space-y-4">
+            <h4 className="font-headline text-sm font-bold text-on-surface flex items-center gap-2">
+              {editingId ? <Edit2 className="w-4 h-4 text-primary" /> : <Plus className="w-4 h-4 text-primary" />}
+              {editingId ? 'Edit System Prompt' : 'Create New System Prompt'}
+            </h4>
+            <div className="space-y-3 text-xs">
+              <div>
+                <label className="block text-on-surface-variant font-medium mb-1">Role / Prompt Name</label>
+                <input
+                  type="text"
+                  value={promptName}
+                  onChange={(e) => setPromptName(e.target.value)}
+                  className="w-full bg-surface-container-low border border-outline-variant/40 p-2.5 text-on-surface focus:outline-none focus:border-primary"
+                  placeholder="e.g. Risk Conservative Analyst"
+                />
+              </div>
+              <div>
+                <label className="block text-on-surface-variant font-medium mb-1">System Prompt Content</label>
+                <textarea
+                  value={promptContent}
+                  onChange={(e) => setPromptContent(e.target.value)}
+                  rows={6}
+                  className="w-full bg-surface-container-low border border-outline-variant/40 p-2.5 text-on-surface font-mono text-xs focus:outline-none focus:border-primary"
+                  placeholder="You are a quantitative analyst specializing in..."
+                />
+              </div>
+            </div>
+            <div className="flex gap-2 pt-2">
+              <button
+                onClick={() => editingId ? updateMutation.mutate() : createMutation.mutate()}
+                disabled={!promptName || !promptContent || createMutation.isPending || updateMutation.isPending}
+                className="px-4 py-2 bg-primary text-on-primary font-medium text-xs uppercase tracking-wider hover:bg-primary/90 transition-colors disabled:opacity-50 flex items-center gap-1.5"
+              >
+                <Check className="w-3.5 h-3.5" /> {editingId ? 'Save Changes' : 'Create Prompt'}
+              </button>
+              <button
+                onClick={handleCancel}
+                className="px-4 py-2 border border-outline-variant/40 text-on-surface-variant font-medium text-xs uppercase tracking-wider hover:bg-surface-container-high transition-colors flex items-center gap-1.5"
+              >
+                <X className="w-3.5 h-3.5" /> Cancel
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Existing Prompts Cards */}
         <div className="space-y-4">
-            <div>
-                <label className="block text-sm font-medium text-on-surface-variant mb-1">Name</label>
-                <input 
-                    type="text" 
-                    value={promptName}
-                    onChange={(e) => setPromptName(e.target.value)}
-                    className="w-full bg-surface-container-high border border-outline-variant/50 rounded p-2 text-on-surface text-sm focus:outline-none focus:border-primary"
-                    placeholder="e.g. Aggressive Growth Analyst"
-                />
-            </div>
-            <div>
-                <label className="block text-sm font-medium text-on-surface-variant mb-1">Prompt Content</label>
-                <textarea 
-                    value={promptContent}
-                    onChange={(e) => setPromptContent(e.target.value)}
-                    rows={6}
-                    className="w-full bg-surface-container-high border border-outline-variant/50 rounded p-2 text-on-surface text-sm focus:outline-none focus:border-primary"
-                    placeholder="You are an expert quantitative analyst..."
-                />
-            </div>
-            <div className="flex gap-3">
-                <button 
-                    onClick={() => editingId ? updateMutation.mutate() : createMutation.mutate()}
-                    disabled={!promptName || !promptContent || createMutation.isPending || updateMutation.isPending}
-                    className="px-4 py-2 bg-primary text-on-primary rounded text-sm font-medium hover:bg-primary/90 disabled:opacity-50 transition-colors"
-                >
-                    {editingId ? 'Update Prompt' : 'Save Prompt'}
-                </button>
-                {editingId && (
-                    <button 
-                        onClick={handleCancel}
-                        className="px-4 py-2 border border-outline-variant/50 text-on-surface-variant rounded text-sm font-medium hover:bg-surface-container-high transition-colors"
+          {prompts?.map((prompt: any) => (
+            <div
+              key={prompt.id}
+              className={`p-4 border transition-colors ${
+                prompt.is_default ? 'border-primary/40 bg-primary/5' : 'border-outline-variant/20 bg-surface-container'
+              }`}
+            >
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2.5">
+                  <h4 className="font-semibold text-sm text-on-surface">{prompt.name}</h4>
+                  {prompt.is_default && (
+                    <span className="px-2 py-0.5 text-[10px] font-medium tracking-wide uppercase bg-primary/20 text-primary border border-primary/30 flex items-center gap-1">
+                      <CheckCircle2 className="w-3 h-3" /> Default Role
+                    </span>
+                  )}
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => handleEdit(prompt)}
+                    className="p-1.5 text-on-surface-variant hover:text-primary transition-colors"
+                    title="Edit prompt"
+                  >
+                    <Edit2 className="w-3.5 h-3.5" />
+                  </button>
+                  {!prompt.is_default && (
+                    <button
+                      onClick={() => setDefaultMutation.mutate(prompt.id)}
+                      className="px-2 py-1 text-[11px] border border-outline-variant/30 text-on-surface-variant hover:text-primary hover:border-primary/40 transition-colors"
                     >
-                        Cancel
+                      Make Default
                     </button>
-                )}
+                  )}
+                  <button
+                    onClick={() => deleteMutation.mutate(prompt.id)}
+                    className="p-1.5 text-on-surface-variant hover:text-error transition-colors disabled:opacity-30"
+                    disabled={prompt.is_default}
+                    title={prompt.is_default ? "Cannot delete default prompt" : "Delete prompt"}
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </div>
+              <pre className="text-xs text-on-surface-variant whitespace-pre-wrap font-mono bg-surface-container-low p-3 border border-outline-variant/15 overflow-x-auto max-h-48">
+                {prompt.content}
+              </pre>
             </div>
+          ))}
         </div>
       </div>
+    </div>
+  )
+}
+
+function UsersTab() {
+  const queryClient = useQueryClient()
+  const [authEnabled, setAuthEnabled] = useState(false)
+  const [showAddForm, setShowAddForm] = useState(false)
+  const [editingId, setEditingId] = useState<number | null>(null)
+  const [formData, setFormData] = useState({ username: '', password: '', role: 'user' })
+
+  // Load auth settings
+  useEffect(() => {
+    api.auth.authStatus()
+      .then(res => setAuthEnabled(res.data.auth_enabled))
+      .catch(console.error)
+  }, [])
+
+  const { data: users, isLoading } = useQuery({
+    queryKey: ['users'],
+    queryFn: async () => {
+      const res = await api.auth.listUsers()
+      return res.data
+    },
+    enabled: authEnabled
+  })
+
+  const toggleAuthMutation = useMutation({
+    mutationFn: async (enabled: boolean) => {
+      const res = await fetch('/api/settings/', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ auth_enabled: enabled })
+      })
+      if (!res.ok) throw new Error('Failed to update settings')
+      return enabled
+    },
+    onSuccess: (enabled) => {
+      setAuthEnabled(enabled)
+      if (enabled) queryClient.invalidateQueries({ queryKey: ['users'] })
+    }
+  })
+
+  const createMutation = useMutation({
+    mutationFn: async () => {
+      return await api.auth.createUser(formData)
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['users'] })
+      handleCancel()
+    }
+  })
+
+  const updateMutation = useMutation({
+    mutationFn: async (params: { id: number; payload: any }) => {
+      return await api.auth.updateUser(params.id, params.payload)
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['users'] })
+      handleCancel()
+    }
+  })
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: number) => {
+      return await api.auth.deleteUser(id)
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['users'] })
+    }
+  })
+
+  const handleEdit = (user: any) => {
+    setEditingId(user.id)
+    setFormData({ username: user.username, password: '', role: user.role })
+    setShowAddForm(true)
+  }
+
+  const handleCancel = () => {
+    setShowAddForm(false)
+    setEditingId(null)
+    setFormData({ username: '', password: '', role: 'user' })
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Toggle Auth Card */}
+      <div className="bg-surface-container-low border border-outline-variant/20 p-6 space-y-4">
+        <div className="flex items-center justify-between pb-4 border-b border-outline-variant/15">
+          <div className="flex items-start gap-3">
+            <Shield className="w-5 h-5 text-primary mt-0.5" />
+            <div>
+              <h3 className="font-headline text-lg font-bold text-on-surface">Platform Authentication & Security</h3>
+              <p className="font-label text-xs text-on-surface-variant mt-0.5">
+                Enable login guard and per-user data scoping (`WHERE user_id = X`).
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            <span className={`px-2.5 py-1 text-[11px] font-medium tracking-wide uppercase border ${
+              authEnabled 
+                ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' 
+                : 'bg-surface-container text-on-surface-variant border-outline-variant/30'
+            }`}>
+              {authEnabled ? 'Auth Active' : 'Auth Disabled'}
+            </span>
+            <button
+              onClick={() => toggleAuthMutation.mutate(!authEnabled)}
+              disabled={toggleAuthMutation.isPending}
+              className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                authEnabled ? 'bg-primary' : 'bg-surface-container-highest'
+              }`}
+            >
+              <span
+                className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                  authEnabled ? 'translate-x-5' : 'translate-x-0'
+                }`}
+              />
+            </button>
+          </div>
+        </div>
+
+        {/* Warning Alert */}
+        <div className="px-4 py-3 bg-amber-500/10 border border-amber-500/20 text-amber-300 text-xs flex items-center gap-2">
+          <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+          <span>
+            Toggling authentication state requires a backend restart for all session endpoints to fully adapt.
+          </span>
+        </div>
+      </div>
+
+      {/* User Management Section */}
+      {authEnabled && (
+        <div className="bg-surface-container-low border border-outline-variant/20 p-6 space-y-6">
+          <div className="flex items-center justify-between pb-4 border-b border-outline-variant/15">
+            <div>
+              <h3 className="font-headline text-lg font-bold text-on-surface flex items-center gap-2">
+                <Users className="w-5 h-5 text-primary" /> Account Directory
+              </h3>
+              <p className="font-label text-xs text-on-surface-variant mt-0.5">Manage user credentials and admin permissions.</p>
+            </div>
+            {!showAddForm && (
+              <button
+                onClick={() => setShowAddForm(true)}
+                className="px-3 py-1.5 bg-primary/10 text-primary border border-primary/20 hover:bg-primary/20 text-xs font-medium uppercase tracking-wider transition-colors flex items-center gap-1.5"
+              >
+                <UserPlus className="w-3.5 h-3.5" /> Add User
+              </button>
+            )}
+          </div>
+
+          {/* Form */}
+          {showAddForm && (
+            <div className="bg-surface-container border border-outline-variant/30 p-5 space-y-4">
+              <h4 className="font-headline text-sm font-bold text-on-surface flex items-center gap-2">
+                {editingId ? <Edit2 className="w-4 h-4 text-primary" /> : <UserPlus className="w-4 h-4 text-primary" />}
+                {editingId ? 'Edit User Credentials' : 'Register New User'}
+              </h4>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 text-xs">
+                <div>
+                  <label className="block text-on-surface-variant font-medium mb-1">Username</label>
+                  <input
+                    type="text"
+                    value={formData.username}
+                    onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                    className="w-full bg-surface-container-low border border-outline-variant/40 p-2 text-on-surface focus:outline-none focus:border-primary"
+                    placeholder="Username"
+                  />
+                </div>
+                <div>
+                  <label className="block text-on-surface-variant font-medium mb-1">
+                    {editingId ? 'Password (blank to keep)' : 'Password'}
+                  </label>
+                  <input
+                    type="password"
+                    value={formData.password}
+                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                    className="w-full bg-surface-container-low border border-outline-variant/40 p-2 text-on-surface focus:outline-none focus:border-primary"
+                    placeholder="Password"
+                  />
+                </div>
+                <div>
+                  <label className="block text-on-surface-variant font-medium mb-1">Role</label>
+                  <select
+                    value={formData.role}
+                    onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+                    className="w-full bg-surface-container-low border border-outline-variant/40 p-2 text-on-surface focus:outline-none focus:border-primary"
+                  >
+                    <option value="user">User</option>
+                    <option value="admin">Admin</option>
+                  </select>
+                </div>
+              </div>
+              <div className="flex gap-2 pt-2">
+                <button
+                  onClick={() =>
+                    editingId ? updateMutation.mutate({ id: editingId, payload: formData }) : createMutation.mutate()
+                  }
+                  disabled={!formData.username || (!editingId && !formData.password) || createMutation.isPending || updateMutation.isPending}
+                  className="px-4 py-2 bg-primary text-on-primary font-medium text-xs uppercase tracking-wider hover:bg-primary/90 transition-colors disabled:opacity-50 flex items-center gap-1.5"
+                >
+                  <Check className="w-3.5 h-3.5" /> {editingId ? 'Save Changes' : 'Create User'}
+                </button>
+                <button
+                  onClick={handleCancel}
+                  className="px-4 py-2 border border-outline-variant/40 text-on-surface-variant font-medium text-xs uppercase tracking-wider hover:bg-surface-container-high transition-colors flex items-center gap-1.5"
+                >
+                  <X className="w-3.5 h-3.5" /> Cancel
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* User Table */}
+          {isLoading ? (
+            <div className="text-xs text-on-surface-variant p-4 font-label">Loading users...</div>
+          ) : (
+            <div className="border border-outline-variant/20 overflow-hidden">
+              <table className="min-w-full divide-y divide-outline-variant/20 text-xs">
+                <thead className="bg-surface-container">
+                  <tr>
+                    <th className="px-4 py-3 text-left font-semibold text-on-surface-variant uppercase tracking-wider">Username</th>
+                    <th className="px-4 py-3 text-left font-semibold text-on-surface-variant uppercase tracking-wider">Role</th>
+                    <th className="px-4 py-3 text-left font-semibold text-on-surface-variant uppercase tracking-wider">Status</th>
+                    <th className="px-4 py-3 text-left font-semibold text-on-surface-variant uppercase tracking-wider">Created</th>
+                    <th className="px-4 py-3 text-right font-semibold text-on-surface-variant uppercase tracking-wider">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="bg-surface-container-low divide-y divide-outline-variant/15">
+                  {users?.map((user: any) => (
+                    <tr key={user.id} className="hover:bg-surface-container transition-colors">
+                      <td className="px-4 py-3 font-medium text-on-surface">{user.username}</td>
+                      <td className="px-4 py-3">
+                        <span
+                          className={`px-2 py-0.5 text-[10px] font-medium tracking-wide uppercase border ${
+                            user.role === 'admin'
+                              ? 'bg-primary/20 text-primary border-primary/30'
+                              : 'bg-surface-container-highest text-on-surface-variant border-outline-variant/20'
+                          }`}
+                        >
+                          {user.role}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3">
+                        {user.is_active ? (
+                          <span className="text-emerald-400 font-medium flex items-center gap-1">
+                            <CheckCircle2 className="w-3 h-3" /> Active
+                          </span>
+                        ) : (
+                          <span className="text-on-surface-variant/60 flex items-center gap-1">
+                            <Lock className="w-3 h-3" /> Inactive
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-on-surface-variant">
+                        {new Date(user.created_at).toLocaleDateString()}
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          <button
+                            onClick={() => handleEdit(user)}
+                            className="p-1 text-on-surface-variant hover:text-primary transition-colors"
+                            title="Edit user"
+                          >
+                            <Edit2 className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            onClick={() => deleteMutation.mutate(user.id)}
+                            className="p-1 text-on-surface-variant hover:text-error transition-colors"
+                            title="Delete user"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   )
 }

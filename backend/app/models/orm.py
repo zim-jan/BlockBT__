@@ -50,6 +50,10 @@ class Strategy(Base):
     parameters: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False, default=dict)
     created_at: Mapped[datetime.datetime] = mapped_column(DateTime, nullable=False, default=_utcnow)
 
+    user_id: Mapped[int | None] = mapped_column(
+        ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+
     # relationships
     backtest_jobs: Mapped[list[BacktestJob]] = relationship(
         "BacktestJob", back_populates="strategy", lazy="select"
@@ -112,6 +116,10 @@ class BacktestJob(Base):
 
     created_at: Mapped[datetime.datetime] = mapped_column(DateTime, nullable=False, default=_utcnow)
     completed_at: Mapped[datetime.datetime | None] = mapped_column(DateTime, nullable=True)
+
+    user_id: Mapped[int | None] = mapped_column(
+        ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True
+    )
 
     # relationships
     strategy: Mapped[Strategy] = relationship("Strategy", back_populates="backtest_jobs")
@@ -236,6 +244,10 @@ class OptimizationJob(Base):
 
     created_at: Mapped[datetime.datetime] = mapped_column(DateTime, nullable=False, default=_utcnow)
     completed_at: Mapped[datetime.datetime | None] = mapped_column(DateTime, nullable=True)
+
+    user_id: Mapped[int | None] = mapped_column(
+        ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True
+    )
 
     # relationships
     strategy: Mapped[Strategy] = relationship("Strategy", back_populates="optimization_jobs")

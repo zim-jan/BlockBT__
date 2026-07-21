@@ -10,6 +10,7 @@ class AppSettingUpdate(BaseModel):
     ollama_base_url: str | None = None
     ollama_model: str | None = None
     parquet_cache_ttl_hours: int | None = None
+    auth_enabled: bool | None = None
 
 
 class SystemPromptCreate(BaseModel):

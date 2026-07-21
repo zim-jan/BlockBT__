@@ -6,12 +6,14 @@
 
 import type {components} from './api.d'
 import type {BacktestJobData, StrategyData} from '../types/types'
+import { useAuthStore } from '../store/authStore'
 
 const BASE_URL = import.meta.env.VITE_API_URL ?? ''
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
   const method = options?.method || 'GET';
   const requestBody = options?.body ? JSON.parse(options.body as string) : undefined;
+  const token = useAuthStore.getState().token
   
   // Log request structure (skip health check to avoid spam; tylko w DEV — review 2026-07-15)
   if (import.meta.env.DEV && path !== '/api/health') {
@@ -28,11 +30,21 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
 
   try {
     const res = await fetch(`${BASE_URL}${path}`, {
-      headers: { 'Content-Type': 'application/json', ...options?.headers },
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...options?.headers,
+      },
       ...options,
     })
     
     if (!res.ok) {
+      if (res.status === 401 && token) {
+        useAuthStore.getState().logout()
+        if (window.location.pathname !== '/login') {
+          window.location.href = '/login'
+        }
+      }
       const text = await res.text()
       if (path !== '/api/health') {
         console.error(`❌ API Error ${res.status}: ${method} ${path}`, text);
@@ -63,6 +75,29 @@ type ApiResponse<T> = { success: boolean; data: T; error: string | null }
 export const api = {
   health: {
     get: () => request<{ status: string; version: string }>('/api/health'),
+  },
+
+  auth: {
+    login: (payload: { username: string; password: string }) =>
+      request<ApiResponse<{ access_token: string; token_type: string; user_id: number; username: string; role: string }>>('/api/auth/login', {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      }),
+    me: () => request<ApiResponse<{ id: number; username: string; role: string; is_active: boolean; created_at: string }>>('/api/auth/me'),
+    authStatus: () => request<ApiResponse<{ auth_enabled: boolean }>>('/api/auth/auth-status'),
+    listUsers: () => request<ApiResponse<{ id: number; username: string; role: string; is_active: boolean; created_at: string }[]>>('/api/auth/users'),
+    createUser: (payload: { username: string; password: string; role?: string }) =>
+      request<ApiResponse<{ id: number; username: string; role: string; is_active: boolean; created_at: string }>>('/api/auth/users', {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      }),
+    updateUser: (id: number, payload: { username?: string; password?: string; role?: string; is_active?: boolean }) =>
+      request<ApiResponse<{ id: number; username: string; role: string; is_active: boolean; created_at: string }>>(`/api/auth/users/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(payload),
+      }),
+    deleteUser: (id: number) =>
+      request<ApiResponse<null>>(`/api/auth/users/${id}`, { method: 'DELETE' }),
   },
 
   strategies: {

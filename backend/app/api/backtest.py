@@ -2,8 +2,10 @@ from __future__ import annotations
 
 from typing import Any
 
-from fastapi import APIRouter, BackgroundTasks, HTTPException
+from fastapi import APIRouter, BackgroundTasks, HTTPException, Request
+from sqlalchemy import select
 
+from app.core.user_scope import get_user_id, scoped_query
 from app.core.utils.graph_parser import GraphParser, GraphValidationError
 from app.db.session import get_session
 from app.models.orm import BacktestJob, JobStatus, Strategy
@@ -166,9 +168,11 @@ def _job_to_schema(job: BacktestJob, include_curve: bool = True) -> BacktestJobR
 def trigger_backtest(
     payload: BacktestRequest,
     background_tasks: BackgroundTasks,
+    request: Request,
 ) -> ApiResponse[BacktestJobResponse]:
     """Tworzy rekord BacktestJob o statusie PENDING, planuje wykonanie w tle i natychmiastowo
     zwraca jego identyfikator."""
+    user_id = get_user_id(request)
     with get_session() as db:
         strategy = db.get(Strategy, payload.strategy_id)
         if not strategy:
@@ -189,6 +193,7 @@ def trigger_backtest(
             strategy_id=strategy.id,
             status=JobStatus.PENDING,
             parameters_snapshot=params,
+            user_id=user_id,
         )
         db.add(job)
         db.flush()
@@ -204,6 +209,7 @@ def trigger_backtest(
 def trigger_dag_backtest(
     payload: DAGBacktestRequest,
     background_tasks: BackgroundTasks,
+    request: Request,
 ) -> ApiResponse[BacktestJobResponse]:
     """Waliduje graf DAG i przekazuje go do wykonania."""
     try:
@@ -212,6 +218,7 @@ def trigger_dag_backtest(
     except GraphValidationError as e:
         raise HTTPException(status_code=422, detail=str(e))
 
+    user_id = get_user_id(request)
     with get_session() as db:
         strategy = db.get(Strategy, payload.strategy_id)
         if not strategy:
@@ -221,16 +228,17 @@ def trigger_dag_backtest(
             )
 
         # Update strategy parameters to store the DAG structure
-        # In a real system, you might not overwrite strategy params directly
-        # but for this DAG test, the DAG is the strategy.
         dag_dict = payload.dag.model_dump()
         strategy.parameters = dag_dict
+        if user_id is not None and strategy.user_id is None:
+            strategy.user_id = user_id
         db.add(strategy)
         
         job = BacktestJob(
             strategy_id=strategy.id,
             status=JobStatus.PENDING,
             parameters_snapshot={"dag": dag_dict},
+            user_id=user_id,
         )
         db.add(job)
         db.flush()
@@ -242,21 +250,27 @@ def trigger_dag_backtest(
 
 
 @router.get("/{job_id}", summary="Pobieranie statusu pojedynczego zadania", response_model=ApiResponse[BacktestJobResponse])
-def get_backtest_status(job_id: int) -> ApiResponse[BacktestJobResponse]:
+def get_backtest_status(job_id: int, request: Request) -> ApiResponse[BacktestJobResponse]:
     """Zwraca aktualny status i wyniki wyliczonych metryk określonego zadania."""
     with get_session() as db:
         job = db.get(BacktestJob, job_id)
         if not job:
             raise HTTPException(status_code=404, detail=f"Job id={job_id} not found")
+        
+        user_id = get_user_id(request)
+        if user_id is not None and job.user_id is not None and job.user_id != user_id:
+            raise HTTPException(status_code=403, detail="Access denied")
+            
         db.refresh(job)  # Force refresh from DB to see latest metrics
         return ApiResponse(success=True, data=_job_to_schema(job))
 
 
 @router.get("/", summary="Listowanie wszystkich zadań backtestów", response_model=ApiResponse[list[BacktestJobResponse]])
-def list_jobs() -> ApiResponse[list[BacktestJobResponse]]:
+def list_jobs(request: Request) -> ApiResponse[list[BacktestJobResponse]]:
     """Zwraca listę wszystkich zadań backtestowania posortowanych od najnowszych."""
     with get_session() as db:
-        jobs = db.query(BacktestJob).order_by(BacktestJob.created_at.desc()).all()
+        stmt = scoped_query(select(BacktestJob).order_by(BacktestJob.created_at.desc()), BacktestJob, request)
+        jobs = db.scalars(stmt).all()
         # Audyt 2026-07-17: lista bez equity_curve (multi-MB payload przy wielu jobach)
         data = [_job_to_schema(j, include_curve=False) for j in jobs]
         return ApiResponse(success=True, data=data)

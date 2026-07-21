@@ -239,6 +239,18 @@ Jesteś Głównym Architektem i Programistą w projekcie BlockBT. Pracujesz w ry
   Testy: 15/15 (podział okien rolling/anchored + brak look-ahead, agregacja i guardy NaN/inf na FakeEngine, Optuna in-sample, E2E endpointu na danych syntetycznych z mockiem `_fetch_market_data`, walidacja 422/404). Pełna suita 165 pass / 0 fail (baseline 152, 2 stare testy stubu zastąpione). [DONE]
   Dokumentacja: `docs/backend/engines_and_optimization.md` (sekcja WFO bez wzmianek o stubie) + ADR-0006. [DONE]
 
+* **Faza 16: Implementacja zarządzania użytkownikami** [DONE]
+  Cel: Zaplanować i stworzyć logikę odpowiedzialną za zarządzanie użytkownikami.
+  1. **Model & Schema:** Model `User` w ORM (`app/models/user.py`), FK `user_id` w `strategies`, `backtest_jobs`, `optimization_jobs`. [DONE]
+  2. **Auth Service & JWT:** `app/services/auth.py` (bcrypt hashing, JWT token HS256 24h). [DONE]
+  3. **Conditional Middleware:** `app/core/auth_middleware.py` (pomija gdy `auth_enabled=false`, weryfikuje Bearer JWT gdy `true`). [DONE]
+  4. **User Scoping:** `app/core/user_scope.py` (filtrowanie SQL `user_id`, weryfikacja ról admin/user). [DONE]
+  5. **API Auth & CRUD:** `app/api/auth.py` (`POST /login`, `GET /me`, `GET /users`, `POST /users`, `PUT /users/{id}`, `DELETE /users/{id}`, `GET /auth-status`). [DONE]
+  6. **Frontend Auth Store & Guard:** `authStore.ts` (Zustand persist), `ProtectedRoute.tsx` (guard tras), `api.ts` (wstrzykiwanie Bearer + 401 redirect). [DONE]
+  7. **Frontend UI:** `LoginPage.tsx` (ekran logowania w ciemnym motywie MD3), `SettingsPage.tsx` (zakładka User Management + switch auth_enabled + tabela CRUD z TanStack Query), `Sidebar.tsx` (awatar, nazwa użytkownika, przycisk wylogowania). [DONE]
+  8. **Testy & Build:** backend 243 testy przechodzą, frontend `tsc -b && vite build` bez błędów. [DONE]
+  
+
 * **Faza xx: Konteneryzacja, docker i docker compose**
   * STATUS : [PENDING]
 

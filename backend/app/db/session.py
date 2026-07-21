@@ -9,6 +9,7 @@ from sqlalchemy import create_engine, event
 from sqlalchemy.orm import Session, sessionmaker
 
 from app.models.orm import Base
+import app.models.user  # noqa: F401 — ensure User table created by create_all()
 
 """
 Database session for Phase 2 REST API models.

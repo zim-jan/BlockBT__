@@ -18,6 +18,7 @@ except ImportError:
         sys.path.insert(0, str(_vbt_path))
 
 from app.api import (
+    auth,
     backtest,
     indicators,
     optimizer,
@@ -30,6 +31,7 @@ from app.api import (
 from app.db.session import get_session, init_db
 from app.models.orm import SystemPrompt
 from app.services.mcp.llm_client import _SYSTEM_PROMPT
+from app.core.auth_middleware import AuthMiddleware
 
 """Główny punkt wejścia aplikacji FastAPI BlockBT — MVP Fazy 2.
 
@@ -50,6 +52,23 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     logger.info("Start API BlockBT — inicjalizacja bazy danych…")
     init_db()
     logger.info("Baza danych gotowa.")
+
+    # Seed default admin if auth enabled and no users exist
+    from app.core.auth_middleware import is_auth_enabled
+    from app.models.user import User
+    from app.services.auth import hash_password
+    
+    with get_session() as db:
+        if is_auth_enabled() and db.query(User).count() == 0:
+            from app.core.config import settings as cfg
+            logger.info(f"Seeding default admin user: {cfg.ADMIN_USERNAME}")
+            admin = User(
+                username=cfg.ADMIN_USERNAME,
+                password_hash=hash_password(cfg.ADMIN_PASSWORD),
+                role="admin",
+            )
+            db.add(admin)
+            db.commit()
 
     # Seed default system prompt if empty
     with get_session() as db:
@@ -102,6 +121,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.add_middleware(AuthMiddleware)
 
 @app.middleware("http")
 async def log_requests(request: Request, call_next):
@@ -155,6 +175,7 @@ async def log_requests(request: Request, call_next):
 # ---------------------------------------------------------------------------
 # Routers
 # ---------------------------------------------------------------------------
+app.include_router(auth.router, prefix="/api/auth", tags=["Auth"])
 app.include_router(strategies.router, prefix="/api/strategies", tags=["Strategies"])
 app.include_router(indicators.router, prefix="/api/indicators", tags=["Indicators"])
 app.include_router(backtest.router, prefix="/api/backtest", tags=["Backtest"])

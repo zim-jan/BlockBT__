@@ -55,6 +55,7 @@ nav:
       - Analityka i tearsheety: backend/analytics_tearsheets.md
       - API & Agents: backend/api_and_agents.md
       - Rejestr introspekcji (Registry): backend/registry.md
+      - Zarządzanie użytkownikami (Auth): backend/user_management.md
   - Frontend:
       - Architecture: frontend/architecture.md
       - Visual Builder: frontend/visual_builder.md
@@ -69,3 +70,4 @@ nav:
       - ADR-0007 Usunięcie bloku TimeShift (auto-shift): adr/0007-usuniecie-bloku-timeshift-auto-shift.md
       - ADR-0008 Parytet egzekucji optymalizatora: adr/0008-parytet-egzekucji-optymalizatora.md
       - ADR-0009 Analiza alokacji kapitału: adr/0009-analiza-alokacji-kapitalu.md
+      - ADR-0010 Zarządzanie użytkownikami (JWT Auth): adr/0010-zarzadzanie-uzytkownikami-auth-jwt.md

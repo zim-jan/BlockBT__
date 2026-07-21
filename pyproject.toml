@@ -25,6 +25,7 @@ dependencies = [
     "loguru~=0.7",
     # Security
     "bcrypt",
+    "PyJWT>=2.8",
     "cryptography",
     # vectorbt deps (vectorbt itself is vendored — do NOT add here)
     "numba>=0.60",

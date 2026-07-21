@@ -3,8 +3,10 @@ from __future__ import annotations
 from dataclasses import asdict
 from typing import Any
 
-from fastapi import APIRouter, BackgroundTasks, HTTPException
+from fastapi import APIRouter, BackgroundTasks, HTTPException, Request
+from sqlalchemy import select
 
+from app.core.user_scope import get_user_id, scoped_query
 from app.db.session import get_session
 from app.models.orm import JobStatus, OptimizationJob, Strategy
 from app.schemas.base import ApiResponse
@@ -43,8 +45,10 @@ def _opt_job_to_schema(job: OptimizationJob) -> OptimizationJobResponse:
 def trigger_optimization(
     payload: OptimizationRequest,
     background_tasks: BackgroundTasks,
+    request: Request,
 ) -> ApiResponse[dict[str, int]]:
     """Create an OptimizationJob and enqueue the Optuna study in the background."""
+    user_id = get_user_id(request)
     with get_session() as db:
         strategy = db.get(Strategy, payload.strategy_id)
         if not strategy:
@@ -78,6 +82,7 @@ def trigger_optimization(
             status=JobStatus.PENDING,
             parameters_snapshot=params,
             bounds_definition=bounds_dict,
+            user_id=user_id,
         )
         db.add(job)
         db.flush()
@@ -100,8 +105,10 @@ def trigger_optimization(
 def trigger_wfo(
     payload: WalkForwardRequest,
     background_tasks: BackgroundTasks,
+    request: Request,
 ) -> ApiResponse[dict[str, int]]:
     """Create an OptimizationJob and enqueue the Walk-Forward Optimization in the background."""
+    user_id = get_user_id(request)
     with get_session() as db:
         strategy = db.get(Strategy, payload.strategy_id)
         if not strategy:
@@ -110,10 +117,6 @@ def trigger_wfo(
                 detail=f"Strategy id={payload.strategy_id} not found",
             )
 
-        # Build parameters snapshot: parametry strategii + nadpisania użytkownika,
-        # klucze infrastrukturalne NA KOŃCU — nie do nadpisania przez payload.parameters
-        # (review 2026-07-16: wcześniej user mógł rozjechać snapshot z realnym przebiegiem).
-        # Konfiguracja przebiegu WFO (okna/tryb/bounds) żyje wyłącznie w bounds_definition.
         params: dict[str, Any] = dict(strategy.parameters)
         if payload.parameters:
             params.update(payload.parameters)
@@ -130,7 +133,6 @@ def trigger_wfo(
         if payload.end_date:
             params["end_date"] = payload.end_date
 
-        # Faza 15: konfiguracja przebiegu (opcjonalne bounds → optymalizacja IS per okno)
         config = WfoConfig(
             window_size=payload.window_size,
             step_size=payload.step_size,
@@ -149,6 +151,7 @@ def trigger_wfo(
             status=JobStatus.PENDING,
             parameters_snapshot=params,
             bounds_definition=asdict(config),
+            user_id=user_id,
         )
         db.add(job)
         db.flush()
@@ -161,23 +164,25 @@ def trigger_wfo(
 
 
 @router.get("/{job_id}", summary="Get optimization status", response_model=ApiResponse[OptimizationJobResponse])
-def get_optimization_status(job_id: int) -> ApiResponse[OptimizationJobResponse]:
+def get_optimization_status(job_id: int, request: Request) -> ApiResponse[OptimizationJobResponse]:
     """Return the current status and results of an optimization job."""
     with get_session() as db:
         job = db.get(OptimizationJob, job_id)
         if not job:
             raise HTTPException(status_code=404, detail=f"Job id={job_id} not found")
+        
+        user_id = get_user_id(request)
+        if user_id is not None and job.user_id is not None and job.user_id != user_id:
+            raise HTTPException(status_code=403, detail="Access denied")
+            
         return ApiResponse(success=True, data=_opt_job_to_schema(job))
 
 
 @router.get("/", summary="List optimization jobs", response_model=ApiResponse[list[OptimizationJobResponse]])
-def list_optimization_jobs() -> ApiResponse[list[OptimizationJobResponse]]:
+def list_optimization_jobs(request: Request) -> ApiResponse[list[OptimizationJobResponse]]:
     """Return all optimization jobs ordered by creation date."""
     with get_session() as db:
-        jobs = (
-            db.query(OptimizationJob)
-            .order_by(OptimizationJob.created_at.desc())
-            .all()
-        )
+        stmt = scoped_query(select(OptimizationJob).order_by(OptimizationJob.created_at.desc()), OptimizationJob, request)
+        jobs = db.scalars(stmt).all()
         data = [_opt_job_to_schema(j) for j in jobs]
         return ApiResponse(success=True, data=data)

@@ -41,6 +41,10 @@ class Settings(BaseSettings):
                     'Generate with: python -c "from cryptography.fernet import Fernet; '
                     'print(Fernet.generate_key().decode())"'
     )
+    # First admin account (seeded when auth enabled + no users exist)
+    ADMIN_USERNAME: str = "admin"
+    ADMIN_PASSWORD: str = "blockbt"
+
 
     # ------------------------------------------------------------------
     # Paths
