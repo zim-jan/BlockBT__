@@ -86,10 +86,38 @@ class YahooFinanceConnector(BaseDataConnector):
 
         if df.empty:
             logger.warning("vbt.YFData returned no data for {} ({} → {})", symbol, start, end)
+            self._validate_date_range_limits(symbol, start, timeframe)
 
         # Handle columns. YFData usually returns a multi-indexed DataFrame if multiple symbols
         # or single-indexed if one symbol.
         return df
+
+    def _validate_date_range_limits(self, symbol: str | list[str], start: str, timeframe: str) -> None:
+        """Check if start date exceeds Yahoo Finance intraday lookback limits."""
+        try:
+            start_dt = pd.to_datetime(start)
+            now = pd.Timestamp.now()
+            days_ago = (now - start_dt).days
+        except Exception:
+            return  # Skip validation if date parsing fails
+
+        mapped = self._map_timeframe(timeframe)
+        sym_str = ", ".join(symbol) if isinstance(symbol, (list, tuple)) else str(symbol)
+
+        if mapped == "1m" and days_ago > 7:
+            cutoff = (now - pd.Timedelta(days=7)).strftime("%Y-%m-%d")
+            raise ValueError(
+                f"Yahoo Finance 1m intraday data for '{sym_str}' is limited to the last 7 days (cutoff ~{cutoff}). "
+                f"Requested start date '{start}' is {days_ago} days ago. "
+                f"Please use a more recent start date or daily timeframe ('1d')."
+            )
+        elif mapped in {"2m", "5m", "15m", "30m", "60m", "90m", "1h"} and days_ago > 730:
+            cutoff = (now - pd.Timedelta(days=730)).strftime("%Y-%m-%d")
+            raise ValueError(
+                f"Yahoo Finance '{timeframe}' intraday data for '{sym_str}' is limited to the last 730 days (~2 years, cutoff ~{cutoff}). "
+                f"Requested start date '{start}' is {days_ago} days ago. "
+                f"Please use a start date after {cutoff} or switch to daily timeframe ('1d')."
+            )
 
     # ------------------------------------------------------------------
     # Health check

@@ -90,6 +90,16 @@ export const ResultsOverlay: React.FC = () => {
     }
   }, [activeTab, effectiveJobId, isResultsOpen])
 
+  // Keyboard dismiss listener (Escape) per modern-web-guidance
+  useEffect(() => {
+    if (!isResultsOpen) return
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setIsResultsOpen(false)
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [isResultsOpen, setIsResultsOpen])
+
   if (!isResultsOpen) return null
 
   // Build equity curve traces using robust parser
@@ -288,6 +298,7 @@ export const ResultsOverlay: React.FC = () => {
                     srcDoc={tearsheetHtml ?? ''}
                     title="QuantStats Tearsheet"
                     className="w-full h-full min-h-[550px] border-0"
+                    style={{ colorScheme: 'dark' }}
                   />
                 )}
               </div>

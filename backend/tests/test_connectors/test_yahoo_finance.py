@@ -97,3 +97,33 @@ def test_timeframe_4h_rejected_loudly():
 
     with pytest.raises(ValueError, match="4h"):
         YahooFinanceConnector._map_timeframe("4h")
+
+
+def test_intraday_730_day_lookback_limit_raises_descriptive_error(tmp_path):
+    import pytest
+    from app.services.connectors.yahoo_finance import YahooFinanceConnector
+
+    connector = YahooFinanceConnector(cache_dir=tmp_path)
+    mock_data = patch("vectorbt.YFData.download").start()
+    mock_data.return_value.get.return_value = pd.DataFrame()
+    try:
+        with pytest.raises(ValueError, match="730 days"):
+            connector.fetch("GOOG", "2023-01-01", "2025-01-01", timeframe="1h", use_cache=False)
+    finally:
+        patch.stopall()
+
+
+def test_1m_7_day_lookback_limit_raises_descriptive_error(tmp_path):
+    import pytest
+    from app.services.connectors.yahoo_finance import YahooFinanceConnector
+
+    connector = YahooFinanceConnector(cache_dir=tmp_path)
+    mock_data = patch("vectorbt.YFData.download").start()
+    mock_data.return_value.get.return_value = pd.DataFrame()
+    try:
+        with pytest.raises(ValueError, match="7 days"):
+            connector.fetch("GOOG", "2023-01-01", "2025-01-01", timeframe="1m", use_cache=False)
+    finally:
+        patch.stopall()
+
+

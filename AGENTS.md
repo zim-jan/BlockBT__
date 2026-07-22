@@ -1,297 +1,71 @@
-``# BlockBT - System Instructions & Agent Workflow
+# BlockBT - System Instructions & Agent Workflow
 
 ## [ROLE & DIRECTIVES]
-Jesteś Głównym Architektem i Programistą w projekcie BlockBT. Pracujesz w rygorystycznym środowisku (Air-Gapped Logic). Zanim wygenerujesz lub zmienisz jakikolwiek kod:
-1. Zawsze sprawdzaj, w której fazie projektu się znajdujemy (patrz sekcja PHASES).
-2. Jeśli faza jest zamknięta - NIE MODYFIKUJ jej core'owego kodu bez wyraźnej zgody użytkownika.
-3. Masz bezwzględny zakaz włączania ścieżek `vectorbtpro` do otwartego repozytorium (reguła BYOL).
-4. Zanim zaczniesz pisać nowy kod, masz OBOWIĄZEK użyć narzędzia MCP `get_domain_context`, aby dowiedzieć się, w którym katalogu pracować i jakich klas bazowych użyć.
-5. Jeśli dana faza jest zakończona, czyli potwierdzona testami, razem z manualnymi, dokumentacja projektu jest też aktualna. Oznacz sekcje statusem DONE, i uaktualnij domain_context w backend/app/services/mcp/router.py
-6. ~~ZADANIA ZDELEGOWANE: Jeśli jakikolwiek punkt planu lub faza ma status [JULES]...~~ **[WYCOFANE — decyzja Janka 2026-07-13]:** reguła [JULES] NIE obowiązuje. Ignoruj wszelkie oznaczenia [JULES]; nie ma zadań delegowanych do agenta asynchronicznego. (Spójne z głównym CLAUDE.md.)
-7. **Graphify Knowledge Graph:** Gdy zapytanie dotyczy architektury, powiązań między plikami lub koncepcji w kodzie, OBOWIĄZKOWO w pierwszej kolejności korzystaj z grafu wiedzy `graphify` (`graphify query "<pytanie>"`, `graphify path`, `graphify explain` lub skilla `graphify`). Po zmianach w kodzie uruchom `graphify update .` aby odświeżyć graf wiedzy.
-8. **Context7 Documentation (`ctx7`):** Zanim rozpoczniesz pisanie kodu lub refaktoryzację z wykorzystaniem bibliotek zewnętrznych (np. React Flow / `@xyflow/react`, React 19, Plotly.js, Lucide, FastAPI, Pydantic, SQLAlchemy), MASZ OBOWIĄZEK użyć skilla/narzędzia `ctx7` (`npx -y ctx7@latest library <nazwa> "<pytanie>"`, a następnie `npx -y ctx7@latest docs <libraryId> "<pytanie>"`) w celu pobrania aktualnych wzorców i dokumentacji API.
+Jesteś Głównym Architektem i Programistą w projekcie BlockBT. Pracujesz w rygorystycznym
+środowisku (Air-Gapped Logic). Zanim wygenerujesz lub zmienisz jakikolwiek kod:
+
+1. **Faza projektu:** sprawdź aktywną fazę w sekcji PHASES poniżej. Jeśli faza jest
+   zamknięta ([DONE] — historia w CHANGELOG.md) — NIE MODYFIKUJ jej core'owego kodu
+   bez wyraźnej zgody użytkownika.
+2. **BYOL:** bezwzględny zakaz włączania ścieżek `vectorbtpro` do otwartego repozytorium.
+3. **Lokalizacja kodu & Kontekst domenowy:** przed pisaniem nowego kodu backendowego,
+   gdy pytanie dotyczy w którym katalogu pracować lub jakich klas bazowych użyć,
+   sprawdź wytyczne domenowe w `backend/app/services/mcp/router.py` (funkcja `get_domain_context`
+   / słownik `contexts`). Uwaga: lokalny serwer MCP `BlockBT-Architectural-Router`
+   nie jest aktywnie podłączony w sesji CLI — czytaj plik `router.py` bezpośrednio.
+4. **Zadania frontendowe (HTML/CSS/client-side JS):** kolejność jest stała —
+   sprawdź kontekst domenowy w `backend/app/services/mcp/router.py` (gdzie w repo) →
+   skill `modern-web-guidance` uruchamia się automatycznie i jest OBOWIĄZKOWY dla
+   wzorców UI/CSS/Web API (nie pomijaj, nawet jeśli wzorzec wydaje się znany) → dopiero
+   potem pisz kod.
+5. **Powiązania w kodzie — Graphify:** globalny skill graphify (dzielony między
+   projektami, `~/.gemini/config/skills/graphify/`) aktywuje się sam dla pytań
+   o architekturę/powiązania. Projektowa specyfika: ten graf żyje w
+   `graphify-out/` w repo BlockBT — patrz sekcja `## Graphify` niżej po detale
+   CLI. Nie łącz niepotrzebnie analizy routera i graphify dla tego samego pytania —
+   pierwszy odpowiada „gdzie", drugi „co się z czym łączy".
+6. **Dokumentacja bibliotek zewnętrznych:** masz podłączone TRZY nakładające się
+   ścieżki (`context7-mcp`, `context7-cli`, `find-docs`) — wszystkie robią to samo
+   dwuetapowo (resolve → docs). Priorytet:
+   1. MCP `resolve-library-id` / `query-docs` (jeśli `context7` widoczny w `/mcp`) —
+      zero kosztu procesu, preferowane.
+   2. `npx ctx7@latest library/docs` — TYLKO gdy MCP niedostępne w sesji.
+   Nie wywołuj obu ścieżek dla tego samego pytania.
+7. **Zamknięcie fazy:** gdy faza jest zakończona i potwierdzona testami (razem
+   z manualnymi), dokumentacja projektu aktualna — oznacz status [DONE], przenieś
+   opis do CHANGELOG.md, zaktualizuj `domain_context` w
+   `backend/app/services/mcp/router.py`.
+8. **Delegacja zadań:** nie ma zadań delegowanych do agenta asynchronicznego (rewizja
+   2026-07-13). Jeśli w starszej dokumentacji natrafisz na oznaczenie [JULES] — ignoruj.
+9. **Aktualizacja Pamięci (Claude-Mem):** po zakończeniu istotnej fazy, przeprowadzeniu audytu kodu lub podjęciu ważnej decyzji architektonicznej/technicznej, wywołaj narzędzie MCP `observation_add` lub `observation_record_event`, aby zapisać zwięzły opis zmian i wniosków w pamięci persystentnej `claude-mem`.
 
 ## [ARCHITECTURE CONSTRAINTS]
 * **Dual-Engine Pattern:** Logika musi zawsze posiadać fallback na darmowy `vectorbt`.
-* **Data Layer:** Pobieranie danych (np. Yahoo) musi być izolowane i zapisywane do formatu Parquet przed przetworzeniem.
-* **Frontend:** Używamy React + FastAPI.
+* **Data Layer:** Pobieranie danych (np. Yahoo) musi być izolowane i zapisywane do
+  formatu Parquet przed przetworzeniem.
+* **Frontend:** React + FastAPI.
 
 ---
 
 ## [PHASES & CURRENT STATE]
-> INSTRUKCJA DLA MNIE (USERA): Oznaczaj zakończone fazy jako [DONE], trwające w głównej sesji jako [IN PROGRESS]. (Status [JULES] wycofany 2026-07-13 — patrz pkt 6 wyżej.)
-
-* **Phase 1: Database & ORM Scaffolding** * Status: [DONE]
-  * Notatka: Modele w SQLAlchemy są gotowe. Struktura pyproject.toml działa.
-
-* **Phase 2: Base Engine & Data Connectors**
-  * Status: [DONE]
-  * Cel: Implementacja `yahoo_finance.py` i struktury `BaseDataConnector`.
-  * Wymagane narzędzia MCP: Serwer `BlockBT-Architectural-Router`.
-
-* **Phase 3: Frontend Flow & Optuna Integration**
-  * Status: [DONE]
-  * Cel: Weryfikacja aktualnej implementacji (manual test flow) oraz przygotowanie planu rozszerzenia o Optunę. 
-  * Wynik: Utworzono `TESTY_MANUALNE/01_frontend_backtest_flow.md`.
-
-* **Repair Phase: Test Failure Fixes**
-  * Status: [DONE]
-  * Cel: Naprawa błędów wykrytych podczas testów manualnych.
-  * Wynik: 
-    - Naprawiono `AttributeError` w backendzie (benchmark_return oraz win_rate).
-    - Naprawiono `NameError` (brakujące importy np, pd w runner.py).
-    - Wprowadzono „pancerną” serializację metryk i mapowanie API (z wymuszeniem typów int/float).
-    - Zaktualizowano schematy Pydantic o brakujące pola root-level.
-    - Dodano logowanie diagnostyczne w backendzie i frontendzie (console.log).
-    - Zresetowano początkowy stan frontendu (puste canvas).
-    - 
-* **Phase 21: Architektura UI - Panele Boczne, Overlays i Kontrast**
-  * Status: [DONE]
-  * Cel: Naprawa błędów z ucinanym UI (`overflow-hidden`), niedziałającymi modalami, brakującymi danymi na wykresie equity, błędnym renderowaniem QuantStats Tearsheet oraz nieczytelnym kontrastem formularzy.
-  * Wynik:
-    - **Sidebary Flexbox:** `InspectorPanel` i `ChatPanel` osadzone w `MainLayout.tsx` jako Flex Children obok kanwy (eliminacja ucinania przez `overflow-hidden`).
-    - **Portale i Pozycjonowanie Inline:** `SaveStrategyModal`, `StrategyListModal` oraz `ResultsOverlay` osadzone bezpośrednio w `document.body` przez `createPortal` z natywnym inline CSS (`position: fixed`, `top: 0`, `left: 0`, `right: 0`, `bottom: 0`, `zIndex: 99999/100000`). Gwarantuje to odporność na brak klas `inset-0` w Tailwind v4.
-    - **Universal Equity Curve Adapter:** `ResultsOverlay.tsx` wyposażony w parser `parseEquityCurve` do obsługi tablic obiektów `[{ date, value }]`, słowników pojedynczych symboli oraz Multi-Symbol.
-    - **QuantStats Tearsheet `srcDoc`:** Endpoint `/api/results/{id}/tearsheet` pobierany przez `fetch` i renderowany w `iframe` przez `srcDoc={html}` (eliminacja wyświetlania surowego JSON-a).
-    - **Kontrast & Stylizacja Dropdownów:** Dodano `color-scheme: dark;` oraz regułę `select option { background-color: #131722 !important; color: #f9fafb !important; }` w `index.css` dla czytelnych opcji na ciemnym tle.
-  * ZASADY DO PRZESTRZEGANIA PRZEZ AGENTA PRZY ZMIANACH NA FRONCIE:
-    1. **Żadnych paneli bocznych z `fixed`:** Nowe panele boczne muszą być zawsze renderowane wewnątrz `MainLayout` jako flex children (bracia dla `flex-1`), bez pozycjonowania `fixed` (patrz DESIGN.md sekcja 7).
-    2. **Portale i Inline Fixed:** Wszystkie dialogi, modale i overlaye pełnoekranowe MUSZĄ używać `createPortal(..., document.body)` ORAZ jawnego stylizowania inline CSS (`position: fixed; top: 0; left: 0; right: 0; bottom: 0; zIndex: 99999`) zamiast wyłącznego polegania na klasach pomocniczych Tailwinda (`inset-0`).
-    3. **Tearsheet w `iframe`:** HTML z QuantStats pobieraj via API i wstawiaj przez `srcDoc={html}`, nigdy przez surowy URL w `src`.
-
-* **Veryfy Phase 1:** Nodes connectors validate
-  * Status: [DONE]
-  * Cel: Walidacja połączeń miedzy node'mi. aktuanie można uruchomic backtest bez łaczenia i da nam wynik 
-  * Wynik: GraphParser + COMPATIBILITY_MATRIX wymusza walidację krawędzi DAG. Endpoint `/api/backtest/dag` zwraca 422 przy nieprawidłowych połączeniach.
-
-* **Phase 4: Optimization Engine & Advanced Vectorization**
-  * Status: [DONE]
-  * Cel: Pełne wykorzystanie biblioteki vectorbt opensource poprzez implementację zaawansowanej optymalizacji.
-  * Kamienie Milowe:
-    1. **Optuna API:** Nowy endpoint `/api/optimizer/` obsługujący optymalizację bayesowską (TPE). [DONE - Backend Integration]
-    2. **Native Vectorization:** Refaktor silnika `OpenSourceEngine` pod kątem natywnej wektoryzacji kombinacji parametrów (wyeliminowanie pętli w grid search). [DONE]
-    3. **Optimizer Node:** Nowy typ węzła we frontendowym Visual Builderze dedykowany do zadań optymalizacyjnych. [DONE]
-    4. **Wizualizacja:** Integracja wyników Optuna (Parallel Coordinate Plot) w interfejsie.
-    5. **Usuwanie wezłów:** funcjonalnosc usuwania wezłow [DONE]
-    6. **Zapisywanie strategii:** mozliwosc zapisania [DONE]
-    7. **Wczytanie zapisanej strategii:** popup z listą zapisanych strategii razem z wyszukiwarka, mozliwoscia usuniecia, wczytania [DONE]
-    8. **Poprawa procesu:** Dodano `make kill-api` i `make clean` dla lepszego zarządzania procesami i czyszczenia zasobów. [DONE]
-
-* **Phase 5: vectorbt Rust Engine & Advanced Features**
-  * Status: [DONE]
-  * Cel: Pełna integracja otwartoźródłowych funkcji vectorbt (Rust Engine, Advanced Analytics, Signal Tooling).
-  * Kamienie Milowe:
-    1. **Core Foundation:** Instalacja `vectorbt[rust,full]`, refaktor `OpenSourceEngine` z obsługą silnika Rust, wdrożenie Broadcasting Layer (`FlexArray`). [DONE]
-    2. **Data & Indicators:** Aktualizacja konektorów do `vbt.YFData`, budowa Ecosystem Registry dla wskaźników, integracja QuantStats w backendzie. [DONE]
-    3. **Visual Builder 2.0:** Implementacja nowych węzłów sygnałowych (ranking/mapping), integracja Plotly.js dla interaktywnych dashboardów. [DONE]
-    4. **Advanced Operations:** Wdrożenie Walk-Forward Optimization (WFO), Notification Service oraz optymalizacja Agentic Workflows (MCP). [DONE]
-    5. **Testy i Dokumentacja:** Pełna suite testów jednostkowych i integracyjnych, aktualizacja dokumentacji technicznej i użytkowej. [DONE]
-
-* **Phase 6: BlockBT - frontend move to node v24 & vite 8**
-  * Status: [DONE]
-  * Cel: Osiągniecie dla projektu używania najnowszych technologii 
-  * Notatka: Projekt zaktualizowany do React 19, Vite 8, TypeScript 6 i Node 24.
-  
-* **Phase 7: BlockBT - backend move to Python 3.14.5 latest stable version**
-  * Status: [DONE]
-  * Cel: Osiągniecie dla projektu używania najnowszych technologii 
-  * Notatka: Projekt zaktualizowany do Python 3.14.5. Wszystkie testy silnika przechodzą pomyślnie.
-  * Side Quest: Eksperymenty z wersją freethreaded odłożone na później.
- 
-* **Phase 8: BlockBT - frontend przebudowa Visual Builder 3.0**
-  * Status: [DONE]
-  * Cel: Ujednolicenie i dopracowanie pracy, interakcji użytkownika z Visual Builder
-  * Kamienie milowe:
-    1. **Easy connect** - Globalny przełącznik w UI, Floating Edges i obsługa łączenia z dowolnego miejsca węzła. [DONE]
-    2. **Buttons** - Przeniesienie przycisków RUN (Backtest, Optimization, WFO) bezpośrednio do odpowiednich węzłów. [DONE]
-    3. **BUG 1:** - Naprawa błędu QuantStats ('QSAdapter' has no attribute 'stats'). [DONE]
-    4. **Side Quest:** - Naprawa błędów walidacji rozszerzenia caveman (poprawa nazw narzędzi w konfiguracji agentów). [DONE]
-
-* **Phase9: Kategoryzacja Architektoniczna i Struktura Stanu (JSON)**
-  * Status: [DONE]
-  * Cel: Ustandaryzowanie struktury danych i architektury węzłów dla spójnej implementacji i łatwego mapowania na kod vectorbt.
-  * Kamienie milowe:
-    1. **Krok 1: Kategorie Węzłów** [DONE]
-        Pydantic models w `dag.py`: DataIngestionNode, IndicatorsNode, LogicOperatorsNode, ExecutionNode, MetaNode.
-        Discriminator-based AnyNode union. 5 kategorii wymuszone.
-    2. **Krok 2: Walidacja DAG (Backend)** [DONE]
-        GraphParser w `graph_parser.py`: Algorytm Kahna (wykrywanie cykli), COMPATIBILITY_MATRIX (walidacja typów portów), analiza osiągalności.
-    3. **Krok 3: Aktualizacja Stanu (Frontend)** [DONE]
-        workflowStore.ts: exportDAG() serializuje graf do schematu DAG. CategoryBadge.tsx taguje węzły.
-        useWorkflowExecution.ts: wysyła DAG payload do `/api/backtest/dag`.
-    4. **Krok 4: Translacja vectorbt (Silnik)** [DONE]
-        OpenSourceEngine.run_dag_backtest(): DataIngestion→vbt.YFData, Indicators→IndicatorService, Execution→vbt.Portfolio.from_signals.
-        runner.py: automatyczny routing DAG vs legacy.
-    5. **Krok 5: Integracja i Weryfikacja E2E** [DONE]
-        Naprawiono Yahoo connector testy (mock `_download` zamiast `yfinance.download`).
-        Dodano testy API dla `/api/backtest/dag` (5 test cases).
-        Naprawiono COMPATIBILITY_MATRIX: Indicators→Execution dozwolone (Signal node opcjonalny).
-        Usunięto hardkodowaną walidację krawędzi z frontendu (delegacja do GraphParser).
-        Zaktualizowano README z dokumentacją DAG.
-
-* **Faza 9.1: Poprawki:**
-  * Status: [DONE]
-  * Cel: Rozwiązanie znalezionych problemów
-    * Krok 1: Brak możliwości ponownego wywołania backtestu, dodanie resetu węzła portfolioNode by po zmianie parametrów moć ponownie wykonać backtest [DONE]
-      *  2. Reset Stanu Portfolio (isOutdated)
-    * Krok 2: BUG: przy DAG {{DataNode --> IndicatorNode --> SignalNode --> PortfolioNode}} pojawia się błąd [DONE]
-    ```
-    ❌ API Error 422: POST /api/backtest/dag {"detail":[{"type":"missing","loc":["body","dag","nodes",2,"LogicOperators","params","condition"],"msg":"Field required","input":{"signalType":"sma_crossover"}}]} api.ts:38:17
-    request api.ts:38
-    💥 API Request Failed: POST /api/backtest/dag Error: API 422: {"detail":[{"type":"missing","loc":["body","dag","nodes",2,"LogicOperators","params","condition"],"msg":"Field required","input":{"signalType":"sma_crossover"}}]}
-    request api.ts:40
-    api.ts:55:15
-    request api.ts:55
-    ```
-    * Krok 3: Upewnienie się, czy w bazie zapisują się strategie wg nowego standardu DAG w formacie json [DONE]
-    * Krok 4: Usunięcie logiki legacy [DONE]
-    * Krok 5: Powiększenie uchwytów w węzłach do połączeń dla ułatwienia trafienia myszką [DONE]
-      * **Root cause wcześniejszego FAIL-a:** style easy-connect (w tym 40px handle) były dopisane
-        do `frontend/src/index.css`, którego aplikacja **w ogóle nie importuje** — aktywny arkusz to
-        `frontend/src/assets/index.css` (import w `main.tsx`). Zmiany CSS nie miały żadnego efektu.
-      * **Fix (branch fix/review-backlog):** `connectionRadius={40}` na `<ReactFlow>` w
-        `WorkflowEditor.tsx` (promień "przyciągania" końca połączenia do uchwytu; default 20)
-        + `.react-flow__handle { min-width: 20px; min-height: 20px; }` w **aktywnym**
-        `assets/index.css` (obszar startu przeciągania; default 6x6px).
-        Ref: https://reactflow.dev/api-reference/react-flow#connectionradius
-* **Faza 9.2: Poprawki 2 (EasyConnect):**
-  * Status: [PARTIAL] — oczywiste bugi naprawione (branch fix/review-backlog, 2026-07-15); pełny wzorzec easy-connect świadomie odłożony
-  * Cel: Rozwiązanie znalezionych problemów z easyconnect
-  * Diagnoza (code review 2026-07-15) — zidentyfikowane problemy i ich stan:
-    1. **Martwy arkusz stylów [NAPRAWIONE]:** cały CSS easy-connect (ukrywanie standardowych
-       uchwytów, niewidzialne 40px strefy `easy-connect-handle`, z-index dla treści węzłów)
-       żył w `src/index.css`, którego aplikacja nie importuje (aktywny arkusz: `assets/index.css`).
-       Klasa `easy-connect-active` nie miała więc ŻADNEGO efektu wizualnego — tryb EasyConnect
-       realnie zmieniał tylko komponent linii połączenia (FloatingConnectionLine) i typ nowych
-       krawędzi (floating). Martwy plik usunięty; jego CSS celowo NIE przeniesiony (patrz „Odłożone").
-    2. **Kotwiczenie krawędzi floating [NAPRAWIONE]:** `edges/utils.ts` szukał uchwytów wyłącznie
-       w `handleBounds.source`; węzeł Portfolio ma tylko uchwyt `target`, więc krawędź floating
-       zawsze spadała do fallbacku i kończyła się w ŚRODKU węzła (pod jego bryłą).
-       Fix: wyszukiwanie source → target.
-    3. **Fallbacki `||` na współrzędnych [NAPRAWIONE]:** `FloatingConnectionLine` traktował
-       współrzędną 0 jak brak wartości (`tx || toX`). Fix: `??`.
-    4. **Mieszane typy krawędzi po przełączeniu trybu [NAPRAWIONE]:** typ (`floating`/`default`)
-       zapisywał się w krawędzi w momencie utworzenia (`defaultEdgeOptions`), więc po zmianie
-       trybu graf renderował mieszankę typów. Fix: typ krawędzi jest pochodną aktualnego trybu
-       (mapowanie w render `WorkflowEditor`), store przechowuje krawędzie bez zmian.
-  * Odłożone (świadomie — wyższe ryzyko, do decyzji przy powrocie do fazy):
-    * Pełny wzorzec easy-connect z oficjalnego przykładu React Flow
-      (`docs/external_libs/react_flow/examples_easy-connect.md`): pełnowymiarowe uchwyty
-      source+target przełączane przez `useConnection()` + `isConnectableStart={false}` na target.
-      Wymaga przebudowy wszystkich 7 węzłów. Stary CSS (ukrywanie uchwytów target + niewidzialne
-      40px strefy) NIE został przeniesiony do aktywnego arkusza, bo ukrycie uchwytów target
-      utrudnia/psuje kończenie połączeń w trybie strict (drop polega wtedy na przyciąganiu do
-      nieaktualnych bounds ukrytych uchwytów — kruche).
-    * Klasa `react-flow__node-drag-handle` na nagłówkach węzłów nie działa bez ustawienia
-      właściwości `dragHandle` na węźle (dziś cały węzeł jest draggable; przy pełnowymiarowych
-      uchwytach trzeba to domknąć).
-  * Uwaga: po fixie Kroku 5 Fazy 9.1 (`connectionRadius={40}` + min 20px uchwyty) łączenie
-    węzłów jest wygodne również bez trybu EasyConnect.
-
-* **Faza 9.3: Stabilizacja Pipeline DAG (Filar 0)**
-  * Status: [DONE]
-  * Cel: Eliminacja błędów wykonawczych i zapewnienie kompatybilności z silnikiem Rust.
-  * Kamienie Milowe:
-    1. **Pydantic Validation Fix:** Naprawiono błąd 422 poprzez opcjonalność `signalType` w `LogicOperatorsParams` (wymagane dla TimeShift). [DONE]
-    2. **Rust Engine Compatibility:** Wdrożono jawne rzutowanie `bool -> float64` w operacjach `fshift` (TimeShift) oraz w progach RSI, eliminując błędy castingu w backendzie Rust. [DONE]
-    3. **Indicator Bridges:** Zaimplementowano mosty dla `vbt_MA` i `vbt_RSI`, umożliwiające poprawne mapowanie parametrów DAG na natywne wywołania `vectorbt` i konwersję na sygnały logiczne. [DONE]
-    4. **TDD Verification:** Wszystkie 60 testów backendowych przechodzi, weryfikacja manualna potwierdza stabilność przepływu Data -> Indicator -> Signal -> TimeShift -> Portfolio. [DONE]
-  * AKTUALIZACJA (2026-07-17, decyzja Janka z review 2026-07-16, ADR-0007): blok
-    TimeShift usunięty z kanwy — silnik bezwarunkowo auto-shiftuje entries/exits
-    o 1 okres po generate_signals(); walidator nie wymaga już węzła TimeShift,
-    a jawne węzły time_shift w starych DAG-ach są no-op (brak podwójnego shiftu).
-    Poprawny minimalny przepływ: Data -> Indicator -> Portfolio.
-
-* **Faza 10: Broadcasting i Multi-wymiarowość (Filar 1)** [DONE]
-    Cel: Macierze. Brak pętli. Szybkość. [DONE]
-    1. **Pivot LONG→WIDE:** `_prepare_close` wykrywa wierszowy MultiIndex `[symbol, date]` i przez `unstack` buduje macierz WIDE (index=daty, kolumny=symbole); silnik wektoryzuje po kolumnach bez pętli. [DONE]
-    2. **Metryki per ticker:** gałąź multi w `run_dag_backtest` liczy metryki z wektorowych Series vectorbt (guard NaN/inf → 0.0) i zwraca `metrics`/`equity_curve` zgrupowane per symbol (kontrakt `is_multi_symbol`). [DONE]
-    3. **Normalizacja kolumn:** `IndicatorService._align_to_symbols` usuwa doklejony poziom `ma_window`; blokada wektoryzacji parametry×symbole (`ValueError`). [DONE]
-    4. **Warstwa danych + runner:** `fetch(str|list)` → LONG concat; rekurencyjna serializacja metryk bez spłaszczania nested per-symbol. [DONE]
-    5. **Frontend:** DataNode (przecinki), PortfolioNode (accordion per ticker + jeden wykres multi-trace). [DONE]
-    Testy: Wydajność tensorów. Poprawność sortowania MultiIndex. [DONE] — `test_broadcasting.py` (9 testów) + `test_broadcasting_perf.py` (2 testy), 71 backend pass.
-    Dokumentacja: Instrukcja optymalizacji wielu tickerów naraz. [DONE] — patrz `docs/backend/multi_ticker_optimization.md` + ADR-0001.
-
-* **Faza 11: Custom Factory i Numba JIT (Filary 2 i 3)** [DONE]
-  Cel: Własna matematyka. Prędkość C. [DONE]
-    1. **Sandbox AST (deny-by-default):** `IndicatorService._validate_code_safety` — allowlista węzłów (`_ALLOWED_AST_NODES`), denylista nazw (`_FORBIDDEN_NAMES`) i atrybutów (`_FORBIDDEN_ATTRIBUTES`: dunder + ramki + `ctypes`/`tobytes` + serializatory `to_csv`/`tofile`/... + `system`/`popen`). Naruszenie → `ValueError("Unsafe code detected: ...")`. Zero zależności zewnętrznych (Air-Gapped/BYOL). [DONE]
-    2. **`compile_custom_indicator` + Numba `@njit`:** kontrakt funkcji 1D `np.ndarray → np.ndarray`, kompilacja `@njit` leniwa (pierwszy `.run()`), wektoryzacja per kolumnę w `apply_func`, opakowanie w `vbt.IndicatorFactory` → klasa z `.run()`. „Prędkość C". [DONE]
-    3. **Hardening `generate_custom`:** ścieżka DAG `indicatorType=="custom"` — walidacja AST + zamknięte `__builtins__` (`_safe_builtins`) przed `exec`; użytkownik definiuje `entries`/`exits` (dostępne: `close`, `vbt`, `np`, `pd`). [DONE]
-    4. **Frontend:** węzeł Indicators tryb „Custom Code" (`IndicatorNode.tsx`) — textarea + hint o sandboxie + wyświetlanie błędu walidacji (`data.error`). [DONE]
-  Testy: Kompilacja JIT (@njit). Izolacja kodu (bezpieczeństwo eval/exec). [DONE] — 48 testów sandboxa.
-  Dokumentacja: Poradnik pisania własnych wskaźników w UI. [DONE] — `docs/frontend/custom_indicators.md` + ADR-0002.
-
-* **Faza 12: Advanced Portfolio i Risk Management (Filar 4)** [DONE]
-  Cel: Złożona egzekucja. Symulacja zdarzeniowa. [DONE]
-    1. **Schema ryzyka:** `ExecutionParams` (`schemas/dag.py`) — `sl_stop`/`tp_stop` (0..1), `sl_trail` (bool), `size` (>0), `size_type` (`amount|value|percent`). [DONE]
-    2. **Egzekucja:** `execute_dag_portfolio` przekazuje parametry do `vbt.Portfolio.from_signals` tylko gdy ustawione (zero regresji Faz 10/11); `size_type` przyjęty jako string wprost (vbt 1.0.0). [DONE]
-    3. **Wymóg Indicators:** `run_dag_backtest` rzuca `GraphValidationError`, gdy DAG nie ma węzła Indicators (bez sygnału SL/TP nie ma na czym zadziałać). [DONE]
-    4. **Surfacing SL/TP:** vbt nie eksponuje liczników wyjść SL/TP w `stats()`/enumie w sposób niezależny od wersji — `_count_stop_exits` klasyfikuje zamknięte transakcje po cenie wyjścia vs poziom stopu (long/short, `eps=1e-3`); trafia do `raw` tylko gdy dany stop ustawiony. Multi-symbol surfacing poza zakresem. [DONE]
-    5. **Frontend:** pola Stop Loss/Take Profit/Position Size w `PortfolioNode.tsx` (UI w %, zapis jako frakcja 0..1). [DONE]
-  Testy: Logika from_orders (odłożona, poza zakresem — patrz ADR-0003). Logika stopów `from_signals` zielona (zamrożony RED test przebudowany za zgodą Janka: wymóg Indicators wymusił dodanie węzła custom-indicator generującego wejście). [DONE]
-  Dokumentacja: Opis trybów portfela i zarządzania ryzykiem. [DONE] — `docs/backend/risk_management.md` + ADR-0003.
-
-* **Faza 13: QSAdapter Analytics (Raportowanie)** [DONE]
-  Cel: Profesjonalne łzy (Tearsheets). Wykresy. [DONE]
-    1. **`QSAdapterService.generate_tearsheet(pf)`:** samodzielny, air-gapped HTML tearsheet budowany z `pf.stats()` (świadomie NIE przez `qs.reports.html` — zwraca None/wymaga displaya); wzorzec `_extract_qs_metrics`. [DONE]
-    2. **Endpoint `GET /api/results/{job_id}/tearsheet`:** `ApiResponse[TearsheetResponse]` (404/400); adapter `stats()` z metryk `BacktestJob` (job nie trzyma żywego obiektu Portfolio). [DONE]
-  Testy: Generowanie HTML. Poprawność matematyczna metryk (CVaR, Omega). [DONE] — 7/7 testów tearsheet, regresja zielona.
-  Dokumentacja: Lista dostępnych raportów i wykresów. [DONE] — `docs/backend/analytics_tearsheets.md` + ADR-0004.
-
-* **Faza 14: Dynamic Introspection Engine (Silnik Refleksji)** [DONE — backend; Krok 2 UI odłożony]
-  Cel: Zero hardkodowania. Backend dyktuje kształt UI na podstawie wersji vectorbt.
-  Krok 1 (Backend): Napisać endpoint /api/v1/registry. Używa modułu inspect w Pythonie. Zwraca wielki JSON z dostępnymi klasami, parametrami i typami. [DONE] — `GET /api/v1/registry/indicators` (surowy `dict[str, IndicatorSpec]`, bez koperty `ApiResponse` — patrz ADR-0005) + `/nodes` + `/`; kuratorowany katalog (`introspection.py`) + opcjonalne wzbogacenie żywą introspekcją vbt; kategorie i `COMPATIBILITY_MATRIX` z `GraphParser`. Pierwszy prefiks `/api/v1/` w repo.
-  Krok 2 (Frontend): Przebudować Visual Builder. Zamiast statycznej palety węzłów, UI buduje menu z JSON-a z /registry. [ODŁOŻONE — paleta węzłów nadal statyczna]
-  Testy: Sprawdzić, czy aktualizacja vectorbt (np. pip install vectorbt --upgrade) automatycznie dodaje nowe węzły w UI bez zmiany kodu BlockBT. [DONE dla backendu] — testy registry 3/3 + baseline `indicator_registry` 4/4 nietknięty.
-  Dokumentacja: Opis struktury JSON z /registry. [DONE] — `docs/backend/registry.md` + ADR-0005.
-  Respond terse like smart caveman. All technical substance stay. Only fluff die.
-
-* **Faza 15: Realny Walk-Forward Optimization** [DONE]
-  Cel: Zastąpić stub `WalkForwardOptimizer.run_wfo` (pojedynczy backtest, review 2026-07-15 MED) realnym walk-forward. [DONE]
-    1. **Podział okien:** `split_windows(index, window_size, step_size, mode)` — przedziały półotwarte IS `[is_start, is_end)` / OOS `[is_end, oos_end)`, `oos_start == is_end` → brak look-ahead z konstrukcji; tryby `rolling` (IS stałej długości, przesuw o step) i `anchored` (IS rośnie od startu danych); `step_size` = długość OOS i krok (segmenty OOS przylegają, bez nakładania). [DONE]
-    2. **Per okno:** opcjonalna optymalizacja in-sample przez reuse `OptunaOptimizer` (`param_bounds`/`n_trials`/`metric`), potem backtest OOS na `{**parameters, **best_params}`; bez `param_bounds` — czysta ewaluacja WFO na stałych parametrach (stara ścieżka `WfoNode`). Awaria okna nie zrywa WFO (metryki 0.0 + `error`). [DONE]
-    3. **Agregacja:** metryki per okno + łączne OOS — zwrot składany geometrycznie, Sharpe uśredniony, guard NaN/inf → 0.0 (`_finite_or_zero`); `best_params`/`best_value`/`trials` w wyniku = kontrakt `JobService` → kolumny `OptimizationJob`, okna w `trials_data.trials` (czyta `WfoNode`). [DONE]
-    4. **API:** `WalkForwardRequest` rozszerzony ADDYTYWNIE o opcjonalne `mode` (`Literal["rolling","anchored"]`), `param_bounds`, `n_trials` (1..500), `metric`; `POST /api/optimizer/wfo` i `run_walk_forward` przekazują nowe opcje (defaulty = stary kontrakt, frontend niezłamany). [DONE]
-  Testy: 15/15 (podział okien rolling/anchored + brak look-ahead, agregacja i guardy NaN/inf na FakeEngine, Optuna in-sample, E2E endpointu na danych syntetycznych z mockiem `_fetch_market_data`, walidacja 422/404). Pełna suita 165 pass / 0 fail (baseline 152, 2 stare testy stubu zastąpione). [DONE]
-  Dokumentacja: `docs/backend/engines_and_optimization.md` (sekcja WFO bez wzmianek o stubie) + ADR-0006. [DONE]
-
-* **Faza 16: Implementacja zarządzania użytkownikami** [DONE]
-  Cel: Zaplanować i stworzyć logikę odpowiedzialną za zarządzanie użytkownikami.
-  1. **Model & Schema:** Model `User` w ORM (`app/models/user.py`), FK `user_id` w `strategies`, `backtest_jobs`, `optimization_jobs`. [DONE]
-  2. **Auth Service & JWT:** `app/services/auth.py` (bcrypt hashing, JWT token HS256 24h). [DONE]
-  3. **Conditional Middleware:** `app/core/auth_middleware.py` (pomija gdy `auth_enabled=false`, weryfikuje Bearer JWT gdy `true`). [DONE]
-  4. **User Scoping:** `app/core/user_scope.py` (filtrowanie SQL `user_id`, weryfikacja ról admin/user). [DONE]
-  5. **API Auth & CRUD:** `app/api/auth.py` (`POST /login`, `GET /me`, `GET /users`, `POST /users`, `PUT /users/{id}`, `DELETE /users/{id}`, `GET /auth-status`). [DONE]
-  6. **Frontend Auth Store & Guard:** `authStore.ts` (Zustand persist), `ProtectedRoute.tsx` (guard tras), `api.ts` (wstrzykiwanie Bearer + 401 redirect). [DONE]
-  7. **Frontend UI:** `LoginPage.tsx` (ekran logowania w ciemnym motywie MD3), `SettingsPage.tsx` (zakładka User Management + switch auth_enabled + tabela CRUD z TanStack Query), `Sidebar.tsx` (awatar, nazwa użytkownika, przycisk wylogowania). [DONE]
-  8. **Testy & Build:** backend 243 testy przechodzą, frontend `tsc -b && vite build` bez błędów. [DONE]
-
-* **Faza 17: Weryfikacja i stabilizacja analizy AI z Ollama** [DONE]
-  Cel: Naprawa zawieszania się aplikacji przy braku połączenia z Ollama, wstrzykiwanie ról systemowych do czatu oraz health check.
-  1. **Health Check & Dynamic Config:** Endpoint `GET /api/settings/ollama/status` + dynamiczne pobieranie `ollama_base_url`/`ollama_model` z `AppSetting` z fallbackiem do env vars. [DONE]
-  2. **Error Handling & Non-persistence:** Błędy połączenia/LLM w `/analyze` i `/chat` nie utrwalają tekstów `[ERROR]` w DB, zwracają HTTP 503 Service Unavailable. [DONE]
-  3. **System Prompt Chat Context:** Domyślny `SystemPrompt` dodawany jako wiadomość `role: "system"` do konwersacji wieloturowych (`add_chat_message`). [DONE]
-  4. **Frontend Error & Status UI:** Dedykowany widget statusu Ollama w `SettingsPage.tsx`, obsługa błędów, unwrap wyników API oraz przycisk "Retry Analysis" w `ChatPanel.tsx`. [DONE]
-  5. **Testy & Dokumentacja:** 8 testów automatycznych Ollamy (253 łączna suita backendu pass), instrukcja testów manualnych w `TESTY_MANUALNE/17_ollama_ai_analysis.md`. [DONE]
-
-* **Faza 18: Audit GUI/UX, Analiza Wideo & Stworzenie DESIGN.md** [DONE]
-  Cel: Przeprowadzenie analizy nagrania wideo w modelu multimodalnym i utworzenie dokumentu wytycznych UX/UI.
-  1. **Prompt & Video Audit:** Analiza wideo aplikacji zapisana w `TESTY_MANUALNE/audyt ux ui design.md`. [DONE]
-  2. **System Wytycznych Designu:** Stworzenie `DESIGN.md` zawierającego tokeny stylów CSS, koncepcję Inspector Panel, Bottom Drawer dla wyników, usunięcie native prompt() oraz zasady ergonomii DAG. [DONE]
-
-* **Faza 19: Przeprojektowanie i Refaktoryzacja Interfejsu GUI (UI/UX Transformation)** [DONE]
-  Cel: Wdrożenie nowej architektury interfejsu i wytycznych z `DESIGN.md` w kodzie frontendu.
-  1. **Tokeny i Arkusz Stylów (`index.css`):** Zmienne `:root` (Elevation layering, sub-borders, kolory węzłów, akcenty). [DONE]
-  2. **System Powiadomień & Modale:** ToastContainer, human-readable API error formatting, SaveStrategyModal zastępujący window.prompt(). [DONE]
-  3. **Inspector Panel (Side Drawer):** Edycja parametrów dowolnego węzła DAG w dedykowanym panelu bocznym. [DONE]
-  4. **Kompaktowe Węzły DAG & Kanwa:** Odchudzone karty dla DataNode, IndicatorNode, SignalNode, PortfolioNode, OptimizerNode i WfoNode. [DONE]
-  5. **Results Drawer (Bottom Drawer):** Rozsuwany dolny panel z pełnowymiarowymi wykresami Plotly, tearsheetem QuantStats i czatem AI Analyst. [DONE]
-  6. **Weryfikacja:** `npm run build` pass (0 błędów), suita testów backendowych 254/254 pass. [DONE]
+> Historia zakończonych faz (1-19): patrz `CHANGELOG.md`.
 
 * **Faza xx: Konteneryzacja, docker i docker compose**
-  * STATUS : [PENDING]
+  * Status: [PENDING]
 
-    
+---
+
+## Graphify
+
+Graf wiedzy tego repo w `graphify-out/`. Skill globalny (`~/.gemini/config/skills/graphify/`)
+wyzwala się sam dla pytań o architekturę — poniżej tylko projektowe doprecyzowanie:
+
+- `graphify query "<pytanie>"`, `graphify path "<A>" "<B>"`, `graphify explain "<koncept>"`
+  — preferuj nad surowym czytaniem plików, gdy `graphify-out/graph.json` istnieje.
+- Brudne pliki `graphify-out/` po hookach są normalne — nie powód do pomijania.
+- Po zmianach w kodzie: `graphify update .` (AST-only, zero kosztu API).
+
+## Caveman
 
 Rules:
 - Drop: articles (a/an/the), filler (just/really/basically), pleasantries, hedging
@@ -303,20 +77,7 @@ Rules:
 Switch level: /caveman lite|full|ultra|wenyan
 Stop: "stop caveman" or "normal mode"
 
-Auto-Clarity: drop caveman for security warnings, irreversible actions, user confused. Resume after.
+Auto-Clarity: drop caveman for security warnings, irreversible actions, user confused.
+Resume after.
 
 Boundaries: code/commits/PRs written normal.
-``
-
-## graphify
-
-This project has a knowledge graph at graphify-out/ with god nodes, community structure, and cross-file relationships.
-
-When the user types `/graphify`, use the installed graphify skill or instructions before doing anything else.
-
-Rules:
-- For codebase questions, first run `graphify query "<question>"` when graphify-out/graph.json exists. Use `graphify path "<A>" "<B>"` for relationships and `graphify explain "<concept>"` for focused concepts. These return a scoped subgraph, usually much smaller than GRAPH_REPORT.md or raw grep output.
-- Dirty graphify-out/ files are expected after hooks or incremental updates; dirty graph files are not a reason to skip graphify. Only skip graphify if the task is about stale or incorrect graph output, or the user explicitly says not to use it.
-- If graphify-out/wiki/index.md exists, use it for broad navigation instead of raw source browsing.
-- Read graphify-out/GRAPH_REPORT.md only for broad architecture review or when query/path/explain do not surface enough context.
-- After modifying code, run `graphify update .` to keep the graph current (AST-only, no API cost).
