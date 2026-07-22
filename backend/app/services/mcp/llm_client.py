@@ -49,11 +49,48 @@ class OllamaClient:
         self,
         base_url: str | None = None,
         model: str | None = None,
-        timeout: int = 120,
+        timeout: int | None = None,
     ) -> None:
-        self.base_url = (base_url or settings.OLLAMA_BASE_URL).rstrip("/")
-        self.model = model or settings.OLLAMA_MODEL
-        self.timeout = timeout
+        resolved_url, resolved_model, resolved_timeout = self._resolve_config(base_url, model, timeout)
+        self.base_url = resolved_url.rstrip("/")
+        self.model = resolved_model
+        self.timeout = resolved_timeout
+
+    @staticmethod
+    def _resolve_config(
+        base_url: str | None, model: str | None, timeout: int | None
+    ) -> tuple[str, str, int]:
+        url = base_url
+        mdl = model
+        tout = timeout
+        if not url or not mdl or tout is None:
+            try:
+                from app.db.session import get_session
+                from app.models.orm import AppSetting
+
+                with get_session() as db:
+                    if not url:
+                        setting_url = db.get(AppSetting, "ollama_base_url")
+                        if setting_url and setting_url.value:
+                            url = setting_url.value
+                    if not mdl:
+                        setting_mdl = db.get(AppSetting, "ollama_model")
+                        if setting_mdl and setting_mdl.value:
+                            mdl = setting_mdl.value
+                    if tout is None:
+                        setting_tout = db.get(AppSetting, "ollama_timeout_seconds")
+                        if setting_tout and setting_tout.value:
+                            try:
+                                tout = int(setting_tout.value)
+                            except ValueError:
+                                pass
+            except Exception:
+                pass
+        return (
+            (url or settings.OLLAMA_BASE_URL),
+            (mdl or settings.OLLAMA_MODEL),
+            (tout or 300),
+        )
 
     # ── Public API ────────────────────────────────────────────────────────────
 
@@ -63,30 +100,22 @@ class OllamaClient:
         system: str = _SYSTEM_PROMPT,
         stream: bool = False,
     ) -> str:
-        """Send *prompt* to Ollama and return the generated text.
-
-        Parameters
-        ----------
-        prompt:
-            The full user-facing prompt (typically from ``MCPPayload.to_prompt()``).
-        system:
-            Optional system instruction prepended before the user prompt.
-        stream:
-            If True, consume the Ollama streaming NDJSON response line-by-line.
-            Defaults to False (single JSON response).
-
-        Returns
-        -------
-        str
-            The model's text response, or an error message prefixed with ``[ERROR]``.
-        """
+        """Send *prompt* to Ollama and return the generated text."""
         url = f"{self.base_url}/api/generate"
+        full_prompt = f"{system}\n\n{prompt}"
         payload = {
             "model": self.model,
-            "prompt": f"{system}\n\n{prompt}",
+            "prompt": full_prompt,
             "stream": stream,
         }
-        logger.info("OllamaClient: POST {} model={}", url, self.model)
+        logger.info(
+            "OllamaClient: POST {} model={} timeout={}s prompt_len={}",
+            url,
+            self.model,
+            self.timeout,
+            len(full_prompt),
+        )
+        logger.debug("OllamaClient prompt preview: {}...", full_prompt[:200].replace("\n", " "))
 
         try:
             async with httpx.AsyncClient(timeout=self.timeout) as client:
@@ -101,6 +130,9 @@ class OllamaClient:
                     return self._consume_stream_sync(response.text)
 
                 return response.json().get("response", "")
+        except httpx.TimeoutException as exc:
+            logger.error("OllamaClient: request timed out after {}s — {}", self.timeout, exc)
+            return f"[ERROR] Przekroczono limit czasu odpowiedzi Ollama ({self.timeout}s)."
         except httpx.ConnectError as exc:
             logger.error("OllamaClient: connection error — {}", exc)
             return f"[ERROR] Nie można połączyć się z Ollama ({self.base_url}): {exc}"
@@ -115,28 +147,23 @@ class OllamaClient:
             return f"[ERROR] Nieoczekiwany błąd: {exc}"
 
     async def chat(self, messages: list[dict[str, str]]) -> str:
-        """Wysyła historię czatu do punktu końcowego /api/chat serwera Ollama.
-
-        Służy do wieloturowej rozmowy po wygenerowaniu wstępnego raportu.
-
-        Parameters
-        ----------
-        messages:
-            Lista słowników zawierających klucze 'role' i 'content'.
-            Przykład: [{"role": "user", "content": "hello"}]
-
-        Returns
-        -------
-        str
-            Odpowiedź wygenerowana przez model jako tekst.
-        """
+        """Wysyła historię czatu do punktu końcowego /api/chat serwera Ollama."""
         url = f"{self.base_url}/api/chat"
         payload = {
             "model": self.model,
             "messages": messages,
             "stream": False,
         }
-        logger.info("OllamaClient: POST {} model={}", url, self.model)
+        last_msg = messages[-1]["content"] if messages else ""
+        logger.info(
+            "OllamaClient: POST {} model={} timeout={}s num_messages={} last_msg_len={}",
+            url,
+            self.model,
+            self.timeout,
+            len(messages),
+            len(last_msg),
+        )
+        logger.debug("OllamaClient chat last message preview: {}...", last_msg[:150].replace("\n", " "))
 
         try:
             async with httpx.AsyncClient(timeout=self.timeout) as client:
@@ -147,6 +174,9 @@ class OllamaClient:
                 )
                 response.raise_for_status()
                 return response.json().get("message", {}).get("content", "")
+        except httpx.TimeoutException as exc:
+            logger.error("OllamaClient: chat request timed out after {}s — {}", self.timeout, exc)
+            return f"[ERROR] Przekroczono limit czasu odpowiedzi czatu Ollama ({self.timeout}s)."
         except httpx.ConnectError as exc:
             logger.error("OllamaClient: connection error — {}", exc)
             return f"[ERROR] Nie można połączyć się z Ollama ({self.base_url}): {exc}"
@@ -160,14 +190,50 @@ class OllamaClient:
             logger.error("OllamaClient: unexpected error — {}", exc)
             return f"[ERROR] Nieoczekiwany błąd: {exc}"
 
-    async def health_check(self) -> bool:
-        """Return True if the Ollama server responds to GET /api/tags."""
+    async def get_status(self) -> dict[str, Any]:
+        """Return detailed status dict for Ollama server connection and configured model."""
+        url = f"{self.base_url}/api/tags"
         try:
             async with httpx.AsyncClient(timeout=5) as client:
-                response = await client.get(f"{self.base_url}/api/tags")
-                return response.status_code == 200
-        except Exception:  # noqa: BLE001
-            return False
+                res = await client.get(url)
+                if res.status_code == 200:
+                    data = res.json()
+                    raw_models = data.get("models", [])
+                    installed_models = [m.get("name", "") for m in raw_models if isinstance(m, dict)]
+                    # Model match check (e.g. 'llama3' vs 'llama3:latest')
+                    model_installed = any(
+                        m == self.model or m.startswith(f"{self.model}:") for m in installed_models
+                    )
+                    return {
+                        "available": True,
+                        "base_url": self.base_url,
+                        "model": self.model,
+                        "installed_models": installed_models,
+                        "model_installed": model_installed,
+                        "error": None,
+                    }
+                return {
+                    "available": False,
+                    "base_url": self.base_url,
+                    "model": self.model,
+                    "installed_models": [],
+                    "model_installed": False,
+                    "error": f"HTTP {res.status_code}",
+                }
+        except Exception as exc:  # noqa: BLE001
+            return {
+                "available": False,
+                "base_url": self.base_url,
+                "model": self.model,
+                "installed_models": [],
+                "model_installed": False,
+                "error": str(exc),
+            }
+
+    async def health_check(self) -> bool:
+        """Return True if the Ollama server responds to GET /api/tags."""
+        status = await self.get_status()
+        return status["available"]
 
     # ── Internals ─────────────────────────────────────────────────────────────
 

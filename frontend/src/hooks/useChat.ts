@@ -8,6 +8,7 @@ export function useChat(jobId: number | null) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
   const [isSending, setIsSending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const fetchHistory = useCallback(async () => {
     if (!jobId) return [];
@@ -16,8 +17,8 @@ export function useChat(jobId: number | null) {
       const history = await api.results.getChat(jobId);
       setMessages(history);
       return history;
-    } catch (error) {
-      console.error('Failed to fetch chat history:', error);
+    } catch (err: any) {
+      console.error('Failed to fetch chat history:', err);
       return [];
     } finally {
       setIsLoadingHistory(false);
@@ -27,11 +28,14 @@ export function useChat(jobId: number | null) {
   const analyzeInitial = useCallback(async () => {
     if (!jobId) return;
     setIsLoadingHistory(true);
+    setError(null);
     try {
       await api.results.analyze(jobId);
       await fetchHistory();
-    } catch (error) {
-      console.error('Failed to analyze initial report:', error);
+    } catch (err: any) {
+      console.error('Failed to analyze initial report:', err);
+      const msg = err?.message || 'Failed to connect to local Ollama server.';
+      setError(msg);
     } finally {
       setIsLoadingHistory(false);
     }
@@ -50,13 +54,15 @@ export function useChat(jobId: number | null) {
 
     setMessages((prev) => [...prev, tempUserMessage]);
     setIsSending(true);
+    setError(null);
 
     try {
       await api.results.sendChat(jobId, { content: content.trim() });
       await fetchHistory();
-    } catch (error) {
-      console.error('Failed to send chat message:', error);
+    } catch (err: any) {
+      console.error('Failed to send chat message:', err);
       setMessages((prev) => prev.filter((m) => m.id !== tempUserMessage.id));
+      setError(err?.message || 'Failed to send message to Ollama.');
     } finally {
       setIsSending(false);
     }
@@ -66,6 +72,8 @@ export function useChat(jobId: number | null) {
     messages,
     isLoadingHistory,
     isSending,
+    error,
+    setError,
     fetchHistory,
     analyzeInitial,
     sendMessage,

@@ -25,3 +25,18 @@ def require_admin(request: Request) -> None:
         return  # auth disabled, no role check
     if user_role != "admin":
         raise HTTPException(status_code=403, detail="Admin access required")
+
+
+def verify_resource_access(resource, request: Request) -> None:
+    """Verify current user owns the resource or is admin. No-op when auth disabled."""
+    from fastapi import HTTPException
+
+    user_id = getattr(request.state, "user_id", None)
+    if user_id is None:
+        return  # auth disabled
+    user_role = getattr(request.state, "user_role", None)
+    if user_role == "admin":
+        return
+    resource_user_id = getattr(resource, "user_id", None)
+    if resource_user_id is not None and resource_user_id != user_id:
+        raise HTTPException(status_code=403, detail="Forbidden: resource access denied")

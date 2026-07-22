@@ -164,17 +164,37 @@ export const api = {
       }),
   },
 
+  settings: {
+    getOllamaStatus: async () => {
+      const res = await request<ApiResponse<{
+        available: boolean;
+        base_url: string;
+        model: string;
+        installed_models: string[];
+        model_installed: boolean;
+        error: string | null;
+      }>>('/api/settings/ollama/status')
+      return res.data
+    },
+  },
+
   results: {
-    analyze: (jobId: number) =>
-      request<components['schemas']['AIAnalysisResponse']>(`/api/results/${jobId}/analyze`, {
+    analyze: async (jobId: number) => {
+      const res = await request<ApiResponse<components['schemas']['AIAnalysisResponse']>>(`/api/results/${jobId}/analyze`, {
         method: 'POST',
-      }),
-    getChat: (jobId: number) =>
-      request<components['schemas']['ChatMessageResponse'][]>(`/api/results/${jobId}/chat`),
-    sendChat: (jobId: number, payload: components['schemas']['ChatRequest']) =>
-      request<components['schemas']['ChatMessageResponse']>(`/api/results/${jobId}/chat`, {
+      })
+      return res.data
+    },
+    getChat: async (jobId: number) => {
+      const res = await request<ApiResponse<components['schemas']['ChatMessageResponse'][]>>(`/api/results/${jobId}/chat`)
+      return res.data ?? []
+    },
+    sendChat: async (jobId: number, payload: components['schemas']['ChatRequest']) => {
+      const res = await request<ApiResponse<components['schemas']['ChatMessageResponse']>>(`/api/results/${jobId}/chat`, {
         method: 'POST',
         body: JSON.stringify(payload),
-      }),
+      })
+      return res.data
+    },
   },
 }

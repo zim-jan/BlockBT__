@@ -114,8 +114,45 @@ def test_chat_releases_write_lock_during_llm_call(db_session, monkeypatch):
         assert {"pytanie analityka", "ODPOWIEDŹ LLM", "concurrent-writer"} <= contents
 
 
+def test_analyze_llm_error_returns_503_and_persists_nothing(db_session, monkeypatch):
+    """Błąd LLM w analyze -> 503 i brak zapisu w bazie danych."""
+    job_id = _create_job(with_report=False)
+
+    async def fake_generate(self, prompt, system=None):
+        return "[ERROR] Nie można połączyć się z Ollama"
+
+    monkeypatch.setattr(OllamaClient, "generate_report", fake_generate)
+
+    resp = client.post(f"/api/results/{job_id}/analyze")
+
+    assert resp.status_code == 503
+    with get_session() as db:
+        job = db.get(BacktestJob, job_id)
+        assert job.ai_analysis_report is None
+        assert len(job.chat_messages) == 0
+
+
+def test_chat_includes_system_prompt_and_handles_error(db_session, monkeypatch):
+    """Weryfikacja wstrzykiwania roli 'system' oraz zwrotu 503 przy błędzie Ollama."""
+    job_id = _create_job(with_report=True)
+    captured_messages = []
+
+    async def fake_chat(self, messages):
+        captured_messages.extend(messages)
+        return "ODPOWIEDŹ ANILITYKA"
+
+    monkeypatch.setattr(OllamaClient, "chat", fake_chat)
+
+    resp = client.post(f"/api/results/{job_id}/chat", json={"content": "pytanie użytkownika"})
+    assert resp.status_code == 200
+    assert len(captured_messages) > 0
+    assert captured_messages[0]["role"] == "system"
+    assert captured_messages[-1]["role"] == "user"
+    assert captured_messages[-1]["content"] == "pytanie użytkownika"
+
+
 def test_chat_llm_error_persists_nothing(db_session, monkeypatch):
-    """Błąd LLM → 500 i ZERO zapisów (wcześniej: rollback po fakcie)."""
+    """Błąd LLM → 503 i ZERO zapisów."""
     job_id = _create_job(with_report=True)
 
     async def fake_chat(self, messages):
@@ -125,7 +162,7 @@ def test_chat_llm_error_persists_nothing(db_session, monkeypatch):
 
     resp = client.post(f"/api/results/{job_id}/chat", json={"content": "pytanie"})
 
-    assert resp.status_code == 500
+    assert resp.status_code == 503
     with get_session() as db:
         job = db.get(BacktestJob, job_id)
         assert len(job.chat_messages) == 0

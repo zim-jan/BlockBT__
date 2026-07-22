@@ -1,12 +1,23 @@
 from fastapi import APIRouter, HTTPException
 from sqlalchemy import select
 
+from typing import Any
+
 from app.db.session import get_session
 from app.models.orm import AppSetting, SystemPrompt
 from app.schemas.base import ApiResponse
 from app.schemas.settings import AppSettingUpdate, SystemPromptCreate, SystemPromptResponse
+from app.services.mcp.llm_client import OllamaClient
 
 router = APIRouter()
+
+
+@router.get("/ollama/status", response_model=ApiResponse[dict[str, Any]])
+async def get_ollama_status() -> ApiResponse[dict[str, Any]]:
+    """Check Ollama connection health and model availability."""
+    client = OllamaClient()
+    status = await client.get_status()
+    return ApiResponse(success=True, data=status)
 
 
 @router.get("/", response_model=ApiResponse[dict[str, str]])
@@ -44,12 +55,7 @@ def list_system_prompts() -> ApiResponse[list[SystemPromptResponse]]:
     """List all system prompts."""
     with get_session() as db:
         prompts = db.execute(select(SystemPrompt).order_by(SystemPrompt.created_at)).scalars().all()
-        data = [
-            SystemPromptResponse(
-                id=p.id, name=p.name, content=p.content, is_default=p.is_default, created_at=p.created_at
-            )
-            for p in prompts
-        ]
+        data = [SystemPromptResponse.model_validate(p) for p in prompts]
         return ApiResponse(success=True, data=data)
 
 
@@ -69,9 +75,7 @@ def create_system_prompt(payload: SystemPromptCreate) -> ApiResponse[SystemPromp
         db.add(prompt)
         db.commit()
         db.refresh(prompt)
-        data = SystemPromptResponse(
-            id=prompt.id, name=prompt.name, content=prompt.content, is_default=prompt.is_default, created_at=prompt.created_at
-        )
+        data = SystemPromptResponse.model_validate(prompt)
         return ApiResponse(success=True, data=data)
 
 
@@ -87,9 +91,7 @@ def update_system_prompt(prompt_id: int, payload: SystemPromptCreate) -> ApiResp
         prompt.content = payload.content
         db.commit()
         db.refresh(prompt)
-        data = SystemPromptResponse(
-            id=prompt.id, name=prompt.name, content=prompt.content, is_default=prompt.is_default, created_at=prompt.created_at
-        )
+        data = SystemPromptResponse.model_validate(prompt)
         return ApiResponse(success=True, data=data)
 
 
@@ -132,7 +134,5 @@ def set_default_prompt(prompt_id: int) -> ApiResponse[SystemPromptResponse]:
         prompt.is_default = True
         db.commit()
         db.refresh(prompt)
-        data = SystemPromptResponse(
-            id=prompt.id, name=prompt.name, content=prompt.content, is_default=prompt.is_default, created_at=prompt.created_at
-        )
+        data = SystemPromptResponse.model_validate(prompt)
         return ApiResponse(success=True, data=data)

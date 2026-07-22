@@ -141,6 +141,14 @@ function DataSettingsTab() {
 function AIPromptsTab() {
   const queryClient = useQueryClient()
 
+  const { data: ollamaStatus, isLoading: isLoadingStatus } = useQuery({
+    queryKey: ['ollama-status'],
+    queryFn: async () => {
+      return await api.settings.getOllamaStatus()
+    },
+    refetchInterval: 10000,
+  })
+
   const { data: prompts, isLoading } = useQuery({
     queryKey: ['system-prompts'],
     queryFn: async () => {
@@ -228,6 +236,57 @@ function AIPromptsTab() {
 
   return (
     <div className="space-y-6">
+      {/* Ollama Connection Status Card */}
+      <div className="bg-surface-container-low border border-outline-variant/20 p-6 space-y-4">
+        <div className="flex items-center justify-between pb-4 border-b border-outline-variant/15">
+          <div>
+            <h3 className="font-headline text-lg font-bold text-on-surface flex items-center gap-2">
+              <Server className="w-5 h-5 text-primary" /> Ollama Local LLM Server
+            </h3>
+            <p className="font-label text-xs text-on-surface-variant mt-0.5">
+              Status of your local Ollama instance for executing report generation.
+            </p>
+          </div>
+          {isLoadingStatus ? (
+            <span className="px-2.5 py-1 text-[11px] font-medium tracking-wide uppercase bg-surface-container text-on-surface-variant border border-outline-variant/30">
+              Checking status...
+            </span>
+          ) : ollamaStatus?.available ? (
+            <span className="px-2.5 py-1 text-[11px] font-medium tracking-wide uppercase bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center gap-1.5">
+              <CheckCircle2 className="w-3.5 h-3.5" /> Ollama Connected
+            </span>
+          ) : (
+            <span className="px-2.5 py-1 text-[11px] font-medium tracking-wide uppercase bg-red-500/10 text-red-400 border border-red-500/20 flex items-center gap-1.5">
+              <AlertTriangle className="w-3.5 h-3.5" /> Ollama Unreachable
+            </span>
+          )}
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs text-on-surface-variant">
+          <div className="bg-surface-container border border-outline-variant/20 p-3.5 space-y-1">
+            <span className="font-semibold text-on-surface block">Server URL</span>
+            <code className="text-primary font-mono">{ollamaStatus?.base_url || 'http://localhost:11434'}</code>
+          </div>
+          <div className="bg-surface-container border border-outline-variant/20 p-3.5 space-y-1">
+            <span className="font-semibold text-on-surface block">Target Model</span>
+            <code className="text-primary font-mono">{ollamaStatus?.model || 'llama3'}</code>
+            {ollamaStatus?.available && !ollamaStatus?.model_installed && (
+              <p className="text-amber-400 text-[11px] mt-1 flex items-center gap-1">
+                <AlertTriangle className="w-3 h-3" /> Model not pulled yet (`ollama pull {ollamaStatus?.model}`)
+              </p>
+            )}
+          </div>
+          <div className="bg-surface-container border border-outline-variant/20 p-3.5 space-y-1">
+            <span className="font-semibold text-on-surface block">Installed Models</span>
+            {ollamaStatus?.installed_models && ollamaStatus.installed_models.length > 0 ? (
+              <p className="font-mono text-[11px] text-on-surface">{ollamaStatus.installed_models.join(', ')}</p>
+            ) : (
+              <p className="text-on-surface-variant/70 italic text-[11px]">No models found or server offline</p>
+            )}
+          </div>
+        </div>
+      </div>
+
       {/* Prompts List Card */}
       <div className="bg-surface-container-low border border-outline-variant/20 p-6 space-y-6">
         <div className="flex items-center justify-between pb-4 border-b border-outline-variant/15">

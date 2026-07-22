@@ -8,6 +8,7 @@ Jesteś Głównym Architektem i Programistą w projekcie BlockBT. Pracujesz w ry
 4. Zanim zaczniesz pisać nowy kod, masz OBOWIĄZEK użyć narzędzia MCP `get_domain_context`, aby dowiedzieć się, w którym katalogu pracować i jakich klas bazowych użyć.
 5. Jeśli dana faza jest zakończona, czyli potwierdzona testami, razem z manualnymi, dokumentacja projektu jest też aktualna. Oznacz sekcje statusem DONE, i uaktualnij domain_context w backend/app/services/mcp/router.py
 6. ~~ZADANIA ZDELEGOWANE: Jeśli jakikolwiek punkt planu lub faza ma status [JULES]...~~ **[WYCOFANE — decyzja Janka 2026-07-13]:** reguła [JULES] NIE obowiązuje. Ignoruj wszelkie oznaczenia [JULES]; nie ma zadań delegowanych do agenta asynchronicznego. (Spójne z głównym CLAUDE.md.)
+7. **Graphify Knowledge Graph:** Gdy zapytanie dotyczy architektury, powiązań między plikami lub koncepcji w kodzie, OBOWIĄZKOWO w pierwszej kolejności korzystaj z grafu wiedzy `graphify` (`graphify query "<pytanie>"`, `graphify path`, `graphify explain` lub skilla `graphify`). Po zmianach w kodzie uruchom `graphify update .` aby odświeżyć graf wiedzy.
 
 ## [ARCHITECTURE CONSTRAINTS]
 * **Dual-Engine Pattern:** Logika musi zawsze posiadać fallback na darmowy `vectorbt`.
@@ -249,7 +250,14 @@ Jesteś Głównym Architektem i Programistą w projekcie BlockBT. Pracujesz w ry
   6. **Frontend Auth Store & Guard:** `authStore.ts` (Zustand persist), `ProtectedRoute.tsx` (guard tras), `api.ts` (wstrzykiwanie Bearer + 401 redirect). [DONE]
   7. **Frontend UI:** `LoginPage.tsx` (ekran logowania w ciemnym motywie MD3), `SettingsPage.tsx` (zakładka User Management + switch auth_enabled + tabela CRUD z TanStack Query), `Sidebar.tsx` (awatar, nazwa użytkownika, przycisk wylogowania). [DONE]
   8. **Testy & Build:** backend 243 testy przechodzą, frontend `tsc -b && vite build` bez błędów. [DONE]
-  
+
+* **Faza 17: Weryfikacja i stabilizacja analizy AI z Ollama** [DONE]
+  Cel: Naprawa zawieszania się aplikacji przy braku połączenia z Ollama, wstrzykiwanie ról systemowych do czatu oraz health check.
+  1. **Health Check & Dynamic Config:** Endpoint `GET /api/settings/ollama/status` + dynamiczne pobieranie `ollama_base_url`/`ollama_model` z `AppSetting` z fallbackiem do env vars. [DONE]
+  2. **Error Handling & Non-persistence:** Błędy połączenia/LLM w `/analyze` i `/chat` nie utrwalają tekstów `[ERROR]` w DB, zwracają HTTP 503 Service Unavailable. [DONE]
+  3. **System Prompt Chat Context:** Domyślny `SystemPrompt` dodawany jako wiadomość `role: "system"` do konwersacji wieloturowych (`add_chat_message`). [DONE]
+  4. **Frontend Error & Status UI:** Dedykowany widget statusu Ollama w `SettingsPage.tsx`, obsługa błędów, unwrap wyników API oraz przycisk "Retry Analysis" w `ChatPanel.tsx`. [DONE]
+  5. **Testy & Dokumentacja:** 8 testów automatycznych Ollamy (253 łączna suita backendu pass), instrukcja testów manualnych w `TESTY_MANUALNE/17_ollama_ai_analysis.md`. [DONE]
 
 * **Faza xx: Konteneryzacja, docker i docker compose**
   * STATUS : [PENDING]

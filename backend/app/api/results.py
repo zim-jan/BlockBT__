@@ -3,9 +3,10 @@ from typing import Any
 
 import numpy as np
 import pandas as pd
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from loguru import logger
 
+from app.core.user_scope import verify_resource_access
 from app.db.session import get_session
 from app.models.orm import BacktestJob, ChatMessage
 from app.schemas.base import ApiResponse
@@ -23,12 +24,13 @@ router = APIRouter()
 
 
 @router.get("/{job_id}", response_model=ApiResponse[dict[str, Any]])
-def get_simulation_result(job_id: int) -> ApiResponse[dict[str, Any]]:
+def get_simulation_result(job_id: int, request: Request) -> ApiResponse[dict[str, Any]]:
     """Retrieve the status and metrics of a backtest run by its Simulation ID."""
     with get_session() as db:
         job = db.get(BacktestJob, job_id)
         if not job:
             raise HTTPException(status_code=404, detail="Simulation Result not found")
+        verify_resource_access(job, request)
 
         data = {
             "id": job.id,
@@ -51,21 +53,14 @@ def get_simulation_result(job_id: int) -> ApiResponse[dict[str, Any]]:
             "ai_analysis_report": job.ai_analysis_report,
             "error_log": job.error_message,
         }
-        return ApiResponse(success=True, data=data)
-
-
-@router.get("/{job_id}/tearsheet", response_model=ApiResponse[TearsheetResponse])
-def get_tearsheet(job_id: int) -> ApiResponse[TearsheetResponse]:
-    """Faza 13: generuje tearsheet HTML z metryk ukończonego backtestu.
-
-    ``BacktestJob`` nie przechowuje żywego obiektu vbt Portfolio, więc budujemy
-    lekki adapter udostępniający ``stats()`` na podstawie zapisanych metryk joba,
-    a następnie renderujemy air-gapped HTML przez ``QSAdapterService``.
-    """
+        return ApiResponse(success=True, data=data)@router.get("/{job_id}/tearsheet", response_model=ApiResponse[TearsheetResponse])
+def get_tearsheet(job_id: int, request: Request) -> ApiResponse[TearsheetResponse]:
+    """Faza 13: generuje tearsheet HTML z metryk ukończonego backtestu."""
     with get_session() as db:
         job = db.get(BacktestJob, job_id)
         if not job:
             raise HTTPException(status_code=404, detail="Simulation Result not found")
+        verify_resource_access(job, request)
 
         if job.status.upper() != "COMPLETED":
             raise HTTPException(
@@ -74,9 +69,6 @@ def get_tearsheet(job_id: int) -> ApiResponse[TearsheetResponse]:
             )
 
         # Metryki nagłówkowe (kolumny) + elastyczny słownik `metrics` (JSON).
-        # Pomijamy wartości `None` — brak metryki nie powinien pojawiać się w tabeli
-        # jako pusty wiersz; dzięki temu pusty `stats` poprawnie trafia w gałąź
-        # "Brak dostępnych metryk" w QSAdapterService, zamiast renderować same myślniki.
         raw_headline: dict[str, Any] = {
             "Total Return [%]": job.total_return_pct,
             "Sharpe Ratio": job.sharpe_ratio,
@@ -90,11 +82,6 @@ def get_tearsheet(job_id: int) -> ApiResponse[TearsheetResponse]:
             for key, value in job.metrics.items():
                 if value is None:
                     continue
-                # Pomijamy złożone struktury (np. equity_curve_json) — tabela to skalary.
-                # Numpy scalary (np. numpy.float64/int64 z etapu backtestu) rzutujemy
-                # jawnie na natywny float, żeby nie trafiły w niezmienionej postaci
-                # do JSON-a (np.float64 nie jest natywnie serializowalny/porównywalny
-                # tak jak float w niektórych ścieżkach).
                 if isinstance(value, np.floating | np.integer):
                     stats.setdefault(str(key), float(value))
                 elif isinstance(value, (int, float, str)):
@@ -110,8 +97,6 @@ def get_tearsheet(job_id: int) -> ApiResponse[TearsheetResponse]:
             def stats(self) -> dict[str, Any]:
                 return stats
 
-        # Jedno źródło czasu: przekazujemy generated_at do wnętrza HTML, żeby nie
-        # dublować niezależnie generowanego znacznika czasu w treści i w odpowiedzi API.
         generated_at = datetime.datetime.now(datetime.UTC)
         html_output = QSAdapterService.generate_tearsheet(
             _StoredMetricsPortfolio(), generated_at=generated_at
@@ -127,18 +112,14 @@ def get_tearsheet(job_id: int) -> ApiResponse[TearsheetResponse]:
 
 
 @router.post("/{job_id}/analyze", response_model=ApiResponse[AIAnalysisResponse])
-async def analyze_simulation_result(job_id: int) -> ApiResponse[AIAnalysisResponse]:
-    """Generate an AI analysis report for a completed simulation.
-
-    Audyt 2026-07-17: sesja DB jest zamykana PRZED wywołaniem LLM (potrafi
-    trwać dziesiątki sekund) — wcześniej otwarta sesja trzymana przez await
-    blokowała pulę połączeń; persystencja odbywa się w drugiej, krótkiej sesji.
-    """
+async def analyze_simulation_result(job_id: int, request: Request) -> ApiResponse[AIAnalysisResponse]:
+    """Generate an AI analysis report for a completed simulation."""
     # 1) Krótka sesja: walidacja + zebranie danych do promptu
     with get_session() as db:
         job = db.get(BacktestJob, job_id)
         if not job:
             raise HTTPException(status_code=404, detail="Simulation Result not found")
+        verify_resource_access(job, request)
 
         if job.status.upper() != "COMPLETED":
             raise HTTPException(
@@ -151,8 +132,7 @@ async def analyze_simulation_result(job_id: int) -> ApiResponse[AIAnalysisRespon
                 data=AIAnalysisResponse(prompt=None, report=job.ai_analysis_report),
             )
 
-        # Kopia — nie mutujemy ORM-owego JSON-a job.metrics (audyt 2026-07-17:
-        # wcześniejsza mutacja in-place wstrzykiwała m.in. pd.Series do atrybutu ORM)
+        # Kopia — nie mutujemy ORM-owego JSON-a job.metrics
         result = dict(job.metrics or {})
         result["symbol"] = job.parameters_snapshot.get("symbol", "UNKNOWN")
         result["timeframe"] = job.parameters_snapshot.get("timeframe", "1d")
@@ -191,9 +171,19 @@ async def analyze_simulation_result(job_id: int) -> ApiResponse[AIAnalysisRespon
         result=result, strategy_name=strategy_name, raw_params=raw_params
     )
     prompt = payload.to_prompt()
+    logger.info(
+        "analyze_simulation_result: generated prompt for job_id={} strategy='{}' prompt_len={}",
+        job_id,
+        strategy_name,
+        len(prompt),
+    )
 
     # 2) LLM poza sesją — żadne połączenie z puli nie jest trzymane przez await
     report = await OllamaClient().generate_report(prompt, system=system_content)
+
+    if report.startswith("[ERROR]"):
+        logger.error("AI Analysis failed for job_id={}: {}", job_id, report)
+        raise HTTPException(status_code=503, detail=report)
 
     # 3) Krótka sesja: persystencja raportu i historii czatu
     with get_session() as db:
@@ -212,12 +202,13 @@ async def analyze_simulation_result(job_id: int) -> ApiResponse[AIAnalysisRespon
 
 
 @router.get("/{job_id}/chat", response_model=ApiResponse[list[ChatMessageResponse]])
-def get_chat_history(job_id: int) -> ApiResponse[list[ChatMessageResponse]]:
+def get_chat_history(job_id: int, request: Request) -> ApiResponse[list[ChatMessageResponse]]:
     """Retrieve the chat history for a specific backtest job."""
     with get_session() as db:
         job = db.get(BacktestJob, job_id)
         if not job:
             raise HTTPException(status_code=404, detail="Simulation Result not found")
+        verify_resource_access(job, request)
 
         messages = sorted(job.chat_messages, key=lambda m: m.created_at)
         data = [
@@ -230,37 +221,48 @@ def get_chat_history(job_id: int) -> ApiResponse[list[ChatMessageResponse]]:
 
 
 @router.post("/{job_id}/chat", response_model=ApiResponse[ChatMessageResponse])
-async def add_chat_message(job_id: int, request: ChatRequest) -> ApiResponse[ChatMessageResponse]:
-    """Pobiera wiadomość analityka, przekazuje kontekst i zwraca odpowiedź LLM.
-
-    Audyt 2026-07-17: wcześniej ``flush()`` otwierał transakcję ZAPISU
-    trzymaną przez cały await LLM — każdy inny pisarz SQLite dostawał
-    ``database is locked``. Teraz: krótka sesja na odczyt historii →
-    LLM poza sesją → druga krótka sesja zapisuje parę wiadomości atomowo
-    (błąd LLM = zero zapisów, bez rollbacku po fakcie).
-    """
-    # 1) Krótka sesja: walidacja + odczyt historii czatu
+async def add_chat_message(job_id: int, request_body: ChatRequest, request: Request) -> ApiResponse[ChatMessageResponse]:
+    """Pobiera wiadomość analityka, przekazuje kontekst i zwraca odpowiedź LLM."""
+    # 1) Krótka sesja: walidacja + odczyt historii czatu i promptu systemowego
     with get_session() as db:
         job = db.get(BacktestJob, job_id)
         if not job:
             raise HTTPException(status_code=404, detail="Simulation Result not found")
+        verify_resource_access(job, request)
 
         if not job.ai_analysis_report:
             raise HTTPException(
                 status_code=400, detail="Cannot start chat without initial AI analysis report."
             )
 
+        from sqlalchemy import select
+
+        from app.models.orm import SystemPrompt
+        from app.services.mcp.llm_client import _SYSTEM_PROMPT
+
+        system_prompt = db.execute(
+            select(SystemPrompt).where(SystemPrompt.is_default == True)  # noqa: E712
+        ).scalar_one_or_none()
+        system_content = system_prompt.content if system_prompt else _SYSTEM_PROMPT
+
         history = sorted(job.chat_messages, key=lambda m: m.created_at)
-        llm_messages = [{"role": m.role, "content": m.content} for m in history]
+        llm_messages: list[dict[str, str]] = [{"role": "system", "content": system_content}]
+        llm_messages.extend([{"role": m.role, "content": m.content} for m in history])
 
     # Nowa wiadomość analityka dokładana do kontekstu bez zapisu do DB
-    llm_messages.append({"role": "user", "content": request.content})
+    llm_messages.append({"role": "user", "content": request_body.content})
+    logger.info(
+        "add_chat_message: sending chat request for job_id={} user_msg_len={} total_history={}",
+        job_id,
+        len(request_body.content),
+        len(llm_messages),
+    )
 
     # 2) Wywołanie Ollamy poza sesją/transakcją
     response_content = await OllamaClient().chat(llm_messages)
 
     if response_content.startswith("[ERROR]"):
-        raise HTTPException(status_code=500, detail=response_content)
+        raise HTTPException(status_code=503, detail=response_content)
 
     # 3) Krótka sesja: atomowy zapis pary user/assistant
     with get_session() as db:
@@ -268,7 +270,7 @@ async def add_chat_message(job_id: int, request: ChatRequest) -> ApiResponse[Cha
         if not job:
             raise HTTPException(status_code=404, detail="Simulation Result not found")
 
-        user_message = ChatMessage(job_id=job.id, role="user", content=request.content)
+        user_message = ChatMessage(job_id=job.id, role="user", content=request_body.content)
         assistant_message = ChatMessage(job_id=job.id, role="assistant", content=response_content)
         db.add_all([user_message, assistant_message])
         db.commit()
