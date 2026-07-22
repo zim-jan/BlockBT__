@@ -82,7 +82,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ jobId, isOpen, onClose }) 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed right-0 top-0 h-full w-[420px] bg-surface-container-low shadow-2xl border-l border-outline-variant/30 flex flex-col z-[9999] transform transition-transform duration-300 translate-x-0 font-body text-on-surface dark">
+    <div className="flex-none h-full w-[420px] bg-surface-container-low shadow-2xl border-l border-outline-variant/30 flex flex-col font-body text-on-surface dark">
       {/* Header */}
       <div className="flex justify-between items-center p-4 border-b border-outline-variant/20 bg-surface-container">
         <div>

@@ -4,7 +4,6 @@ import { WorkflowEditor } from './WorkflowEditor'
 import { ReactFlowProvider } from '@xyflow/react'
 import { useWorkflowStore } from '../../store/workflowStore'
 
-// Helper to wrap component with ReactFlowProvider
 const renderWithProvider = (component: React.ReactNode) => {
   return render(
     <ReactFlowProvider>
@@ -22,8 +21,8 @@ describe('WorkflowEditor', () => {
 
   it('renders correctly', () => {
     renderWithProvider(<WorkflowEditor />)
-    expect(screen.getByText(/Add Data Node/i)).toBeInTheDocument()
-    expect(screen.getByText(/SAVE/i)).toBeInTheDocument()
+    expect(screen.getByText(/Data Source/i)).toBeInTheDocument()
+    expect(screen.getByText(/Zapisz/i)).toBeInTheDocument()
   })
 
   it('toggles Easy Connect mode', () => {
@@ -39,7 +38,7 @@ describe('WorkflowEditor', () => {
 
   it('adds a node when button is clicked', async () => {
     renderWithProvider(<WorkflowEditor />)
-    const addDataBtn = screen.getByText(/Add Data Node/i)
+    const addDataBtn = screen.getByText(/\+ Data Source/i)
     
     fireEvent.click(addDataBtn)
     

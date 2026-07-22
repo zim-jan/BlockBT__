@@ -9,9 +9,10 @@
  *  5. Write results back to the PortfolioNode via updatePortfolioResult.
  */
 
-import {useCallback, useEffect, useRef} from 'react'
+import {useCallback, useEffect, useMemo, useRef} from 'react'
 import {useWorkflowStore} from '../store/workflowStore'
 import {api} from '../services/api'
+import {showToast} from '../store/useToastStore'
 // import type {components} from '../services/api.d'
 import type {BacktestMetrics, DataNodeData, IndicatorNodeData, JobStatus, MultiBacktestResult} from '../types/types'
 
@@ -24,6 +25,19 @@ export function useWorkflowExecution() {
   // Audyt 2026-07-17: synchroniczny guard przed podwójnym triggerem
   // (isRunning z closure aktualizuje się dopiero po re-renderze)
   const inFlight = useRef(false)
+
+  // Phase 20: pre-flight validation — disables RUN buttons when required config is missing
+  const canRunBacktest = useMemo(() => {
+    const dataNode = nodes.find((n) => n.type === 'dataNode')
+    const indicatorNode = nodes.find((n) => n.type === 'indicatorNode')
+    const portfolioNode = nodes.find((n) => n.type === 'portfolioNode')
+    if (!dataNode || !indicatorNode || !portfolioNode) return false
+    if (edges.length === 0) return false
+    const dData = dataNode.data as Record<string, unknown>
+    if (!dData.symbol || (typeof dData.symbol === 'string' && dData.symbol.trim() === '')) return false
+    if (!dData.timeframe) return false
+    return true
+  }, [nodes, edges])
 
   const stopPolling = useCallback(() => {
     if (pollTimer.current) {
@@ -42,13 +56,13 @@ export function useWorkflowExecution() {
     const portfolioNode = nodes.find((n) => n.type === 'portfolioNode')
 
     if (!dataNode || !indicatorNode || !portfolioNode) {
-      alert('The canvas must contain a Data node, an Indicator node, and a Portfolio node.')
+      showToast.warning('Brakująca struktura DAG', 'Kanwa musi zawierać co najmniej węzły Data, Indicator oraz Portfolio.')
       return
     }
 
     // Edge validation is delegated to backend GraphParser via /api/backtest/dag
     if (edges.length === 0) {
-      alert('Nodes must be connected. Use edges to link Data → Indicator → Portfolio.')
+      showToast.warning('Brakujące połączenia', 'Węzły muszą być połączone krawędziami (np. Data → Indicator → Portfolio).')
       return
     }
 
@@ -57,20 +71,17 @@ export function useWorkflowExecution() {
 
     const symbol: string = dData.symbol ?? 'AAPL'
     const dataSource: string = dData.dataSource ?? 'yahoo'
-    // const startDate: string = dData.startDate ?? '2023-01-01'
-    // const endDate: string = dData.endDate ?? '2025-01-01'
 
     const indicatorType: string = iData.indicatorType ?? 'sma_crossover'
     const smaFast: number = Number(iData.smaFast ?? 10)
     const smaSlow: number = Number(iData.smaSlow ?? 30)
-    // Kapitał początkowy czytany z bloku Portfolio (review 2026-07-16)
     const pData = portfolioNode.data as Record<string, unknown>
     const initialCapital: number = Number(pData.init_cash ?? 10000)
     const codeContent: string = iData.codeContent ?? ""
 
     // SMA validation (only for SMA crossover)
     if (indicatorType === 'sma_crossover' && smaFast >= smaSlow) {
-      alert('Fast SMA must be smaller than Slow SMA.')
+      showToast.warning('Nieprawidłowe parametry', 'Wartość Fast SMA musi być mniejsza od Slow SMA.')
       return
     }
 
@@ -202,5 +213,5 @@ export function useWorkflowExecution() {
   // Cleanup polling timer on unmount to prevent memory leaks
   useEffect(() => () => stopPolling(), [stopPolling])
 
-  return { runBacktest, stopPolling: () => { stopPolling(); resetExecution() }, isRunning }
+  return { runBacktest, stopPolling: () => { stopPolling(); resetExecution() }, isRunning, canRunBacktest }
 }

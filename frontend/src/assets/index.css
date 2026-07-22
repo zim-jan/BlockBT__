@@ -10,23 +10,82 @@
   padding: 0;
 }
 
+html, body {
+  color-scheme: dark;
+  background-color: #0b0d14;
+  color: #f9fafb;
+}
+
+/* Wymuszenie czystego kontrastu dla kontrolek formularzy i rozwijanych opcji menu */
+input, select, textarea {
+  color-scheme: dark;
+  color: #f9fafb;
+}
+
+select option {
+  background-color: #131722 !important;
+  color: #f9fafb !important;
+}
+
 :root {
-  --bg-primary: #0a0d14;
-  --bg-secondary: #111827;
-  --bg-card: #161d2e;
-  --bg-card-hover: #1e2a40;
+  /* Tła i Powierzchnie (Elevation Layering) */
+  --bg-app: #0b0d14;           /* Deep Midnight Black/Blue - Główne tło aplikacji */
+  --bg-surface-1: #131722;     /* Topbar, Sidebar, Panel boczny, Modale */
+  --bg-surface-2: #1c2130;     /* Węzły kanwy, podświetlone karty, sekcje wejściowe */
+  --bg-surface-hover: #262c3e; /* Stan hover przycisków i wierszy */
+  --bg-surface-active: #31384e;/* Stan active/pressed */
+
+  /* Obramowania i Linie (Subtle Borders) */
+  --border-subtle: rgba(255, 255, 255, 0.08); /* Domyślne ramki kart */
+  --border-medium: rgba(255, 255, 255, 0.16); /* Obramowania wierszy i sekcji */
+  --border-strong: #4f5875;                   /* Hover/Focus na obramowaniu */
+  --border-accent: #6366f1;                   /* Ramka aktywnego węzła / wybranego elementu */
+
+  /* Kolory Semantyczne Węzłów DAG */
+  --node-data: #2563eb;        /* Data Source (Niebieski) */
+  --node-indicator: #7c3aed;   /* Indicators (Fioletowy) */
+  --node-logic: #d97706;       /* Signal Logic / Operators (Bursztynowy) */
+  --node-execution: #059669;   /* Portfolio / Execution (Szmaragdowy) */
+  --node-optimizer: #ec4899;   /* Optuna / WFO Optimizer (Różowy) */
+
+  /* Akcenty i Stany Aplikacji */
+  --accent-primary: #6366f1;   /* Indigo - Główny kolor akcji */
+  --accent-primary-hover: #4f46e5;
+  --accent-success: #10b981;   /* Zyski, sukces, aktywne połączenie */
+  --accent-warning: #f59e0b;   /* Ostrzeżenia, przestarzały stan węzła */
+  --accent-danger: #ef4444;    /* Straty, błędy validation, usuwanie */
+
+  /* Typografia */
+  --text-main: #f9fafb;        /* Główny jasny tekst */
+  --text-muted: #9ca3af;       /* Podpis, etykiety pól, szary tekst */
+  --text-disabled: #4b5563;    /* Wyłączone opcje */
+
+  /* Promienie Zaokrągleń */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+
+  /* Cienie i Efekty Głębokości */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.5), 0 2px 4px -1px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 10px 25px -5px rgba(0, 0, 0, 0.6), 0 8px 10px -6px rgba(0, 0, 0, 0.4);
+  --glow-accent: 0 0 15px rgba(99, 102, 241, 0.35);
+  --glow-success: 0 0 12px rgba(16, 185, 129, 0.35);
+
+  /* Legacy variables compatibility */
+  --bg-primary: var(--bg-app);
+  --bg-secondary: var(--bg-surface-1);
+  --bg-card: var(--bg-surface-2);
+  --bg-card-hover: var(--bg-surface-hover);
   --accent-cyan: #06b6d4;
   --accent-violet: #7c3aed;
-  --accent-emerald: #10b981;
-  --accent-amber: #f59e0b;
-  --text-primary: #f1f5f9;
-  --text-secondary: #94a3b8;
-  --text-muted: #475569;
-  --border: rgba(99, 120, 175, 0.15);
-  --glow-cyan: 0 0 30px rgba(6, 182, 212, 0.25);
-  --glow-violet: 0 0 30px rgba(124, 58, 237, 0.2);
-  --radius: 12px;
-  --radius-sm: 8px;
+  --accent-emerald: var(--accent-success);
+  --accent-amber: var(--accent-warning);
+  --text-primary: var(--text-main);
+  --text-secondary: var(--text-muted);
+  --border: var(--border-subtle);
+  --radius: var(--radius-lg);
 }
 
 html, body {
@@ -267,4 +326,37 @@ html, body {
   box-sizing: border-box;
   width: 100%;
   margin-bottom: 8px;
+}
+
+/* ---------------------------------------------------------------------------
+ * Phase 20: Animation keyframes for InspectorPanel, ToastContainer, Modals.
+ * The project uses animate-in/slide-in-from-right/fade-in classes (shadcn
+ * convention) but has NO tailwindcss-animate plugin. Without these custom
+ * keyframes those elements render invisible (stuck at transform/opacity 0).
+ * --------------------------------------------------------------------------- */
+@keyframes slideInFromRight {
+  from { transform: translateX(100%); opacity: 0; }
+  to   { transform: translateX(0);    opacity: 1; }
+}
+
+@keyframes slideInFromBottom {
+  from { transform: translateY(20px); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.animate-in.slide-in-from-right {
+  animation: slideInFromRight 0.3s ease-out both;
+}
+
+.animate-in.slide-in-from-bottom-5 {
+  animation: slideInFromBottom 0.3s ease-out both;
+}
+
+.animate-in.fade-in {
+  animation: fadeIn 0.2s ease-out both;
 }

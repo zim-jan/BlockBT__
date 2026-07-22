@@ -1,145 +1,85 @@
-import {Handle, type Node, type NodeProps, Position} from '@xyflow/react'
-import {useWorkflowStore} from '../../../store/workflowStore'
-import {useWorkflowOptimization} from '../../../hooks/useWorkflowOptimization'
-import type {WfoNodeData} from '../../../types/types'
-import {CategoryBadge} from './CategoryBadge'
+import { Handle, type Node, type NodeProps, Position } from '@xyflow/react'
+import { useWorkflowOptimization } from '../../../hooks/useWorkflowOptimization'
+import type { WfoNodeData } from '../../../types/types'
+import { CategoryBadge } from './CategoryBadge'
+import { useWorkflowStore } from '../../../store/workflowStore'
 
 export type WfoNode = Node<WfoNodeData, 'wfoNode'>
 
-export function WfoNode({ id, data }: NodeProps<WfoNode>) {
-  const updateNodeData = useWorkflowStore((s) => s.updateNodeData)
+export function WfoNode({ id, data, selected }: NodeProps<WfoNode>) {
+  const { selectedNodeId, setSelectedNodeId } = useWorkflowStore()
+  const isSelected = Boolean(selected || selectedNodeId === id)
+
   const { runWfo, isRunning: isExecutionRunning } = useWorkflowOptimization()
   const { jobStatus, windowSize, stepSize, error, results } = data
+  const mode = (data as any).mode ?? 'rolling'
+  const metric = (data as any).metric ?? 'Total Return [%]'
 
-  // Formatowanie metryk: liczba -> 2 miejsca, brak wartości -> myślnik
-  const fmt = (v?: number) => (typeof v === 'number' ? v.toFixed(2) : '—')
-
-  const isPending = jobStatus === 'PENDING'
-  const isRunning = jobStatus === 'RUNNING'
   const isCompleted = jobStatus === 'COMPLETED'
   const isFailed = jobStatus === 'FAILED'
 
   return (
-    <div className={`rf-node rf-node--optimizer ${isCompleted ? 'rf-node--completed' : ''} ${isFailed ? 'rf-node--failed' : ''}`}>
+    <div
+      onClick={(e) => {
+        e.stopPropagation()
+        console.log(`[CanvasNode] 🖱️ Clicked WfoNode: id=${id}`)
+        setSelectedNodeId(id)
+      }}
+      className={`rf-node rf-node--optimizer bg-[#1c2130] border rounded-xl shadow-lg text-slate-100 p-3 min-w-[220px] cursor-pointer transition-all ${
+        isSelected ? 'border-pink-400 ring-2 ring-pink-400/50 shadow-pink-500/20' : isCompleted ? 'border-pink-500/60 shadow-pink-500/10' : 'border-pink-500/30'
+      }`}
+    >
       <Handle type="target" position={Position.Left} style={{ zIndex: 10 }} />
-      <div className="rf-node__header react-flow__node-drag-handle">
-        <span className="rf-node__icon">🔄</span>
-        <span className="rf-node__title">Walk-Forward</span>
+
+      <div className="flex items-center justify-between border-b border-white/10 pb-2 mb-2 react-flow__node-drag-handle">
+        <div className="flex items-center gap-2 font-semibold text-xs text-pink-400">
+          <span>🔄</span>
+          <span>Walk-Forward</span>
+        </div>
         <CategoryBadge category="Meta" />
-        {jobStatus && (
-          <span className={`rf-status-pill ${
-            isPending ? 'rf-status-pill--pending' :
-            isRunning ? 'rf-status-pill--running' :
-            isCompleted ? 'rf-status-pill--completed' :
-            'rf-status-pill--failed'
-          }`}>
-            {isPending && '⏳'}
-            {isRunning && '⚙️'}
-            {isCompleted && '✅'}
-            {isFailed && '❌'}
-          </span>
-        )}
       </div>
 
-      <div className="rf-node__body">
-        {!isPending && !isRunning && (
-          <button
-            onClick={runWfo}
-            disabled={isExecutionRunning}
-            className="rf-btn rf-btn-primary w-full mb-2"
-            style={{ position: 'relative', zIndex: 10, background: '#6366f1' }}
-          >
-            {isExecutionRunning ? 'Rolling...' : 'Run WFO'}
-          </button>
-        )}
-        <label className="rf-label">Window Size</label>
-        <input
-          type="text"
-          value={windowSize}
-          onChange={(e) => updateNodeData(id as string, { windowSize: e.target.value })}
-          className="rf-input"
-          placeholder="e.g. 365d"
-        />
+      <div className="space-y-1.5 font-mono text-xs">
+        {/* Window & Step */}
+        <div className="flex items-center justify-between bg-[#0b0d14] px-2 py-1 rounded border border-white/5">
+          <span className="text-slate-400 text-[11px]">Okno / Krok:</span>
+          <span className="font-bold text-slate-100">{windowSize || '365d'} / {stepSize || '90d'}</span>
+        </div>
 
-        <label className="rf-label">Step Size</label>
-        <input
-          type="text"
-          value={stepSize}
-          onChange={(e) => updateNodeData(id as string, { stepSize: e.target.value })}
-          className="rf-input"
-          placeholder="e.g. 90d"
-        />
+        {/* Mode & Metric */}
+        <div className="flex items-center justify-between bg-[#0b0d14] px-2 py-1 rounded border border-white/5 text-[11px]">
+          <span className="text-slate-400 capitalize">{mode}</span>
+          <span className="text-pink-300 font-semibold truncate max-w-[100px]">{metric}</span>
+        </div>
 
-        {(isPending || isRunning) && (
-          <div className="flex flex-col items-center py-2">
-            <div className="animate-spin w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full mb-1" />
-            <p className="rf-hint">{isRunning ? 'Rolling...' : 'Queued'}</p>
-          </div>
-        )}
-
-        {isCompleted && !results && (
-          <div className="mt-2 text-xs text-green-600 font-medium text-center">
-            WFO Complete
-          </div>
-        )}
-
-        {isCompleted && results && (
-          <div
-            className="rf-metrics"
-            style={{ marginTop: 10, padding: 8, background: 'rgba(16, 185, 129, 0.1)', border: '1px solid rgba(16, 185, 129, 0.3)', borderRadius: 8 }}
-          >
-            <div style={{ color: '#10b981', fontWeight: 600, fontSize: 11, marginBottom: 4 }}>
-              Walk-Forward Results
-            </div>
-
-            {results.overall_metrics && (
-              <div style={{ fontSize: 10, marginBottom: 4 }}>
-                <div>OOS Total Return: {fmt(results.overall_metrics['Total Return [%]'])}%</div>
-                <div>OOS Sharpe: {fmt(results.overall_metrics['Sharpe Ratio'])}</div>
-              </div>
-            )}
-
-            {typeof results.n_windows === 'number' && (
-              <div style={{ fontSize: 10, color: '#94a3b8', marginBottom: 4 }}>
-                {results.n_windows} windows ({results.n_failed_windows ?? 0} failed)
-              </div>
-            )}
-
-            {results.best_parameters && (
-              <div style={{ fontSize: 10, marginBottom: 4 }}>
-                <div style={{ color: '#10b981', fontWeight: 600 }}>Best window params:</div>
-                {Object.entries(results.best_parameters).map(([k, v]) => (
-                  <div key={k}>{k}: {String(v)}</div>
-                ))}
-                {results.best_value != null && (
-                  <div style={{ color: '#a78bfa' }}>Value: {Number(results.best_value).toFixed(4)}</div>
-                )}
-              </div>
-            )}
-
-            {results.trials && results.trials.length > 0 && (
-              <div style={{ fontSize: 9, maxHeight: 120, overflowY: 'auto' }}>
-                {results.trials.map((w) => (
-                  <div key={w.window_index} style={{ display: 'flex', justifyContent: 'space-between', gap: 6 }}>
-                    <span>W{w.window_index}</span>
-                    {w.error ? (
-                      <span style={{ color: '#f87171' }}>{w.error}</span>
-                    ) : (
-                      <span>{fmt(w.oos_metrics?.['Total Return [%]'])}% / {fmt(w.oos_metrics?.['Sharpe Ratio'])}</span>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
+        {isCompleted && results?.overall_metrics && (
+          <div className="flex items-center justify-between text-xs bg-pink-950/40 border border-pink-500/30 px-2 py-1 rounded">
+            <span className="text-pink-300 font-medium">OOS Return:</span>
+            <span className="font-bold text-emerald-400">{results.overall_metrics['Total Return [%]']?.toFixed(2)}%</span>
           </div>
         )}
 
         {isFailed && (
-          <p className="rf-hint rf-hint--error text-center mt-2">{error ?? 'WFO failed'}</p>
+          <div className="text-[11px] text-red-400 bg-red-950/30 p-1.5 rounded border border-red-500/20 text-center font-mono">
+            {error || 'Błąd WFO'}
+          </div>
         )}
+
+        <button
+          onClick={(e) => {
+            e.stopPropagation()
+            runWfo()
+          }}
+          disabled={isExecutionRunning}
+          className="w-full py-1.5 mt-1 text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg transition-colors shadow-md disabled:opacity-50"
+        >
+          {isExecutionRunning ? 'Przetwarzanie WFO...' : 'Run WFO'}
+        </button>
       </div>
 
       <Handle type="source" position={Position.Right} className="easy-connect-handle" />
     </div>
   )
 }
+
+export default WfoNode

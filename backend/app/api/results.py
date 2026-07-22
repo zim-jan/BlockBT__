@@ -53,7 +53,10 @@ def get_simulation_result(job_id: int, request: Request) -> ApiResponse[dict[str
             "ai_analysis_report": job.ai_analysis_report,
             "error_log": job.error_message,
         }
-        return ApiResponse(success=True, data=data)@router.get("/{job_id}/tearsheet", response_model=ApiResponse[TearsheetResponse])
+        return ApiResponse(success=True, data=data)
+
+
+@router.get("/{job_id}/tearsheet", response_model=ApiResponse[TearsheetResponse])
 def get_tearsheet(job_id: int, request: Request) -> ApiResponse[TearsheetResponse]:
     """Faza 13: generuje tearsheet HTML z metryk ukończonego backtestu."""
     with get_session() as db:

@@ -5,6 +5,9 @@ import {Activity, Minus, TrendingDown, TrendingUp} from 'lucide-react'
 import {useWorkflowStore} from '../../store/workflowStore'
 import type {PortfolioNodeData} from '../../types/types'
 import {useQuery} from '@tanstack/react-query'
+import {InspectorPanel} from '../InspectorPanel'
+import {ChatPanel} from '../../features/ai_chat/ChatPanel'
+import {useChatStore} from '../../store/chatStore'
 
 interface HealthResponse {
   status: string
@@ -15,6 +18,7 @@ interface MainLayoutProps {
 }
 
 export function MainLayout({ children }: MainLayoutProps) {
+  const { isOpen: isChatOpen, jobId, closeChat } = useChatStore()
   const nodes = useWorkflowStore((state) => state.nodes)
   const portfolioNode = nodes.find((n) => n.type === 'portfolioNode')
   const rawMetrics = (portfolioNode?.data as PortfolioNodeData)?.metrics
@@ -102,6 +106,8 @@ export function MainLayout({ children }: MainLayoutProps) {
           </div>
         </main>
       </div>
+      <ChatPanel isOpen={isChatOpen} jobId={jobId} onClose={closeChat} />
+      <InspectorPanel />
     </div>
   )
 }

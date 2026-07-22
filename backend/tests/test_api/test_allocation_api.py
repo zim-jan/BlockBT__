@@ -31,8 +31,13 @@ _ALLOCATION = {
 }
 
 
+from app.models.orm import AppSetting, BacktestJob, Strategy
+
 def _create_job(metrics: dict) -> int:
     with get_session() as db:
+        setting = db.get(AppSetting, "auth_enabled")
+        if setting:
+            setting.value = "false"
         strat = Strategy(name="Alloc Strat", description="d", parameters={})
         db.add(strat)
         db.commit()

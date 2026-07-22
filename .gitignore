@@ -83,3 +83,8 @@ vectorbt_src/
 .claude/
 /.agents/rules/graphify.md
 /.agents/workflows/graphify.md
+/.opencode/plugins/graphify.js
+/.opencode/opencode.json
+/TESTY_MANUALNE/audyt ux ui design.md
+/graphify-out/.graphify_labels.json.sig
+/graphify-out/.graphify_analysis.json

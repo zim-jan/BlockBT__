@@ -1,465 +1,121 @@
-import {Handle, Position} from '@xyflow/react'
-import type {AllocationAnalysis, MetricValue, MultiBacktestResult, NormalizedMetrics, PortfolioNodeData} from '../../../types/types'
-import {useChatStore} from '../../../store/chatStore'
-import {useWorkflowStore} from '../../../store/workflowStore'
-import {useWorkflowExecution} from '../../../hooks/useWorkflowExecution'
-import Plot from '../../../components/PlotlyPlot'
-import {CategoryBadge} from './CategoryBadge'
+import { Handle, Position } from '@xyflow/react'
+import type { PortfolioNodeData } from '../../../types/types'
+import { useWorkflowExecution } from '../../../hooks/useWorkflowExecution'
+import { CategoryBadge } from './CategoryBadge'
+import { useWorkflowStore } from '../../../store/workflowStore'
 
-interface Props {
+export interface PortfolioNodeProps {
   id: string
   data: PortfolioNodeData
+  selected?: boolean
 }
 
-function MetricRow({ label, value, colorClass }: { label: string; value: string; colorClass?: string }) {
-  return (
-    <div className="rf-metric-row">
-      <span className="rf-metric-label">{label}</span>
-      <span className={`rf-metric-value ${colorClass ?? ''}`}>{value}</span>
-    </div>
-  )
-}
+export function PortfolioNode({ id, data, selected }: PortfolioNodeProps) {
+  const { selectedNodeId, setSelectedNodeId } = useWorkflowStore()
+  const isSelected = Boolean(selected || selectedNodeId === id)
 
-function fmt(n: number | null | undefined, decimals = 2, suffix = ''): string {
-  if (n == null) return '—'
-  return `${n.toFixed(decimals)}${suffix}`
-}
-
-/** Wspólna tabela metryk — reużywana zarówno dla single-symbol, jak i każdego symbolu w multi-symbol. */
-function MetricTable({ metrics }: { metrics: NormalizedMetrics }) {
-  return (
-    <div className="rf-metrics">
-      <MetricRow
-        label="Total Return"
-        value={fmt(metrics.total_return_pct, 2, '%')}
-        colorClass={(metrics.total_return_pct ?? 0) >= 0 ? 'rf-metric-value--green' : 'rf-metric-value--red'}
-      />
-      <MetricRow
-        label="Sharpe Ratio"
-        value={fmt(metrics.sharpe_ratio)}
-        colorClass={(metrics.sharpe_ratio ?? 0) >= 0 ? 'rf-metric-value--green' : 'rf-metric-value--red'}
-      />
-      <MetricRow
-        label="Max Drawdown"
-        value={fmt(metrics.max_drawdown_pct, 2, '%')}
-        colorClass="rf-metric-value--amber"
-      />
-      <MetricRow label="Trades" value={String(metrics.num_trades ?? '—')} />
-      <MetricRow
-        label="Final Capital"
-        value={metrics.final_capital != null ? `$${Number(metrics.final_capital).toLocaleString('en-US', { maximumFractionDigits: 0 })}` : '—'}
-      />
-    </div>
-  )
-}
-
-/** Normalizuje surowy słownik metryk z backendu (klucze typu "Total Return [%]") do NormalizedMetrics. */
-function normalizeRawMetrics(raw: Record<string, MetricValue> | undefined): NormalizedMetrics {
-  const num = (v: MetricValue | undefined): number | null => (typeof v === 'number' ? v : v == null ? null : Number(v))
-  return {
-    total_return_pct: num(raw?.['Total Return [%]']),
-    sharpe_ratio: num(raw?.['Sharpe Ratio']),
-    max_drawdown_pct: num(raw?.['Max Drawdown [%]']),
-    num_trades: num(raw?.['Total Trades']),
-    final_capital: num(raw?.['Final Value']),
-  }
-}
-
-function isMultiResult(metrics: PortfolioNodeData['metrics']): metrics is MultiBacktestResult {
-  return !!metrics && (metrics as MultiBacktestResult).is_multi_symbol === true
-}
-
-/**
- * ADR-0009: sekcja analizy alokacji kapitału — stacked-area 100% (wagi symboli
- * + cash w czasie) i tabela podsumowania per symbol. Wspólna dla single i multi.
- */
-function AllocationSection({ allocation }: { allocation: AllocationAnalysis }) {
-  const { timeline, summary } = allocation
-  const weightKeys = Object.keys(timeline?.weights ?? {})
-  const symbols = Object.keys(summary ?? {})
-  if (weightKeys.length === 0 && symbols.length === 0) return null
-
-  // "cash" zawsze jako ostatnia warstwa wykresu (spójna kolejność stosu)
-  const orderedKeys = [...weightKeys.filter((k) => k !== 'cash'), ...(weightKeys.includes('cash') ? ['cash'] : [])]
-
-  return (
-    <details open className="rf-metrics-accordion mt-4">
-      <summary className="rf-metrics-accordion__summary font-medium cursor-pointer">📊 Allocation</summary>
-
-      {timeline && timeline.dates.length > 0 && (
-        <div className="rf-chart mt-2 border rounded overflow-hidden bg-white" style={{ height: '160px' }}>
-          <Plot
-            data={orderedKeys.map((key) => ({
-              x: timeline.dates,
-              y: (timeline.weights[key] ?? []).map((w) => w * 100),
-              name: key,
-              type: 'scatter' as const,
-              mode: 'lines' as const,
-              stackgroup: 'one',
-              line: { width: 0.5, ...(key === 'cash' ? { color: '#9ca3af' } : {}) },
-            }))}
-            layout={{
-              autosize: true,
-              margin: { l: 0, r: 0, b: 0, t: 0 },
-              xaxis: { visible: false },
-              yaxis: { visible: false, range: [0, 100] },
-              showlegend: true,
-              legend: { orientation: 'h', font: { size: 9 } },
-              paper_bgcolor: 'rgba(0,0,0,0)',
-              plot_bgcolor: 'rgba(0,0,0,0)',
-            }}
-            config={{ displayModeBar: false, responsive: true }}
-            style={{ width: '100%', height: '100%' }}
-            useResizeHandler
-          />
-        </div>
-      )}
-
-      {symbols.length > 0 && (
-        <table className="rf-alloc-table mt-2 w-full" style={{ fontSize: '11px' }}>
-          <thead>
-            <tr className="text-left" style={{ color: '#6b7280' }}>
-              <th>Symbol</th>
-              <th>Avg exp.</th>
-              <th>In market</th>
-              <th>Final share</th>
-            </tr>
-          </thead>
-          <tbody>
-            {symbols.map((sym) => {
-              const row = summary[sym]
-              return (
-                <tr key={sym}>
-                  <td className="font-medium">{sym}</td>
-                  <td>{fmt(row.avg_exposure_pct, 1, '%')}</td>
-                  <td>{fmt(row.time_in_market_pct, 1, '%')}</td>
-                  <td>{fmt(row.final_equity_share_pct, 1, '%')}</td>
-                </tr>
-              )
-            })}
-          </tbody>
-        </table>
-      )}
-    </details>
-  )
-}
-
-export function PortfolioNode({ id, data }: Props) {
-  const { jobStatus, metrics, error, jobId } = data
-  const openChat = useChatStore(state => state.openChat)
-  const updateNodeData = useWorkflowStore((s) => s.updateNodeData)
-  const { runBacktest, isRunning: isExecutionRunning } = useWorkflowExecution()
+  const { jobStatus, metrics, error } = data
+  const { runBacktest, isRunning: isExecutionRunning, canRunBacktest } = useWorkflowExecution()
 
   const isPending = jobStatus === 'PENDING'
   const isRunning = jobStatus === 'RUNNING'
   const isCompleted = jobStatus === 'COMPLETED'
   const isFailed = jobStatus === 'FAILED'
 
+  const totalReturn = metrics && 'total_return_pct' in metrics ? metrics.total_return_pct : null
+  const feesPct = data.fees ? (data.fees * 100).toFixed(2) : '0.1'
+  const slipPct = data.slippage ? (data.slippage * 100).toFixed(2) : '0.1'
+  const slPct = data.sl_stop ? (data.sl_stop * 100).toFixed(1) : null
+  const tpPct = data.tp_stop ? (data.tp_stop * 100).toFixed(1) : null
+
   return (
-    <div className={`rf-node rf-node--portfolio ${isCompleted ? 'rf-node--completed' : ''} ${isFailed ? 'rf-node--failed' : ''}`}>
+    <div
+      onClick={(e) => {
+        e.stopPropagation()
+        console.log(`[CanvasNode] 🖱️ Clicked PortfolioNode: id=${id}`)
+        setSelectedNodeId(id)
+      }}
+      className={`rf-node rf-node--portfolio bg-[#1c2130] border rounded-xl shadow-lg text-slate-100 p-3 min-w-[220px] cursor-pointer transition-all ${
+        isSelected ? 'border-emerald-400 ring-2 ring-emerald-400/50 shadow-emerald-500/20' : isCompleted ? 'border-emerald-500/60 shadow-emerald-500/10' : 'border-emerald-500/30'
+      }`}
+    >
       <Handle
         type="target"
         position={Position.Left}
         id="in"
         className="easy-connect-handle"
       />
-      <div className="rf-node__header react-flow__node-drag-handle">
-        <div className="flex items-center gap-2">
-          <span className="rf-node__icon text-xl">💼</span>
-          <span className="rf-node__title font-semibold">Portfolio</span>
-          <CategoryBadge category="Execution" />
+      <div className="flex items-center justify-between border-b border-white/10 pb-2 mb-2 react-flow__node-drag-handle">
+        <div className="flex items-center gap-2 font-semibold text-xs text-emerald-400">
+          <span>💼</span>
+          <span>Portfolio</span>
         </div>
-        {jobStatus && (
-          <span className={`rf-status-pill ${
-            isPending ? 'rf-status-pill--pending' :
-            isRunning ? 'rf-status-pill--running' :
-            isCompleted ? 'rf-status-pill--completed' :
-            'rf-status-pill--failed'
-          }`}>
-            {isPending && '⏳ Pending'}
-            {isRunning && '⚙️ Running'}
-            {isCompleted && '✅ Done'}
-            {isFailed && '❌ Failed'}
-          </span>
-        )}
+        <CategoryBadge category="Execution" />
       </div>
-      <div className="rf-node__body">
-        {/* Kapitał początkowy symulacji — jedyne źródło init_cash (review 2026-07-16) */}
-        <div style={{ marginBottom: '8px' }}>
-          <label htmlFor={`${id}-init-cash`} className="rf-label" style={{ fontSize: '11px' }}>Initial Capital ($)</label>
-          <input
-            id={`${id}-init-cash`}
-            type="number"
-            min={100}
-            step={1000}
-            value={data.init_cash ?? 10000}
-            onChange={(e) => {
-              const val = Number(e.target.value)
-              if (!Number.isFinite(val) || val <= 0) return
-              updateNodeData(id, { init_cash: val } as any)
-            }}
-            className="rf-input"
-            style={{ fontSize: '12px' }}
-          />
+
+      <div className="space-y-1.5 font-mono text-xs">
+        {/* Capital */}
+        <div className="flex items-center justify-between bg-[#0b0d14] px-2 py-1 rounded border border-white/5">
+          <span className="text-slate-400 text-[11px]">Kapitał:</span>
+          <span className="font-bold text-slate-100">${(data.init_cash ?? 10000).toLocaleString()}</span>
         </div>
 
-        {/* Transaction Cost Controls — always visible */}
-        <div className="rf-cost-controls" style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
-          <div style={{ flex: 1 }}>
-            <label className="rf-label" style={{ fontSize: '11px' }}>Fees (%)</label>
-            <input
-              type="number"
-              min={0.0001}
-              step={0.0001}
-              value={data.fees ?? 0.001}
-              onChange={(e) => updateNodeData(id, { fees: Math.max(0.0001, parseFloat(e.target.value) || 0.001) } as any)}
-              className="rf-input"
-              style={{ fontSize: '12px' }}
-            />
-          </div>
-          <div style={{ flex: 1 }}>
-            <label className="rf-label" style={{ fontSize: '11px' }}>Slippage (%)</label>
-            <input
-              type="number"
-              min={0.0001}
-              step={0.0001}
-              value={data.slippage ?? 0.001}
-              onChange={(e) => updateNodeData(id, { slippage: Math.max(0.0001, parseFloat(e.target.value) || 0.001) } as any)}
-              className="rf-input"
-              style={{ fontSize: '12px' }}
-            />
-          </div>
+        {/* Fees & Slippage */}
+        <div className="flex items-center justify-between bg-[#0b0d14] px-2 py-1 rounded border border-white/5 text-[11px]">
+          <span className="text-slate-400">Koszty:</span>
+          <span className="text-emerald-300 font-semibold">{feesPct}% / poślizg {slipPct}%</span>
         </div>
 
-        {/* Risk Controls — Stop Loss / Take Profit / Position Size (Faza 12) */}
-        {/* UI pokazuje SL/TP w %, ale store i DAG JSON trzymają ułamek 0..1 (backend ExecutionParams.sl_stop/tp_stop) */}
-        <div className="rf-risk-controls" style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
-          <div style={{ flex: 1 }}>
-            <label htmlFor={`${id}-sl`} className="rf-label" style={{ fontSize: '11px' }}>Stop Loss [%]</label>
-            <input
-              id={`${id}-sl`}
-              type="number"
-              min={0}
-              max={100}
-              step={0.1}
-              placeholder="brak"
-              value={data.sl_stop != null ? data.sl_stop * 100 : ''}
-              onChange={(e) => {
-                const raw = e.target.value
-                if (raw === '') {
-                  updateNodeData(id, { sl_stop: undefined } as any)
-                  return
-                }
-                const pct = parseFloat(raw)
-                if (!Number.isFinite(pct)) return
-                // Audyt 2026-07-17: 0 = wyczyszczenie stopa (backend wymaga sl_stop > 0)
-                if (pct <= 0) {
-                  updateNodeData(id, { sl_stop: undefined } as any)
-                  return
-                }
-                const clamped = Math.min(100, pct)
-                updateNodeData(id, { sl_stop: clamped / 100 } as any)
-              }}
-              className="rf-input"
-              style={{ fontSize: '12px' }}
-            />
-          </div>
-          <div style={{ flex: 1 }}>
-            <label htmlFor={`${id}-tp`} className="rf-label" style={{ fontSize: '11px' }}>Take Profit [%]</label>
-            <input
-              id={`${id}-tp`}
-              type="number"
-              min={0}
-              max={100}
-              step={0.1}
-              placeholder="brak"
-              value={data.tp_stop != null ? data.tp_stop * 100 : ''}
-              onChange={(e) => {
-                const raw = e.target.value
-                if (raw === '') {
-                  updateNodeData(id, { tp_stop: undefined } as any)
-                  return
-                }
-                const pct = parseFloat(raw)
-                if (!Number.isFinite(pct)) return
-                // Audyt 2026-07-17: 0 = wyczyszczenie stopa (backend wymaga tp_stop > 0)
-                if (pct <= 0) {
-                  updateNodeData(id, { tp_stop: undefined } as any)
-                  return
-                }
-                const clamped = Math.min(100, pct)
-                updateNodeData(id, { tp_stop: clamped / 100 } as any)
-              }}
-              className="rf-input"
-              style={{ fontSize: '12px' }}
-            />
-          </div>
-          <div style={{ flex: 1 }}>
-            <label htmlFor={`${id}-size`} className="rf-label" style={{ fontSize: '11px' }}>Position Size</label>
-            <input
-              id={`${id}-size`}
-              type="number"
-              min={0.0001}
-              step={0.01}
-              placeholder="brak"
-              value={data.size ?? ''}
-              onChange={(e) => {
-                const raw = e.target.value
-                if (raw === '') {
-                  updateNodeData(id, { size: undefined } as any)
-                  return
-                }
-                const val = parseFloat(raw)
-                if (!Number.isFinite(val) || val <= 0) return
-                updateNodeData(id, { size: val } as any)
-              }}
-              className="rf-input"
-              style={{ fontSize: '12px' }}
-            />
-            {/* size_type — backend interpretuje `size` zaleznie od tej jednostki (Faza 12) */}
-            <select
-              id={`${id}-size-type`}
-              aria-label="Size unit"
-              value={data.size_type ?? 'amount'}
-              onChange={(e) => updateNodeData(id, { size_type: e.target.value as PortfolioNodeData['size_type'] } as any)}
-              className="rf-input"
-              style={{ fontSize: '11px', marginTop: '4px' }}
-            >
-              <option value="amount">amount</option>
-              <option value="value">value</option>
-              <option value="percent">percent</option>
-            </select>
-          </div>
-        </div>
-
-        {!jobStatus && (
-          <div className="flex flex-col items-center gap-3 py-2">
-            <p className="rf-hint rf-hint--center italic">Ready for analysis</p>
-            <button
-              onClick={runBacktest}
-              disabled={isExecutionRunning}
-              className="rf-btn rf-btn-primary w-full"
-              style={{ position: 'relative', zIndex: 10 }}
-            >
-              {isExecutionRunning ? 'Running...' : 'Run Backtest'}
-            </button>
+        {/* SL / TP Badges if configured */}
+        {(slPct || tpPct) && (
+          <div className="flex items-center gap-1.5 text-[10px]">
+            {slPct && (
+              <span className="px-1.5 py-0.5 rounded bg-red-950/60 text-red-400 border border-red-500/30 font-semibold">
+                SL: {slPct}%
+              </span>
+            )}
+            {tpPct && (
+              <span className="px-1.5 py-0.5 rounded bg-emerald-950/60 text-emerald-400 border border-emerald-500/30 font-semibold">
+                TP: {tpPct}%
+              </span>
+            )}
           </div>
         )}
+
+        {isCompleted && totalReturn != null && (
+          <div className="flex items-center justify-between text-xs bg-emerald-950/40 border border-emerald-500/30 px-2 py-1 rounded">
+            <span className="text-emerald-400 font-medium">Return:</span>
+            <span className={`font-bold ${totalReturn >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+              {totalReturn >= 0 ? '+' : ''}{totalReturn.toFixed(2)}%
+            </span>
+          </div>
+        )}
+
         {(isPending || isRunning) && (
-          <div className="rf-spinner-wrap flex flex-col items-center justify-center py-4">
-            <div className="rf-spinner animate-spin w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full mb-2" />
-            <p className="rf-hint">{isPending ? 'Queued...' : 'Executing vectorbt...'}</p>
-          </div>
-        )}
-
-        {/* SINGLE-symbol — niezmienione zachowanie */}
-        {isCompleted && metrics && !isMultiResult(metrics) && (
-          <div className="rf-metrics-wrap">
-            <MetricTable metrics={metrics} />
-
-            {metrics.equity_curve && metrics.equity_curve.length > 0 && (
-              <div className="rf-chart mt-4 border rounded overflow-hidden bg-white" style={{ height: '150px' }}>
-                <Plot
-                  data={[
-                    {
-                      x: metrics.equity_curve.map(d => d.date),
-                      y: metrics.equity_curve.map(d => d.value),
-                      type: 'scatter',
-                      mode: 'lines',
-                      marker: { color: '#3b82f6' },
-                      fill: 'tozeroy',
-                      fillcolor: 'rgba(59, 130, 246, 0.1)',
-                    },
-                  ]}
-                  layout={{
-                    autosize: true,
-                    margin: { l: 0, r: 0, b: 0, t: 0 },
-                    xaxis: { visible: false },
-                    yaxis: { visible: false },
-                    showlegend: false,
-                    paper_bgcolor: 'rgba(0,0,0,0)',
-                    plot_bgcolor: 'rgba(0,0,0,0)',
-                  }}
-                  config={{ displayModeBar: false, responsive: true }}
-                  style={{ width: '100%', height: '100%' }}
-                  useResizeHandler
-                />
-              </div>
-            )}
-
-            {metrics.allocation && <AllocationSection allocation={metrics.allocation} />}
-
-            <div className="rf-action-row mt-4 flex justify-center">
-              <button
-                onClick={() => {
-                  if (jobId) openChat(jobId);
-                }}
-                title="Analyze via AI"
-                className="w-full py-2 bg-blue-50 text-blue-600 border border-blue-200 rounded font-medium hover:bg-blue-100 transition-colors shadow-sm flex items-center justify-center gap-2"
-                style={{ position: 'relative', zIndex: 10 }}
-              >
-                <span className="text-lg">✨</span> Analyze Results
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* MULTI-symbol — akordeon metryk per symbol + jeden wykres equity z N seriami */}
-        {isCompleted && metrics && isMultiResult(metrics) && (
-          <div className="rf-metrics-wrap rf-metrics-wrap--multi">
-            {(metrics.symbols ?? Object.keys(metrics.metrics ?? {})).map((symbol, idx) => (
-              <details key={symbol} open={idx === 0} className="rf-metrics-accordion mb-2">
-                <summary className="rf-metrics-accordion__summary font-medium cursor-pointer">{symbol}</summary>
-                <MetricTable metrics={normalizeRawMetrics(metrics.metrics?.[symbol])} />
-              </details>
-            ))}
-
-            {metrics.equity_curve && Object.keys(metrics.equity_curve).length > 0 && (
-              <div className="rf-chart mt-4 border rounded overflow-hidden bg-white" style={{ height: '180px' }}>
-                <Plot
-                  data={Object.entries(metrics.equity_curve).map(([sym, points]) => ({
-                    x: points.map((p) => p.date),
-                    y: points.map((p) => p.value),
-                    name: sym,
-                    type: 'scatter' as const,
-                    mode: 'lines' as const,
-                  }))}
-                  layout={{
-                    autosize: true,
-                    margin: { l: 0, r: 0, b: 0, t: 0 },
-                    xaxis: { visible: false },
-                    yaxis: { visible: false },
-                    showlegend: true,
-                    legend: { orientation: 'h', font: { size: 9 } },
-                    paper_bgcolor: 'rgba(0,0,0,0)',
-                    plot_bgcolor: 'rgba(0,0,0,0)',
-                  }}
-                  config={{ displayModeBar: false, responsive: true }}
-                  style={{ width: '100%', height: '100%' }}
-                  useResizeHandler
-                />
-              </div>
-            )}
-
-            {metrics.allocation && <AllocationSection allocation={metrics.allocation} />}
-
-            <div className="rf-action-row mt-4 flex justify-center">
-              <button
-                onClick={() => {
-                  if (jobId) openChat(jobId);
-                }}
-                title="Analyze via AI"
-                className="w-full py-2 bg-blue-50 text-blue-600 border border-blue-200 rounded font-medium hover:bg-blue-100 transition-colors shadow-sm flex items-center justify-center gap-2"
-                style={{ position: 'relative', zIndex: 10 }}
-              >
-                <span className="text-lg">✨</span> Analyze Results
-              </button>
-            </div>
+          <div className="flex items-center justify-center gap-2 text-xs text-blue-400 bg-blue-950/30 py-1 rounded border border-blue-500/20 animate-pulse font-mono">
+            <span className="w-2 h-2 rounded-full bg-blue-400 animate-ping" />
+            <span>{isPending ? 'Kolejkowanie...' : 'Obliczanie...'}</span>
           </div>
         )}
 
         {isFailed && (
-          <p className="rf-hint rf-hint--error text-center mt-2">{error ?? 'Engine error'}</p>
+          <div className="text-[11px] text-red-400 bg-red-950/30 p-1.5 rounded border border-red-500/20 text-center font-mono">
+            {error || 'Błąd symulacji'}
+          </div>
+        )}
+
+        {!jobStatus && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation()
+              runBacktest()
+            }}
+            disabled={isExecutionRunning || !canRunBacktest}
+            title={!canRunBacktest ? 'Wymagane poprawne połączenia węzłów i uzupełnione pola' : ''}
+            className="w-full py-1.5 mt-1 text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg transition-colors shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isExecutionRunning ? 'Uruchamianie...' : 'Uruchom Backtest'}
+          </button>
         )}
       </div>
     </div>

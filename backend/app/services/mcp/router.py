@@ -134,9 +134,14 @@ def get_domain_context(domain: str) -> str:
             "Domain: React Frontend\n"
             "Location: /frontend/src/\n"
             "Guidelines:\n"
-            "- Stack: React 18+, TypeScript, Vite.\n"
+            "- Stack: React 19, TypeScript, Vite 8, Zustand 5, React Flow (@xyflow/react).\n"
             "- State: TanStack Query (server state), Zustand (client state).\n"
             "- Workflows: React Flow (node-based graph editor).\n"
+            "- Faza 21 (UI Architecture): `InspectorPanel` & `ChatPanel` land inside `MainLayout.tsx` as flex children. "
+            "All modals/overlays (`SaveStrategyModal`, `StrategyListModal`, `ResultsOverlay`) use `createPortal(..., document.body)` "
+            "with explicit inline fixed styles (`position: fixed`, `top: 0`, `left: 0`, `right: 0`, `bottom: 0`, `zIndex: 99999/100000`) "
+            "to prevent Tailwind v4 PostCSS layout collapse. QuantStats Tearsheet is fetched via API and rendered with `srcDoc={html}`. "
+            "Form controls use explicit dark mode contrast (`color-scheme: dark` and `select option` dark styling in `index.css`).\n"
             "- STRICT RULE: Frontend communicates with backend ONLY via REST API. NO direct file system access."
         ),
         "mcp_integration": (

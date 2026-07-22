@@ -7,15 +7,36 @@
 import type {components} from './api.d'
 import type {BacktestJobData, StrategyData} from '../types/types'
 import { useAuthStore } from '../store/authStore'
+import { showToast } from '../store/useToastStore'
 
 const BASE_URL = import.meta.env.VITE_API_URL ?? ''
+
+export function formatApiErrorMessage(status: number, text: string): string {
+  try {
+    const json = JSON.parse(text);
+    if (json.detail) {
+      if (typeof json.detail === 'string') {
+        return json.detail;
+      }
+      if (Array.isArray(json.detail)) {
+        const messages = json.detail.map((err: any) => {
+          const field = err.loc ? err.loc.filter((l: any) => l !== 'body' && l !== 'dag').join(' -> ') : '';
+          return field ? `${field}: ${err.msg}` : err.msg;
+        });
+        return `Problem z konfiguracją: ${messages.join('; ')}`;
+      }
+    }
+  } catch {
+    // not json
+  }
+  return `Błąd serwera (${status}): ${text.slice(0, 150)}`;
+}
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
   const method = options?.method || 'GET';
   const requestBody = options?.body ? JSON.parse(options.body as string) : undefined;
   const token = useAuthStore.getState().token
   
-  // Log request structure (skip health check to avoid spam; tylko w DEV — review 2026-07-15)
   if (import.meta.env.DEV && path !== '/api/health') {
     console.group(`🚀 API Request: ${method} ${path}`);
     console.log('URL:', `${BASE_URL}${path}`);
@@ -49,7 +70,9 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
       if (path !== '/api/health') {
         console.error(`❌ API Error ${res.status}: ${method} ${path}`, text);
       }
-      throw new Error(`API ${res.status}: ${text}`)
+      const userFriendlyMsg = formatApiErrorMessage(res.status, text);
+      showToast.error(`Błąd połączenia (${res.status})`, userFriendlyMsg);
+      throw new Error(userFriendlyMsg);
     }
     
     const data = await res.json() as Promise<T>;

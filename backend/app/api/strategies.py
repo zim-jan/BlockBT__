@@ -1,6 +1,7 @@
 
 from fastapi import APIRouter, HTTPException, Request
 from sqlalchemy import select
+from loguru import logger
 
 from app.core.user_scope import get_user_id, scoped_query
 from app.db.session import get_session
@@ -21,6 +22,7 @@ def list_strategies(request: Request) -> ApiResponse[list[StrategyResponse]]:
     with get_session() as db:
         stmt = scoped_query(select(Strategy).order_by(Strategy.created_at.desc()), Strategy, request)
         strategies = db.scalars(stmt).all()
+        logger.info(f"[API] 📋 Listing strategies count={len(strategies)}")
         data = [
             StrategyResponse(
                 id=str(s.id),
@@ -62,6 +64,7 @@ def get_strategy(strategy_id: int, request: Request) -> ApiResponse[StrategyResp
 def create_strategy(payload: StrategyCreate, request: Request) -> ApiResponse[StrategyResponse]:
     """Persist a new strategy to SQLite and return the created record."""
     user_id = get_user_id(request)
+    logger.info(f"[API] 💾 Creating strategy name='{payload.name}' user_id={user_id}")
     with get_session() as db:
         new_strat = Strategy(
             name=payload.name,

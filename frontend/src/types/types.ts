@@ -64,7 +64,7 @@ export type JobStatus = 'PENDING' | 'RUNNING' | 'COMPLETED' | 'FAILED'
 
 export type DataSourceType = 'yahoo' | 'alpaca' | 'synthetic'
 
-export type IndicatorType = 'sma_crossover' | 'macd' | 'custom'
+export type IndicatorType = 'sma_crossover' | 'macd' | 'rsi' | 'custom' | string
 
 export interface BacktestMetrics {
   engine: string

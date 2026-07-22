@@ -4,10 +4,12 @@ import {BuilderPage} from './pages/BuilderPage'
 import {LoginPage} from './pages/LoginPage'
 import {SettingsPage} from './pages/SettingsPage'
 import {ProtectedRoute} from './components/ProtectedRoute'
+import {ToastContainer} from './components/ui/ToastContainer'
 
 function App() {
   return (
     <BrowserRouter>
+      <ToastContainer />
       <Routes>
         <Route path="/login" element={<LoginPage />} />
         <Route element={<ProtectedRoute />}>

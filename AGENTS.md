@@ -9,6 +9,7 @@ Jesteś Głównym Architektem i Programistą w projekcie BlockBT. Pracujesz w ry
 5. Jeśli dana faza jest zakończona, czyli potwierdzona testami, razem z manualnymi, dokumentacja projektu jest też aktualna. Oznacz sekcje statusem DONE, i uaktualnij domain_context w backend/app/services/mcp/router.py
 6. ~~ZADANIA ZDELEGOWANE: Jeśli jakikolwiek punkt planu lub faza ma status [JULES]...~~ **[WYCOFANE — decyzja Janka 2026-07-13]:** reguła [JULES] NIE obowiązuje. Ignoruj wszelkie oznaczenia [JULES]; nie ma zadań delegowanych do agenta asynchronicznego. (Spójne z głównym CLAUDE.md.)
 7. **Graphify Knowledge Graph:** Gdy zapytanie dotyczy architektury, powiązań między plikami lub koncepcji w kodzie, OBOWIĄZKOWO w pierwszej kolejności korzystaj z grafu wiedzy `graphify` (`graphify query "<pytanie>"`, `graphify path`, `graphify explain` lub skilla `graphify`). Po zmianach w kodzie uruchom `graphify update .` aby odświeżyć graf wiedzy.
+8. **Context7 Documentation (`ctx7`):** Zanim rozpoczniesz pisanie kodu lub refaktoryzację z wykorzystaniem bibliotek zewnętrznych (np. React Flow / `@xyflow/react`, React 19, Plotly.js, Lucide, FastAPI, Pydantic, SQLAlchemy), MASZ OBOWIĄZEK użyć skilla/narzędzia `ctx7` (`npx -y ctx7@latest library <nazwa> "<pytanie>"`, a następnie `npx -y ctx7@latest docs <libraryId> "<pytanie>"`) w celu pobrania aktualnych wzorców i dokumentacji API.
 
 ## [ARCHITECTURE CONSTRAINTS]
 * **Dual-Engine Pattern:** Logika musi zawsze posiadać fallback na darmowy `vectorbt`.
@@ -44,6 +45,20 @@ Jesteś Głównym Architektem i Programistą w projekcie BlockBT. Pracujesz w ry
     - Dodano logowanie diagnostyczne w backendzie i frontendzie (console.log).
     - Zresetowano początkowy stan frontendu (puste canvas).
     - 
+* **Phase 21: Architektura UI - Panele Boczne, Overlays i Kontrast**
+  * Status: [DONE]
+  * Cel: Naprawa błędów z ucinanym UI (`overflow-hidden`), niedziałającymi modalami, brakującymi danymi na wykresie equity, błędnym renderowaniem QuantStats Tearsheet oraz nieczytelnym kontrastem formularzy.
+  * Wynik:
+    - **Sidebary Flexbox:** `InspectorPanel` i `ChatPanel` osadzone w `MainLayout.tsx` jako Flex Children obok kanwy (eliminacja ucinania przez `overflow-hidden`).
+    - **Portale i Pozycjonowanie Inline:** `SaveStrategyModal`, `StrategyListModal` oraz `ResultsOverlay` osadzone bezpośrednio w `document.body` przez `createPortal` z natywnym inline CSS (`position: fixed`, `top: 0`, `left: 0`, `right: 0`, `bottom: 0`, `zIndex: 99999/100000`). Gwarantuje to odporność na brak klas `inset-0` w Tailwind v4.
+    - **Universal Equity Curve Adapter:** `ResultsOverlay.tsx` wyposażony w parser `parseEquityCurve` do obsługi tablic obiektów `[{ date, value }]`, słowników pojedynczych symboli oraz Multi-Symbol.
+    - **QuantStats Tearsheet `srcDoc`:** Endpoint `/api/results/{id}/tearsheet` pobierany przez `fetch` i renderowany w `iframe` przez `srcDoc={html}` (eliminacja wyświetlania surowego JSON-a).
+    - **Kontrast & Stylizacja Dropdownów:** Dodano `color-scheme: dark;` oraz regułę `select option { background-color: #131722 !important; color: #f9fafb !important; }` w `index.css` dla czytelnych opcji na ciemnym tle.
+  * ZASADY DO PRZESTRZEGANIA PRZEZ AGENTA PRZY ZMIANACH NA FRONCIE:
+    1. **Żadnych paneli bocznych z `fixed`:** Nowe panele boczne muszą być zawsze renderowane wewnątrz `MainLayout` jako flex children (bracia dla `flex-1`), bez pozycjonowania `fixed` (patrz DESIGN.md sekcja 7).
+    2. **Portale i Inline Fixed:** Wszystkie dialogi, modale i overlaye pełnoekranowe MUSZĄ używać `createPortal(..., document.body)` ORAZ jawnego stylizowania inline CSS (`position: fixed; top: 0; left: 0; right: 0; bottom: 0; zIndex: 99999`) zamiast wyłącznego polegania na klasach pomocniczych Tailwinda (`inset-0`).
+    3. **Tearsheet w `iframe`:** HTML z QuantStats pobieraj via API i wstawiaj przez `srcDoc={html}`, nigdy przez surowy URL w `src`.
+
 * **Veryfy Phase 1:** Nodes connectors validate
   * Status: [DONE]
   * Cel: Walidacja połączeń miedzy node'mi. aktuanie można uruchomic backtest bez łaczenia i da nam wynik 
@@ -259,6 +274,20 @@ Jesteś Głównym Architektem i Programistą w projekcie BlockBT. Pracujesz w ry
   4. **Frontend Error & Status UI:** Dedykowany widget statusu Ollama w `SettingsPage.tsx`, obsługa błędów, unwrap wyników API oraz przycisk "Retry Analysis" w `ChatPanel.tsx`. [DONE]
   5. **Testy & Dokumentacja:** 8 testów automatycznych Ollamy (253 łączna suita backendu pass), instrukcja testów manualnych w `TESTY_MANUALNE/17_ollama_ai_analysis.md`. [DONE]
 
+* **Faza 18: Audit GUI/UX, Analiza Wideo & Stworzenie DESIGN.md** [DONE]
+  Cel: Przeprowadzenie analizy nagrania wideo w modelu multimodalnym i utworzenie dokumentu wytycznych UX/UI.
+  1. **Prompt & Video Audit:** Analiza wideo aplikacji zapisana w `TESTY_MANUALNE/audyt ux ui design.md`. [DONE]
+  2. **System Wytycznych Designu:** Stworzenie `DESIGN.md` zawierającego tokeny stylów CSS, koncepcję Inspector Panel, Bottom Drawer dla wyników, usunięcie native prompt() oraz zasady ergonomii DAG. [DONE]
+
+* **Faza 19: Przeprojektowanie i Refaktoryzacja Interfejsu GUI (UI/UX Transformation)** [DONE]
+  Cel: Wdrożenie nowej architektury interfejsu i wytycznych z `DESIGN.md` w kodzie frontendu.
+  1. **Tokeny i Arkusz Stylów (`index.css`):** Zmienne `:root` (Elevation layering, sub-borders, kolory węzłów, akcenty). [DONE]
+  2. **System Powiadomień & Modale:** ToastContainer, human-readable API error formatting, SaveStrategyModal zastępujący window.prompt(). [DONE]
+  3. **Inspector Panel (Side Drawer):** Edycja parametrów dowolnego węzła DAG w dedykowanym panelu bocznym. [DONE]
+  4. **Kompaktowe Węzły DAG & Kanwa:** Odchudzone karty dla DataNode, IndicatorNode, SignalNode, PortfolioNode, OptimizerNode i WfoNode. [DONE]
+  5. **Results Drawer (Bottom Drawer):** Rozsuwany dolny panel z pełnowymiarowymi wykresami Plotly, tearsheetem QuantStats i czatem AI Analyst. [DONE]
+  6. **Weryfikacja:** `npm run build` pass (0 błędów), suita testów backendowych 254/254 pass. [DONE]
+
 * **Faza xx: Konteneryzacja, docker i docker compose**
   * STATUS : [PENDING]
 
@@ -278,3 +307,16 @@ Auto-Clarity: drop caveman for security warnings, irreversible actions, user con
 
 Boundaries: code/commits/PRs written normal.
 ``
+
+## graphify
+
+This project has a knowledge graph at graphify-out/ with god nodes, community structure, and cross-file relationships.
+
+When the user types `/graphify`, use the installed graphify skill or instructions before doing anything else.
+
+Rules:
+- For codebase questions, first run `graphify query "<question>"` when graphify-out/graph.json exists. Use `graphify path "<A>" "<B>"` for relationships and `graphify explain "<concept>"` for focused concepts. These return a scoped subgraph, usually much smaller than GRAPH_REPORT.md or raw grep output.
+- Dirty graphify-out/ files are expected after hooks or incremental updates; dirty graph files are not a reason to skip graphify. Only skip graphify if the task is about stale or incorrect graph output, or the user explicitly says not to use it.
+- If graphify-out/wiki/index.md exists, use it for broad navigation instead of raw source browsing.
+- Read graphify-out/GRAPH_REPORT.md only for broad architecture review or when query/path/explain do not surface enough context.
+- After modifying code, run `graphify update .` to keep the graph current (AST-only, no API cost).

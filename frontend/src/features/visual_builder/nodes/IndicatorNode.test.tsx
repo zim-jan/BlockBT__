@@ -3,12 +3,14 @@ import { describe, it, expect, vi } from 'vitest'
 import { IndicatorNode } from './IndicatorNode'
 import { ReactFlowProvider } from '@xyflow/react'
 
-// Mock workflow store — selektor zawsze zwraca updateNodeData
 vi.mock('../../../store/workflowStore', () => ({
-  useWorkflowStore: () => vi.fn(),
+  useWorkflowStore: () => ({
+    updateNodeData: vi.fn(),
+    selectedNodeId: null,
+    setSelectedNodeId: vi.fn(),
+  }),
 }))
 
-// Mock API (IndicatorNode pobiera listę wskaźników z registry)
 vi.mock('../../../services/api', () => ({
   api: {
     indicators: {
@@ -26,16 +28,19 @@ function renderNode(data: Record<string, unknown>) {
   )
 }
 
-describe('IndicatorNode', () => {
+describe('IndicatorNode compact card', () => {
   const baseData = { indicatorType: 'sma_crossover', smaFast: 10, smaSlow: 30 }
 
-  it('renders SMA fields for sma_crossover', () => {
+  it('renders summary for sma_crossover', () => {
     renderNode(baseData)
-    expect(screen.getByText(/Fast SMA/i)).toBeInTheDocument()
-    expect(screen.getByText(/Slow SMA/i)).toBeInTheDocument()
+    expect(screen.getAllByText('Indicator')[0]).toBeInTheDocument()
+    expect(screen.getByText('Fast:')).toBeInTheDocument()
+    expect(screen.getByText('10')).toBeInTheDocument()
+    expect(screen.getByText('Slow:')).toBeInTheDocument()
+    expect(screen.getByText('30')).toBeInTheDocument()
   })
 
-  it('does not render Initial Capital field — capital belongs to the Portfolio block (review 2026-07-16)', () => {
+  it('does not render Initial Capital field', () => {
     renderNode(baseData)
     expect(screen.queryByText(/Initial Capital/i)).not.toBeInTheDocument()
   })

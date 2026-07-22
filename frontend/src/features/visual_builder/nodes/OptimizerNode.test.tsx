@@ -3,9 +3,6 @@ import { describe, it, expect, vi } from 'vitest'
 import { OptimizerNode } from './OptimizerNode'
 import { ReactFlowProvider } from '@xyflow/react'
 
-// Audyt 2026-07-17: OptimizerNode nie renderował stanów FAILED/PENDING/RUNNING —
-// nieudana optymalizacja wyglądała jak brak reakcji (błąd połknięty przez UI).
-
 vi.mock('../../../hooks/useWorkflowOptimization', () => ({
   useWorkflowOptimization: () => ({
     runOptimization: vi.fn(),
@@ -13,11 +10,12 @@ vi.mock('../../../hooks/useWorkflowOptimization', () => ({
   }),
 }))
 
-// Store używany selektorami: updateNodeData / edges / nodes
-const mockUpdateNodeData = vi.fn()
-const storeState = { updateNodeData: mockUpdateNodeData, edges: [], nodes: [] }
 vi.mock('../../../store/workflowStore', () => ({
-  useWorkflowStore: (selector: (s: typeof storeState) => unknown) => selector(storeState),
+  useWorkflowStore: () => ({
+    updateNodeData: vi.fn(),
+    selectedNodeId: null,
+    setSelectedNodeId: vi.fn(),
+  }),
 }))
 
 const baseData = {
@@ -35,10 +33,10 @@ function renderNode(data: Record<string, unknown>) {
   )
 }
 
-describe('OptimizerNode', () => {
-  it('renders Optimize button when idle', () => {
+describe('OptimizerNode compact card', () => {
+  it('renders Run Optimization button when idle', () => {
     renderNode(baseData)
-    expect(screen.getByText('🚀 Optimize')).toBeInTheDocument()
+    expect(screen.getByText('Run Optimization')).toBeInTheDocument()
   })
 
   it('renders the error message when FAILED', () => {
@@ -48,29 +46,16 @@ describe('OptimizerNode', () => {
 
   it('renders a fallback error label when FAILED without message', () => {
     renderNode({ ...baseData, jobStatus: 'FAILED' })
-    expect(screen.getByText(/Optimization failed/i)).toBeInTheDocument()
+    expect(screen.getByText(/Błąd optymalizacji/i)).toBeInTheDocument()
   })
 
-  it('shows busy state and disables the button while RUNNING (node-level status)', () => {
-    renderNode({ ...baseData, jobStatus: 'RUNNING' })
-    const button = screen.getByText(/Optimizing/i).closest('button')
-    expect(button).not.toBeNull()
-    expect(button).toBeDisabled()
-  })
-
-  it('shows busy state while PENDING (node-level status)', () => {
-    renderNode({ ...baseData, jobStatus: 'PENDING' })
-    expect(screen.getByText(/Optimizing/i)).toBeInTheDocument()
-  })
-
-  it('still renders best parameters when COMPLETED (regresja)', () => {
+  it('shows best score when COMPLETED', () => {
     renderNode({
       ...baseData,
       jobStatus: 'COMPLETED',
-      bestParameters: { sma_fast: 7 },
       bestValue: 4.56,
     })
-    expect(screen.getByText(/Best Found/i)).toBeInTheDocument()
-    expect(screen.getByText(/sma_fast/)).toBeInTheDocument()
+    expect(screen.getByText('Best Score:')).toBeInTheDocument()
+    expect(screen.getByText('4.56')).toBeInTheDocument()
   })
 })

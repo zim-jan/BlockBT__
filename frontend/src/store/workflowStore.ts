@@ -83,6 +83,15 @@ interface WorkflowState {
   // UI state
   isEasyConnectMode: boolean
   toggleEasyConnectMode: () => void
+  selectedNodeId: string | null
+  setSelectedNodeId: (id: string | null) => void
+
+  isSaveModalOpen: boolean
+  setIsSaveModalOpen: (isOpen: boolean) => void
+  isLoadModalOpen: boolean
+  setIsLoadModalOpen: (isOpen: boolean) => void
+  isResultsOpen: boolean
+  setIsResultsOpen: (isOpen: boolean) => void
 
   // Node data setters
   updateNodeData: (nodeId: string, data: Partial<DataNodeData & IndicatorNodeData & PortfolioNodeData & OptimizerNodeData & WfoNodeData>) => void
@@ -130,6 +139,15 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
 
   isEasyConnectMode: false,
   toggleEasyConnectMode: () => set((s) => ({ isEasyConnectMode: !s.isEasyConnectMode })),
+  selectedNodeId: null,
+  setSelectedNodeId: (id) => set({ selectedNodeId: id }),
+
+  isSaveModalOpen: false,
+  setIsSaveModalOpen: (isOpen) => set({ isSaveModalOpen: isOpen }),
+  isLoadModalOpen: false,
+  setIsLoadModalOpen: (isOpen) => set({ isLoadModalOpen: isOpen }),
+  isResultsOpen: false,
+  setIsResultsOpen: (isOpen) => set({ isResultsOpen: isOpen }),
 
   updateNodeData: (nodeId, data) =>
     set((s) => {
@@ -183,7 +201,9 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
     const cleanNodes = nodes.map((n) => {
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { jobStatus, metrics, jobId, error, isOutdated, results, bestParameters, bestValue, trials, ...restData } = (n.data ?? {}) as any
-      return { ...n, data: restData }
+      // Phase 20: ensure category exists on loaded nodes (legacy strategies may lack it)
+      const category = restData.category ?? NODE_TYPE_CATEGORY_MAP[n.type ?? ''] ?? 'DataIngestion'
+      return { ...n, data: { ...restData, category } }
     })
     set({ nodes: cleanNodes, edges })
   },
@@ -227,13 +247,15 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
     const category = NODE_TYPE_CATEGORY_MAP[type] ?? 'DataIngestion'
 
     set((s) => ({
+      selectedNodeId: id,
       nodes: [
-        ...s.nodes,
+        ...s.nodes.map((n) => ({ ...n, selected: false })),
         {
           id,
           type,
           position: { x: baseX, y: baseY },
           data: { ...((defaultData[type] ?? {}) as Record<string, unknown>), category },
+          selected: true,
         } as Node,
       ],
     }))

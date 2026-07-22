@@ -8,19 +8,27 @@ Higiena /api/results i /api/backtest (audyt 2026-07-17, P2).
 """
 
 
+import pytest
 from fastapi.testclient import TestClient
 
 from app.db.session import get_session
 from app.main import app
-from app.models.orm import BacktestJob, Strategy
+from app.models.orm import AppSetting, BacktestJob, Strategy
 
-client = TestClient(app)
+
+@pytest.fixture
+def client(db_session):
+    return TestClient(app)
+
 
 _CURVE = [{"date": f"2023-01-{d:02d}", "value": 10000.0 + d} for d in range(1, 30)]
 
 
 def _create_job() -> int:
     with get_session() as db:
+        setting = db.get(AppSetting, "auth_enabled")
+        if setting:
+            setting.value = "false"
         strat = Strategy(name="Hygiene Strat", description="d", parameters={})
         db.add(strat)
         db.commit()
@@ -43,7 +51,7 @@ def _create_job() -> int:
         return job.id
 
 
-def test_results_win_rate_read_from_engine_key(db_session):
+def test_results_win_rate_read_from_engine_key(client):
     job_id = _create_job()
 
     resp = client.get(f"/api/results/{job_id}")
@@ -52,7 +60,7 @@ def test_results_win_rate_read_from_engine_key(db_session):
     assert resp.json()["data"]["metrics"]["win_rate_pct"] == 55.0
 
 
-def test_list_jobs_omits_equity_curve(db_session):
+def test_list_jobs_omits_equity_curve(client):
     job_id = _create_job()
 
     listing = client.get("/api/backtest/")

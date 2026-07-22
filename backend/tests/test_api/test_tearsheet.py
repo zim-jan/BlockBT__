@@ -1,17 +1,26 @@
 """Faza 13: testy endpointu GET /api/results/{job_id}/tearsheet."""
 
+import pytest
 from fastapi.testclient import TestClient
 
 from app.db.session import get_session
 from app.main import app
-from app.models.orm import BacktestJob, Strategy
+from app.models.orm import AppSetting, BacktestJob, Strategy
 
-client = TestClient(app)
 
+@pytest.fixture
+def client(db_session):
+    return TestClient(app)
+
+
+from app.models.orm import AppSetting, BacktestJob, Strategy
 
 def _create_job(status: str) -> int:
     """Tworzy strategię i job o zadanym statusie; zwraca job_id."""
     with get_session() as db:
+        setting = db.get(AppSetting, "auth_enabled")
+        if setting:
+            setting.value = "false"
         strat = Strategy(name="Tearsheet Strat", description="d", parameters={"symbol": "TEST"})
         db.add(strat)
         db.commit()
@@ -34,7 +43,7 @@ def _create_job(status: str) -> int:
         return job.id
 
 
-def test_tearsheet_completed_job(db_session):
+def test_tearsheet_completed_job(client):
     job_id = _create_job("COMPLETED")
 
     response = client.get(f"/api/results/{job_id}/tearsheet")
@@ -48,12 +57,12 @@ def test_tearsheet_completed_job(db_session):
     assert "Sharpe Ratio" in data["data"]["html"]
 
 
-def test_tearsheet_missing_job(db_session):
+def test_tearsheet_missing_job(client):
     response = client.get("/api/results/999999/tearsheet")
     assert response.status_code == 404
 
 
-def test_tearsheet_not_completed(db_session):
+def test_tearsheet_not_completed(client):
     job_id = _create_job("RUNNING")
 
     response = client.get(f"/api/results/{job_id}/tearsheet")
@@ -63,6 +72,9 @@ def test_tearsheet_not_completed(db_session):
 def _create_job_without_metrics() -> int:
     """Job COMPLETED z ``metrics=None`` i wszystkimi kolumnami skalarnymi None."""
     with get_session() as db:
+        setting = db.get(AppSetting, "auth_enabled")
+        if setting:
+            setting.value = "false"
         strat = Strategy(name="Empty Metrics Strat", description="d", parameters={"symbol": "TEST"})
         db.add(strat)
         db.commit()
@@ -85,7 +97,7 @@ def _create_job_without_metrics() -> int:
         return job.id
 
 
-def test_tearsheet_completed_job_without_metrics(db_session):
+def test_tearsheet_completed_job_without_metrics(client):
     """Job COMPLETED bez metryk (metrics=None, wszystkie kolumny None) → 200 + HTML z pustą gałęzią."""
     job_id = _create_job_without_metrics()
 

@@ -1,184 +1,99 @@
-/**
- * IndicatorNode — configurable strategy indicator.
- *
- * Supports:
- *   - SMA Crossover: Fast SMA / Slow SMA window periods
- *   - MACD: Fast / Slow / Signal window periods
- */
-
-import { useEffect, useState } from 'react'
-import {Handle, type Node, type NodeProps, Position} from '@xyflow/react'
-import {useWorkflowStore} from '../../../store/workflowStore'
-import type {IndicatorNodeData, IndicatorType} from '../../../types/types'
-import { api } from '../../../services/api'
-import {CategoryBadge} from './CategoryBadge'
+import { Handle, type Node, type NodeProps, Position } from '@xyflow/react'
+import type { IndicatorNodeData } from '../../../types/types'
+import { CategoryBadge } from './CategoryBadge'
+import { useWorkflowStore } from '../../../store/workflowStore'
 
 export type IndicatorNode = Node<IndicatorNodeData, 'indicatorNode'>
 
-// Domyślny kod dla trybu Custom — współdzielony przez seed w store i wartość textarea,
-// żeby stan wyświetlany == stan wysyłany do backendu (fix review 2026-07-15).
-const DEFAULT_CUSTOM_CODE =
-  "entries = close.vbt.indicators.RSI.run().rsi_below(30)\nexits = close.vbt.indicators.RSI.run().rsi_above(70)"
+export function IndicatorNode({ id, data, selected }: NodeProps<IndicatorNode>) {
+  const { selectedNodeId, setSelectedNodeId } = useWorkflowStore()
+  const isSelected = Boolean(selected || selectedNodeId === id)
 
-export function IndicatorNode({ id, data }: NodeProps<IndicatorNode>) {
-  const updateNodeData = useWorkflowStore((s) => s.updateNodeData)
-  const [availableIndicators, setAvailableIndicators] = useState<any[]>([])
-  
-  useEffect(() => {
-    api.indicators.list().then(res => {
-      if (res.success) setAvailableIndicators(res.data)
-    }).catch(err => console.error("Failed to fetch indicators:", err))
-  }, [])
-
-  const isMACD = data.indicatorType === 'macd'
   const isCustom = data.indicatorType === 'custom'
-  const isDynamic = !['sma_crossover', 'macd', 'custom'].includes(data.indicatorType)
-
-  // Zmiana typu wskaznika: seedujemy defaulty do store, aby stan wyswietlany == stan eksportowany do DAG.
-  // Custom → domyslny kod; wskaznik z rejestru → wszystkie p.default (fix review 2026-07-15).
-  const handleTypeChange = (newType: IndicatorType) => {
-    const patch: Record<string, unknown> = { indicatorType: newType }
-    if (newType === 'custom' && data.codeContent == null) {
-      patch.codeContent = DEFAULT_CUSTOM_CODE
-    }
-    const registryParams = availableIndicators.find((i) => i.name === newType)?.params
-    if (registryParams) {
-      for (const p of registryParams) {
-        if (data[p.name] == null) patch[p.name] = p.default
-      }
-    }
-    updateNodeData(id as string, patch)
-  }
+  const isMACD = data.indicatorType === 'macd'
+  const isRSI = data.indicatorType === 'rsi'
+  const isSMA = data.indicatorType === 'sma_crossover'
 
   return (
-    <div className="rf-node rf-node--indicator">
+    <div
+      onClick={(e) => {
+        e.stopPropagation()
+        console.log(`[CanvasNode] 🖱️ Clicked IndicatorNode: id=${id}`)
+        setSelectedNodeId(id)
+      }}
+      className={`rf-node rf-node--indicator bg-[#1c2130] border rounded-xl shadow-lg text-slate-100 p-3 min-w-[220px] cursor-pointer transition-all ${
+        isSelected ? 'border-purple-400 ring-2 ring-purple-400/50 shadow-purple-500/20' : 'border-purple-500/30'
+      }`}
+    >
       <Handle type="target" position={Position.Left} style={{ zIndex: 10 }} />
-      <div className="rf-node__header react-flow__node-drag-handle">
-        <span className="rf-node__icon">📈</span>
-        <span className="rf-node__title">Indicator</span>
+      
+      <div className="flex items-center justify-between border-b border-white/10 pb-2 mb-2 react-flow__node-drag-handle">
+        <div className="flex items-center gap-2 font-semibold text-xs text-purple-400">
+          <span>📈</span>
+          <span>Indicator</span>
+        </div>
         <CategoryBadge category="Indicators" />
       </div>
 
-      <div className="rf-node__body">
-        {/* Strategy type selector */}
-        <label className="rf-label">Strategy Type</label>
-        <select
-          value={data.indicatorType}
-          onChange={(e) => handleTypeChange(e.target.value as IndicatorType)}
-          className="rf-input"
-        >
-          <option value="sma_crossover">SMA Crossover (Native)</option>
-          <option value="macd">MACD (Native)</option>
-          <option value="custom">Custom Code</option>
-          <optgroup label="Registry Indicators">
-            {availableIndicators.map(ind => (
-              <option key={ind.name} value={ind.name}>{ind.name} ({ind.library})</option>
-            ))}
-          </optgroup>
-        </select>
+      <div className="space-y-1.5 font-mono text-xs">
+        {/* Indicator Type Header */}
+        <div className="flex items-center justify-between bg-[#0b0d14] px-2 py-1 rounded border border-white/5">
+          <span className="text-slate-400 text-[11px]">Wskaźnik:</span>
+          <span className="font-bold text-purple-300 capitalize text-[11px]">{data.indicatorType || 'SMA'}</span>
+        </div>
 
-        {/* Dynamic Parameters from Registry */}
-        {isDynamic && (
-          <div className="rf-dynamic-params">
-             {availableIndicators.find(i => i.name === data.indicatorType)?.params.map((p: any) => (
-               <div key={p.name}>
-                 <label className="rf-label">{p.name}</label>
-                 <input
-                   type={p.type === 'int' ? 'number' : 'text'}
-                   value={data[p.name] ?? p.default}
-                   onChange={(e) => updateNodeData(id as string, { [p.name]: p.type === 'int' ? Number(e.target.value) : e.target.value })}
-                   className="rf-input"
-                 />
-               </div>
-             ))}
+        {/* SMA parameters */}
+        {isSMA && (
+          <div className="grid grid-cols-2 gap-1.5 text-[11px] bg-[#0b0d14] p-1.5 rounded border border-white/5">
+            <div className="flex justify-between px-1">
+              <span className="text-slate-400">Fast:</span>
+              <span className="font-bold text-slate-100">{data.smaFast ?? 10}</span>
+            </div>
+            <div className="flex justify-between px-1">
+              <span className="text-slate-400">Slow:</span>
+              <span className="font-bold text-slate-100">{data.smaSlow ?? 30}</span>
+            </div>
           </div>
         )}
 
-        {/* SMA Crossover parameters */}
-        {data.indicatorType === 'sma_crossover' && (
-          <>
-            <label className="rf-label">Fast SMA</label>
-            <input
-              type="number"
-              min={2}
-              max={200}
-              value={data.smaFast}
-              onChange={(e) => updateNodeData(id as string, { smaFast: Number(e.target.value) })}
-              className="rf-input"
-            />
-
-            <label className="rf-label">Slow SMA</label>
-            <input
-              type="number"
-              min={5}
-              max={500}
-              value={data.smaSlow}
-              onChange={(e) => updateNodeData(id as string, { smaSlow: Number(e.target.value) })}
-              className="rf-input"
-            />
-          </>
-        )}
-
         {/* MACD parameters */}
-        {isMACD && !isCustom && (
-          <>
-            <label className="rf-label">Fast Period</label>
-            <input
-              type="number"
-              min={2}
-              max={100}
-              value={data.macdFast ?? 12}
-              onChange={(e) => updateNodeData(id as string, { macdFast: Number(e.target.value) })}
-              className="rf-input"
-            />
-
-            <label className="rf-label">Slow Period</label>
-            <input
-              type="number"
-              min={5}
-              max={200}
-              value={data.macdSlow ?? 26}
-              onChange={(e) => updateNodeData(id as string, { macdSlow: Number(e.target.value) })}
-              className="rf-input"
-            />
-
-            <label className="rf-label">Signal Period</label>
-            <input
-              type="number"
-              min={2}
-              max={50}
-              value={data.macdSignal ?? 9}
-              onChange={(e) => updateNodeData(id as string, { macdSignal: Number(e.target.value) })}
-              className="rf-input"
-            />
-          </>
-        )}
-
-        {/* Custom Code editor */}
-        {isCustom && (
-          <>
-            <label className="rf-label">Python / vectorbt Code</label>
-            <textarea
-              rows={8}
-              value={data.codeContent ?? DEFAULT_CUSTOM_CODE}
-              onChange={(e) => updateNodeData(id as string, { codeContent: e.target.value })}
-              className="rf-input"
-              style={{ fontFamily: 'monospace', fontSize: '11px', resize: 'vertical' }}
-              placeholder="entries = ...\nexits = ..."
-            />
-            <div className="rf-hint">
-              Available: <code>close</code>, <code>vbt</code>, <code>np</code>, <code>pd</code>.<br/>
-              Must define <code>entries</code> and <code>exits</code>.<br/>
-              ⚠️ Walidacja statyczna (AST) blokuje importy, <code>eval</code>/<code>exec</code> i dostęp do dunderów — to NIE jest pełna granica bezpieczeństwa. Nie uruchamiaj niezaufanych strategii z zewnątrz.<br/>
-              Zobacz poradnik: <code>docs/frontend/custom_indicators.md</code>.
+        {isMACD && (
+          <div className="grid grid-cols-3 gap-1 text-[10px] bg-[#0b0d14] p-1.5 rounded border border-white/5 text-center">
+            <div>
+              <span className="block text-slate-400">Fast</span>
+              <span className="font-bold text-purple-300">{data.macdFast ?? 12}</span>
             </div>
-            {data.error && (
-              <p className="rf-hint rf-hint--error text-center mt-2">{data.error}</p>
-            )}
-          </>
+            <div>
+              <span className="block text-slate-400">Slow</span>
+              <span className="font-bold text-purple-300">{data.macdSlow ?? 26}</span>
+            </div>
+            <div>
+              <span className="block text-slate-400">Signal</span>
+              <span className="font-bold text-purple-300">{data.macdSignal ?? 9}</span>
+            </div>
+          </div>
         )}
 
-        {/* Kapitał początkowy przeniesiony do bloku Portfolio (review 2026-07-16) */}
+        {/* RSI parameters */}
+        {isRSI && (
+          <div className="space-y-1 text-[11px] bg-[#0b0d14] p-1.5 rounded border border-white/5">
+            <div className="flex justify-between">
+              <span className="text-slate-400">Window:</span>
+              <span className="font-bold text-slate-100">{String(data.rsiWindow ?? 14)}</span>
+            </div>
+            <div className="flex justify-between text-[10px]">
+              <span className="text-slate-400">Limits:</span>
+              <span className="text-purple-300 font-semibold">{String(data.rsiLower ?? 30)} / {String(data.rsiUpper ?? 70)}</span>
+            </div>
+          </div>
+        )}
+
+        {/* Custom Numba JIT badge */}
+        {isCustom && (
+          <div className="text-[11px] text-emerald-400 bg-emerald-950/40 p-1.5 rounded border border-emerald-500/30 text-center font-semibold">
+            Numba JIT Sandbox Code
+          </div>
+        )}
       </div>
 
       <Handle 
