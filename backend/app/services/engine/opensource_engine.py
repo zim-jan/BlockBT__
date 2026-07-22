@@ -5,7 +5,6 @@ The vendored ``vectorbt/`` directory is added to sys.path at load time so no
 pip installation is strictly required if the folder exists.
 """
 
-from __future__ import annotations
 
 import sys
 from typing import Any

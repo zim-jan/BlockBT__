@@ -7,11 +7,11 @@ name = "blockbt"
 version = "0.1.2"
 description = "BlockBT — Self-hosted algorithmic backtesting environment (Dual-Engine, BYOL)"
 readme = "README.md"
-requires-python = ">=3.13,<3.15"
+requires-python = ">=3.14"
 
 dependencies = [
     # Data layer
-    "pandas>=2.0,<3.0",
+    "pandas>=3.0.3",
     "pyarrow>=18.0",
     "yfinance>=0.2.22",
     # Database
@@ -27,7 +27,7 @@ dependencies = [
     "bcrypt",
     "PyJWT>=2.8",
     "cryptography",
-    # vectorbt deps (vectorbt itself is vendored — do NOT add here)
+    # vectorbt deps
     "numba>=0.60",
     "dill",
     "plotly>=4.12.0",
@@ -49,13 +49,13 @@ dependencies = [
     "psycopg",
     "pgvector",
     "ollama",
-    "numpy>=1.23,<2.0",
+    "numpy>=1.23",
     "psycopg-binary",
     "langchain-text-splitters",
     "mcp[cli]",
     # ruff/mkdocstrings przeniesione do [dev] — to narzędzia deweloperskie, nie zależności runtime (review 2026-07-15)
     "pandas-stubs~=2.3.3",
-    "vectorbt[rust]>=1.0.0",
+    "vectorbt[rust]>=1.1.0",
     "quantstats>=0.0.81",
     "ta-lib>=0.6.8",
 ]
@@ -82,7 +82,7 @@ where = ["backend"]
 
 [tool.ruff]
 line-length = 100
-target-version = "py313"
+target-version = "py314"
 extend-exclude = ["alembic", "migrations", "vectorbt_src"]
 
 [tool.ruff.lint]
@@ -93,7 +93,7 @@ ignore = ["B008"]
 known-first-party = ["app"]
 
 [tool.mypy]
-python_version = "3.13"
+python_version = "3.14"
 strict = false
 ignore_missing_imports = true
 exclude = ["vectorbt_src"]

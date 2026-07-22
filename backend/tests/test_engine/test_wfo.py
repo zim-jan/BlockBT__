@@ -79,8 +79,8 @@ def test_split_windows_rolling_no_lookahead(dummy_data):
     for is_start, is_end, oos_start, oos_end in windows:
         # OOS zaczyna się dokładnie tam, gdzie kończy się IS (konwencja [start, end))
         assert oos_start == is_end
-        assert is_end - is_start == pd.Timedelta("365d")
-        assert oos_end - oos_start == pd.Timedelta("90d")
+        assert is_end - is_start == pd.Timedelta("365D")
+        assert oos_end - oos_start == pd.Timedelta("90D")
 
         is_slice = idx[(idx >= is_start) & (idx < is_end)]
         oos_slice = idx[(idx >= oos_start) & (idx < oos_end)]
@@ -91,7 +91,7 @@ def test_split_windows_rolling_no_lookahead(dummy_data):
 
     # Rolling: kolejne okna przesunięte o step, segmenty OOS przylegają (bez nakładania)
     for prev, nxt in zip(windows, windows[1:], strict=False):
-        assert nxt[0] - prev[0] == pd.Timedelta("90d")
+        assert nxt[0] - prev[0] == pd.Timedelta("90D")
         assert nxt[2] == prev[3]
 
 
@@ -106,7 +106,7 @@ def test_split_windows_anchored(dummy_data):
     idx = dummy_data.index
     for i, (is_start, is_end, oos_start, oos_end) in enumerate(windows):
         assert is_start == idx[0]
-        assert is_end - is_start == pd.Timedelta("365d") + i * pd.Timedelta("90d")
+        assert is_end - is_start == pd.Timedelta("365D") + i * pd.Timedelta("90D")
         assert oos_start == is_end
 
         is_slice = idx[(idx >= is_start) & (idx < is_end)]
@@ -164,7 +164,7 @@ def test_run_wfo_fixed_params_evaluates_each_oos_window(dummy_data):
     # Bez param_bounds: dokładnie 1 backtest OOS na okno
     assert len(engine.calls) == 5
 
-    first_oos_start = dummy_data.index[0] + pd.Timedelta("365d")
+    first_oos_start = dummy_data.index[0] + pd.Timedelta("365D")
     for call, window in zip(engine.calls, result["trials"], strict=True):
         # Silnik dostał wyłącznie dane OOS (nigdy dane in-sample)
         assert call["start"] >= first_oos_start

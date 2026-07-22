@@ -5,7 +5,6 @@ FAILED to stan terminalny — musi dostawać ``completed_at`` tak samo jak
 COMPLETED (job optymalizacji już to robił, backtest nie).
 """
 
-from __future__ import annotations
 
 from app.models.orm import BacktestJob, JobStatus, Strategy
 from app.services.engine.job_service import JobService

@@ -8,7 +8,6 @@ Dla danych intraday metryki annualizowane były liczbowo błędne.
 Konwencja: kalendarz giełdowy US (252 sesje/rok, sesja 6.5h).
 """
 
-from __future__ import annotations
 
 import math
 

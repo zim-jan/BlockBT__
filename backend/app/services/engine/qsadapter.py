@@ -16,7 +16,6 @@ Pełny raport QuantStats z wykresami (``qs.reports.html``) jest świadomie odło
 rozszerzeniem poza MVP Fazy 13 — patrz ADR-0004.
 """
 
-from __future__ import annotations
 
 import html
 from datetime import UTC, datetime

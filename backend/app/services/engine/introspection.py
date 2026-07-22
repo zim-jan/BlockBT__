@@ -14,7 +14,6 @@ Zasady architektoniczne:
 Budowa katalogu jest leniwa (wywoływana w handlerze API), nie przy imporcie modułu.
 """
 
-from __future__ import annotations
 
 from typing import Any
 

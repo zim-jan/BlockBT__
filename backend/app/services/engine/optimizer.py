@@ -4,7 +4,6 @@ Phase 5 — Grid Search Optimizer for parameters.
 Allows exhaustive Cartesian-product parameter searches using the open-source vectorbt library.
 """
 
-from __future__ import annotations
 
 import itertools
 import math
@@ -345,8 +344,9 @@ class WalkForwardOptimizer:
         if not index.is_monotonic_increasing:
             raise ValueError("WFO requires a sorted (monotonic increasing) DatetimeIndex.")
 
-        is_td = pd.Timedelta(window_size)
-        oos_td = pd.Timedelta(step_size)
+        # Normalize lowercase aliases for pandas 3.x compat ('d' → 'D')
+        is_td = pd.Timedelta(window_size.upper() if isinstance(window_size, str) else window_size)
+        oos_td = pd.Timedelta(step_size.upper() if isinstance(step_size, str) else step_size)
         if is_td <= pd.Timedelta(0) or oos_td <= pd.Timedelta(0):
             raise ValueError("window_size and step_size must be positive timedeltas.")
 

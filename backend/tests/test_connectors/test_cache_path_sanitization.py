@@ -6,7 +6,6 @@ Sanityzacja ścieżek cache Parquet (audyt 2026-07-17, P2 — path traversal).
 ``../../evil`` uciekała poza katalog cache przy zapisie Parquet.
 """
 
-from __future__ import annotations
 
 import pytest
 

@@ -7,7 +7,6 @@ w kopertę ``ApiResponse{success,data,error}``) — zgodnie z kontraktem testu
 Budowa katalogu jest leniwa (w handlerze) i odporna na brak vbt (``runner.vbt is None``).
 """
 
-from __future__ import annotations
 
 from typing import Any
 

@@ -4,7 +4,6 @@ Opisują kontrakt endpointu ``GET /api/v1/registry`` — kuratorowany, determini
 katalog wskaźników oraz kategorii węzłów DAG (BYOL-safe). Klucze API/JSON po angielsku.
 """
 
-from __future__ import annotations
 
 from typing import Any
 

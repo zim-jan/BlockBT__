@@ -6,7 +6,6 @@ ma ją zwracać w polu ``allocation`` odpowiedzi, a lista jobów pozostaje
 lekka (bez timeline'u — jak przy ``equity_curve``).
 """
 
-from __future__ import annotations
 
 from fastapi.testclient import TestClient
 

@@ -6,7 +6,6 @@ równoległe zapisy (dwa joby w tle, job + endpoint) kończyły się natychmiast
 ``database is locked`` zamiast poczekać na zwolnienie blokady.
 """
 
-from __future__ import annotations
 
 
 def test_sqlite_busy_timeout_pragma_set():

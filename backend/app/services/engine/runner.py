@@ -4,7 +4,6 @@ run_vectorbt_backtest — Phase 3 background task entry-point.
 This is the main orchestrator for async background backtesting.
 """
 
-from __future__ import annotations
 
 from typing import Any
 

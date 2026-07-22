@@ -1,4 +1,3 @@
-from __future__ import annotations
 
 from datetime import datetime
 from typing import Any, Literal
@@ -77,17 +76,23 @@ class WalkForwardRequest(BaseModel):
     def _validate_timedelta(cls, value: str) -> str:
         """Audyt 2026-07-17: walidacja okien NA WEJŚCIU (422) — wcześniej wolny
         string parsował dopiero pd.Timedelta w tle i literówka kończyła się
-        cichym FAILED joba z kryptycznym błędem pandas."""
+        cichym FAILED joba z kryptycznym błędem pandas.
+
+        pandas 3.x deprecates lowercase aliases ('d' → 'D', 'h' → 'h').
+        We normalize to uppercase before returning.
+        """
+        # Normalize lowercase time aliases for pandas 3.x compat
+        normalized = value.strip().upper()
         try:
-            td = pd.Timedelta(value)
+            td = pd.Timedelta(normalized)
         except ValueError as exc:
             raise ValueError(
                 f"Invalid window/step size {value!r}: expected a pandas Timedelta "
-                f"string like '365d' or '90d'."
+                f"string like '365D' or '90D'."
             ) from exc
         if td <= pd.Timedelta(0):
             raise ValueError(f"Window/step size must be positive, got {value!r}.")
-        return value
+        return normalized
 
 
 class OptimizationJobResponse(BaseModel):

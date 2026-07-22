@@ -9,7 +9,6 @@ Kontrakt po fixie: w trakcie wywołania LLM żadne połączenie z puli
 nie jest wyjęte, a inni pisarze mogą normalnie zapisywać.
 """
 
-from __future__ import annotations
 
 from fastapi.testclient import TestClient
 

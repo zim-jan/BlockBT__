@@ -9,7 +9,6 @@ wybiera parametry w warunkach nierealnie optymistycznych względem
 właściwego backtestu i wyniki optymalizacji są systematycznie zawyżone.
 """
 
-from __future__ import annotations
 
 import numpy as np
 import pandas as pd

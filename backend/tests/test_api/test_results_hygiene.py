@@ -7,7 +7,6 @@ Higiena /api/results i /api/backtest (audyt 2026-07-17, P2).
   multi-MB payload listy) — lista ma być lekka, pełna krzywa tylko w GET /{id}.
 """
 
-from __future__ import annotations
 
 from fastapi.testclient import TestClient
 

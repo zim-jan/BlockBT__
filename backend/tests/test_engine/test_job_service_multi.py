@@ -9,7 +9,6 @@ symulowany niezależnie z pełnym init_cash): średnia metryk wskaźnikowych
 po wartościach skończonych, suma liczników i kapitału końcowego.
 """
 
-from __future__ import annotations
 
 import pytest
 

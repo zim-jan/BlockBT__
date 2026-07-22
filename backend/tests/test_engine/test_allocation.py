@@ -11,7 +11,6 @@ Portfel multi-symbol to niezależne kolumny (bez cash_sharing) — analiza
 pokazuje strukturę ŁĄCZNEGO kapitału, nie realny wspólny portfel.
 """
 
-from __future__ import annotations
 
 import numpy as np
 import pandas as pd
