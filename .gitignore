@@ -81,3 +81,5 @@ vectorbt_src/
 
 # Claude Code local working dir (worktrees, sesyjne ustawienia) — nie wersjonujemy
 .claude/
+/.agents/rules/graphify.md
+/.agents/workflows/graphify.md
