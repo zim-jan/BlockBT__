@@ -33,7 +33,6 @@ export function WfoNode({ id, data, selected }: NodeProps<WfoNode>) {
 
       <div className="flex items-center justify-between border-b border-white/10 pb-2 mb-2 react-flow__node-drag-handle">
         <div className="flex items-center gap-2 font-semibold text-xs text-pink-400">
-          <span>🔄</span>
           <span>Walk-Forward</span>
         </div>
         <CategoryBadge category="Meta" />

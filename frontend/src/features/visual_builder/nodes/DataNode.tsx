@@ -30,7 +30,6 @@ export function DataNode({ id, data, selected }: NodeProps<DataNode>) {
     >
       <div className="flex items-center justify-between border-b border-white/10 pb-2 mb-2 react-flow__node-drag-handle">
         <div className="flex items-center gap-2 font-semibold text-xs text-blue-400">
-          <span>📊</span>
           <span>Data Source</span>
         </div>
         <CategoryBadge category="DataIngestion" />

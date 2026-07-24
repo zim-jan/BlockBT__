@@ -47,7 +47,6 @@ export function PortfolioNode({ id, data, selected }: PortfolioNodeProps) {
       />
       <div className="flex items-center justify-between border-b border-white/10 pb-2 mb-2 react-flow__node-drag-handle">
         <div className="flex items-center gap-2 font-semibold text-xs text-emerald-400">
-          <span>💼</span>
           <span>Portfolio</span>
         </div>
         <CategoryBadge category="Execution" />

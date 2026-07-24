@@ -31,7 +31,6 @@ export function SignalNode({ id, data, selected }: NodeProps<SignalNode>) {
       
       <div className="flex items-center justify-between border-b border-white/10 pb-2 mb-2 react-flow__node-drag-handle">
         <div className="flex items-center gap-2 font-semibold text-xs text-amber-400">
-          <span>⚡</span>
           <span>Signal Logic</span>
         </div>
         <CategoryBadge category="LogicOperators" />

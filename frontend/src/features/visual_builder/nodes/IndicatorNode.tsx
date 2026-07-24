@@ -29,7 +29,6 @@ export function IndicatorNode({ id, data, selected }: NodeProps<IndicatorNode>) 
       
       <div className="flex items-center justify-between border-b border-white/10 pb-2 mb-2 react-flow__node-drag-handle">
         <div className="flex items-center gap-2 font-semibold text-xs text-purple-400">
-          <span>📈</span>
           <span>Indicator</span>
         </div>
         <CategoryBadge category="Indicators" />
