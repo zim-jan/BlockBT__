@@ -20,6 +20,15 @@ os.environ["SECRET_KEY"] = "yNmj9oJp0YJXY7vWvJ0M2bI-W3k6U_X1qR5u7M_fA-Q="
 # Database fixtures
 # ---------------------------------------------------------------------------
 
+@pytest.fixture(scope="session", autouse=True)
+def isolate_test_db(tmp_path_factory):
+    """Enforce isolated SQLite database for entire pytest session so dev DB is never touched."""
+    test_dir = tmp_path_factory.mktemp("db_session")
+    test_db = f"sqlite:///{test_dir}/pytest_blockbt.db"
+    os.environ["BLOCKBT_DB_URL"] = test_db
+    os.environ["DATABASE_URL"] = test_db
+    yield
+
 
 @pytest.fixture(scope="function")
 def db_session(tmp_path, monkeypatch):
@@ -30,6 +39,7 @@ def db_session(tmp_path, monkeypatch):
     broken state at teardown.
     """
     db_url = f"sqlite:///{tmp_path}/test_app.db"
+    monkeypatch.setenv("BLOCKBT_DB_URL", db_url)
     monkeypatch.setenv("DATABASE_URL", db_url)
     monkeypatch.setenv("SECRET_KEY", "yNmj9oJp0YJXY7vWvJ0M2bI-W3k6U_X1qR5u7M_fA-Q=")
 

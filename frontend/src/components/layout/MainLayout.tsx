@@ -60,10 +60,10 @@ export function MainLayout({ children }: MainLayoutProps) {
     <div className="flex h-screen bg-surface text-on-surface overflow-hidden dark font-body">
       <Sidebar />
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden bg-background">
-        <header className="flex-none p-6 pb-4 border-b border-outline-variant/20 bg-surface-container-low backdrop-blur-sm sticky top-0 z-10 flex justify-between items-center relative">
+        <header className="flex-none px-6 py-5 border-b border-outline-variant/20 bg-surface-container-low backdrop-blur-sm sticky top-0 z-10 flex justify-between items-center relative">
             <div>
               <h2 className="font-headline text-xl font-bold tracking-tight">Strategy Builder</h2>
-              <p className="font-label text-sm text-on-surface-variant mt-1">Design, test, and optimize trading strategies.</p>
+              <p className="font-label text-sm text-on-surface-variant/80 mt-1.5 leading-relaxed">Design, test, and optimize trading strategies.</p>
             </div>
             <div className="flex gap-4 items-center">
                 <div className={`status-badge ${isLoading ? 'loading' : isError ? 'error' : 'ok'}`}>

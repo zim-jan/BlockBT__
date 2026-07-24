@@ -5,6 +5,7 @@ import { Bot, X, BarChart2, Loader2 } from 'lucide-react'
 import Plot from './PlotlyPlot'
 import { useChatStore } from '../store/chatStore'
 import type { PortfolioNodeData, MultiBacktestResult } from '../types/types'
+import { api } from '../services/api'
 
 function parseEquityCurve(rawCurve: any): { x: string[]; y: number[] } | null {
   if (!rawCurve) return null
@@ -71,13 +72,12 @@ export const ResultsOverlay: React.FC = () => {
   useEffect(() => {
     if (activeTab === 'tearsheet' && effectiveJobId && isResultsOpen) {
       setIsTearsheetLoading(true)
-      fetch(`/api/results/${effectiveJobId}/tearsheet`)
-        .then((res) => res.json())
-        .then((resData) => {
-          if (resData?.data?.html) {
-            setTearsheetHtml(resData.data.html)
-          } else if (typeof resData?.data === 'string') {
-            setTearsheetHtml(resData.data)
+      api.results.getTearsheet(effectiveJobId)
+        .then((data) => {
+          if (data?.html) {
+            setTearsheetHtml(data.html)
+          } else if (typeof data === 'string') {
+            setTearsheetHtml(data)
           } else {
             setTearsheetHtml('<p style="color:#9ca3af;padding:2rem;font-family:sans-serif;">No HTML data from QuantStats report.</p>')
           }

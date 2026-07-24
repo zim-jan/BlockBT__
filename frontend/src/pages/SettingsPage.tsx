@@ -16,7 +16,8 @@ import {
   Check, 
   X,
   Server,
-  Lock
+  Lock,
+  Loader2
 } from 'lucide-react'
 
 export function SettingsPage() {
@@ -30,7 +31,7 @@ export function SettingsPage() {
         <header className="flex-none px-8 py-5 border-b border-outline-variant/20 bg-surface-container-low backdrop-blur-sm sticky top-0 z-10 flex items-center justify-between">
           <div>
             <h2 className="font-headline text-2xl font-bold tracking-tight text-on-surface">Settings</h2>
-            <p className="font-label text-xs text-on-surface-variant mt-1">Configure environment data, AI analysis prompts, and user access control.</p>
+            <p className="font-label text-xs text-on-surface-variant/80 mt-1.5 leading-relaxed">Configure environment data, AI analysis prompts, and user access control.</p>
           </div>
           <div className="flex items-center gap-2 px-3 py-1 bg-surface-container border border-outline-variant/30 text-on-surface-variant font-label text-xs">
             <Server className="w-3.5 h-3.5 text-primary" />
@@ -152,10 +153,8 @@ function AIPromptsTab() {
   const { data: prompts, isLoading } = useQuery({
     queryKey: ['system-prompts'],
     queryFn: async () => {
-      const res = await fetch('/api/settings/prompts')
-      if (!res.ok) throw new Error('Failed to fetch prompts')
-      const json = await res.json()
-      return json.data
+      const res = await api.settings.getPrompts()
+      return res.data
     }
   })
 
@@ -166,13 +165,7 @@ function AIPromptsTab() {
 
   const createMutation = useMutation({
     mutationFn: async () => {
-      const res = await fetch('/api/settings/prompts', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: promptName, content: promptContent })
-      })
-      if (!res.ok) throw new Error('Failed to create prompt')
-      return res.json()
+      return await api.settings.createPrompt({ name: promptName, content: promptContent })
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['system-prompts'] })
@@ -183,13 +176,7 @@ function AIPromptsTab() {
   const updateMutation = useMutation({
     mutationFn: async () => {
       if (!editingId) return
-      const res = await fetch(`/api/settings/prompts/${editingId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: promptName, content: promptContent })
-      })
-      if (!res.ok) throw new Error('Failed to update prompt')
-      return res.json()
+      return await api.settings.updatePrompt(editingId, { name: promptName, content: promptContent })
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['system-prompts'] })
@@ -199,9 +186,7 @@ function AIPromptsTab() {
 
   const setDefaultMutation = useMutation({
     mutationFn: async (id: number) => {
-      const res = await fetch(`/api/settings/prompts/${id}/default`, { method: 'POST' })
-      if (!res.ok) throw new Error('Failed to set default')
-      return res.json()
+      return await api.settings.setDefaultPrompt(id)
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['system-prompts'] })
@@ -210,8 +195,7 @@ function AIPromptsTab() {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
-      const res = await fetch(`/api/settings/prompts/${id}`, { method: 'DELETE' })
-      if (!res.ok) throw new Error('Failed to delete prompt')
+      await api.settings.deletePrompt(id)
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['system-prompts'] })
@@ -433,12 +417,7 @@ function UsersTab() {
 
   const toggleAuthMutation = useMutation({
     mutationFn: async (enabled: boolean) => {
-      const res = await fetch('/api/settings/', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ auth_enabled: enabled })
-      })
-      if (!res.ok) throw new Error('Failed to update settings')
+      await api.settings.update({ auth_enabled: enabled })
       return enabled
     },
     onSuccess: (enabled) => {
@@ -502,28 +481,22 @@ function UsersTab() {
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-3">
-            <span className={`px-2.5 py-1 text-[11px] font-medium tracking-wide uppercase border ${
-              authEnabled 
-                ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' 
-                : 'bg-surface-container text-on-surface-variant border-outline-variant/30'
-            }`}>
-              {authEnabled ? 'Auth Active' : 'Auth Disabled'}
-            </span>
-            <button
-              onClick={() => toggleAuthMutation.mutate(!authEnabled)}
-              disabled={toggleAuthMutation.isPending}
-              className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                authEnabled ? 'bg-primary' : 'bg-surface-container-highest'
-              }`}
-            >
-              <span
-                className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
-                  authEnabled ? 'translate-x-5' : 'translate-x-0'
-                }`}
-              />
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={() => toggleAuthMutation.mutate(!authEnabled)}
+            disabled={toggleAuthMutation.isPending}
+            className={`inline-flex items-center gap-2 px-3 py-1.5 text-xs font-semibold tracking-wide uppercase transition-all duration-150 border cursor-pointer select-none rounded ${
+              authEnabled
+                ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30 hover:bg-emerald-500/25 active:scale-[0.98]'
+                : 'bg-surface-container text-on-surface-variant border-outline-variant/40 hover:bg-surface-container-high hover:text-on-surface active:scale-[0.98]'
+            } ${toggleAuthMutation.isPending ? 'opacity-70 cursor-wait' : ''}`}
+          >
+            <span className={`w-2 h-2 rounded-full ${authEnabled ? 'bg-emerald-400 animate-pulse' : 'bg-outline-variant'}`} />
+            <span>{authEnabled ? 'Auth Enabled' : 'Auth Disabled'}</span>
+            {toggleAuthMutation.isPending && (
+              <Loader2 className="w-3.5 h-3.5 animate-spin ml-1 text-primary" />
+            )}
+          </button>
         </div>
 
         {/* Warning Alert */}

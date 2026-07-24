@@ -176,3 +176,19 @@ Aby uniknąć problemów z ucinaniem zawartości (clipping) przez kontenery z `o
      }
      ```
 
+---
+
+## 8. 📏 Reguły Odstępów, Obramowań Węzłów i Uchwytów Połączeń (Handles & Spacing System)
+
+1. **Uchwyty Połączeń (React Flow Handles):**
+   - Uchwyty (`.react-flow__handle`, `.easy-connect-handle`) posiadają stały rozmiar 12px (bez animacji powiększania `scale(1.25)` po najechaniu), ujemne przesunięcie `left: -6px`, `right: -6px` oraz `z-index: 25`.
+   - Czyste koła uchwytów znajdują się na linii obramowania karty, nie nachodząc na wewnętrzne etykiety.
+2. **Eleganckie Obramowanie 1px i Obszerny Padding Węzłów (Refined Borders & Generous Inner Padding):**
+   - Karty węzłów kanwy (`DataNode`, `IndicatorNode`, `SignalNode`, `PortfolioNode`, `OptimizerNode`, `WfoNode`) posiadają 1px obramowania `border` z subtelnymi odcieniami przezroczystości (`border-blue-500/30`, `border-purple-500/30`, `border-emerald-500/30`, etc.).
+   - Główny kontener karty posiada obszerny padding `p-4` (16px bezpiecznej przestrzeni od krawędzi karty), a wewnętrzne bloki parametrów stosują padding `px-3 py-1.5` (12px w poziomie, 6px w pionie) i odstęp `space-y-2` / `space-y-2.5`.
+3. **Standaryzacja Wcięć i Marginesów Kontenerów (Container Padding & Margins):**
+   - Żaden nagłówek, podtytuł (np. `<p class="font-label text-sm text-on-surface-variant mt-1.5 leading-relaxed">`) ani przycisk nie może stykać się bezpośrednio z krawędzią kontenera.
+   - Paski górne i nagłówki podstron stosują `px-6 py-5` z ujednoliconym `leading-relaxed`.
+   - Karty sekcji oraz widżety stosują minimalne wcięcia `p-5` lub `p-6` oraz marginesy dolne `space-y-3` / `space-y-4`.
+
+

@@ -288,3 +288,11 @@
   5. **QuantStats Tearsheet Dark Mode:** Dostosowanie stylów CSS w `qsadapter.py` oraz kontenera iframe w `ResultsOverlay.tsx` do ciemnej palety barw (`#0b0d14`, `#131722`) zgodnie z `DESIGN.md`.
   6. **Weryfikacja:** `make lint` pass (0 błędów), testy Vitest 47/47 pass, testy pytest 256/256 pass.
 
+* **Faza 24: Refaktoryzacja Wyglądu, Ujednolicenie Układu & Zacementowanie w DESIGN.md** [DONE]
+  Cel: Naprawa nachodzenia uchwytów połączeń React Flow na tekst węzłów, wyraziste obramowanie węzłów `border-2`, znormalizowanie wcięć kontenerów oraz dodanie Sekcji 8 w DESIGN.md.
+  1. **React Flow Handles:** Precyzyjne pozycjonowanie uchwytów w `index.css` (`left: -8px`, `right: -8px`, `z-index: 25`, średnica 14px centered na ramce) zapobiegające nachodzeniu na tekst karty.
+  2. **Pogrubione Obramowanie Węzłów:** Zastosowanie `border-2` (2px) oraz min. inner paddingu `p-3.5` we wszystkich węzłach (`DataNode`, `IndicatorNode`, `SignalNode`, `PortfolioNode`, `OptimizerNode`, `WfoNode`).
+  3. **Normalizacja Spacingu:** Ujednolicenie marginesów i wcięć w nagłówkach stron (`MainLayout.tsx`, `SettingsPage.tsx`, `InspectorPanel.tsx`).
+  4. **Zacementowanie w DESIGN.md:** Dodanie Sekcji 8 (**Reguły Odstępów, Obramowań Węzłów i Uchwytów Połączeń**) do `DESIGN.md`.
+  5. **Weryfikacja:** `make lint` pass (0 błędów), testy Vitest 47/47 pass, `npm run build` pass.
+

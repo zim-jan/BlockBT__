@@ -1,8 +1,9 @@
 from typing import Any
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from sqlalchemy import select
 
+from app.core.user_scope import require_admin
 from app.db.session import get_session
 from app.models.orm import AppSetting, SystemPrompt
 from app.schemas.base import ApiResponse
@@ -30,8 +31,9 @@ def get_all_settings() -> ApiResponse[dict[str, str]]:
 
 
 @router.put("/", response_model=ApiResponse[dict[str, str]])
-def update_settings(update: AppSettingUpdate) -> ApiResponse[dict[str, str]]:
+def update_settings(request: Request, update: AppSettingUpdate) -> ApiResponse[dict[str, str]]:
     """Bulk update application settings."""
+    require_admin(request)
     with get_session() as db:
         for key, value in update.model_dump(exclude_unset=True).items():
             if value is not None:

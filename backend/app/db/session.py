@@ -32,17 +32,12 @@ def _resolve_db_url() -> str:
         Path(db_path).parent.mkdir(parents=True, exist_ok=True)
         return f"sqlite:///{db_path}"
 
-    # Priority 2: full SQLAlchemy URL
-    db_url = os.environ.get("BLOCKBT_DB_URL")
+    # Priority 2: full SQLAlchemy URL (BLOCKBT_DB_URL or DATABASE_URL)
+    db_url = os.environ.get("BLOCKBT_DB_URL") or os.environ.get("DATABASE_URL")
     if db_url:
         return db_url
 
     # Priority 3: local dev default
-    # Path(__file__) is src/blockbt/models/session.py
-    # .parents[0] is models
-    # .parents[1] is blockbt
-    # .parents[2] is src
-    # .parents[3] is project root
     fallback = Path(__file__).resolve().parents[3] / "backend" / "data" / "db" / "blockbt.db"
     fallback.parent.mkdir(parents=True, exist_ok=True)
     return f"sqlite:///{fallback}"

@@ -35,8 +35,8 @@ export function PortfolioNode({ id, data, selected }: PortfolioNodeProps) {
         console.log(`[CanvasNode] 🖱️ Clicked PortfolioNode: id=${id}`)
         setSelectedNodeId(id)
       }}
-      className={`rf-node rf-node--portfolio bg-[#1c2130] border rounded-xl shadow-lg text-slate-100 p-3 min-w-[220px] cursor-pointer transition-all ${
-        isSelected ? 'border-emerald-400 ring-2 ring-emerald-400/50 shadow-emerald-500/20' : isCompleted ? 'border-emerald-500/60 shadow-emerald-500/10' : 'border-emerald-500/30'
+      className={`rf-node rf-node--portfolio bg-[#1c2130] border rounded-xl shadow-lg text-slate-100 p-4 min-w-[240px] cursor-pointer transition-all ${
+        isSelected ? 'border-emerald-400 ring-2 ring-emerald-400/50 shadow-emerald-500/20' : isCompleted ? 'border-emerald-500/60 shadow-emerald-500/10' : 'border-emerald-500/30 hover:border-emerald-500/50'
       }`}
     >
       <Handle
@@ -45,22 +45,22 @@ export function PortfolioNode({ id, data, selected }: PortfolioNodeProps) {
         id="in"
         className="easy-connect-handle"
       />
-      <div className="flex items-center justify-between border-b border-white/10 pb-2 mb-2 react-flow__node-drag-handle">
+      <div className="flex items-center justify-between border-b border-white/10 pb-2.5 mb-3 react-flow__node-drag-handle">
         <div className="flex items-center gap-2 font-semibold text-xs text-emerald-400">
           <span>Portfolio</span>
         </div>
         <CategoryBadge category="Execution" />
       </div>
 
-      <div className="space-y-1.5 font-mono text-xs">
+      <div className="space-y-2 font-mono text-xs">
         {/* Capital */}
-        <div className="flex items-center justify-between bg-[#0b0d14] px-2 py-1 rounded border border-white/5">
+        <div className="flex items-center justify-between bg-[#0b0d14] px-3 py-1.5 rounded-md border border-white/5">
           <span className="text-slate-400 text-[11px]">Capital:</span>
           <span className="font-bold text-slate-100">${(data.init_cash ?? 10000).toLocaleString()}</span>
         </div>
 
         {/* Fees & Slippage */}
-        <div className="flex items-center justify-between bg-[#0b0d14] px-2 py-1 rounded border border-white/5 text-[11px]">
+        <div className="flex items-center justify-between bg-[#0b0d14] px-3 py-1.5 rounded-md border border-white/5 text-[11px]">
           <span className="text-slate-400">Costs:</span>
           <span className="text-emerald-300 font-semibold">{feesPct}% fees / {slipPct}% slip</span>
         </div>

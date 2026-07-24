@@ -173,3 +173,38 @@ def test_user_id_populated_on_strategy_and_job_creation(client):
         job = db.get(BacktestJob, job_id)
         assert job is not None
         assert job.user_id == user_id
+
+
+def test_disable_auth_mode_by_admin(client):
+    """Verify admin can disable auth_enabled via PUT /api/settings/ and unauthenticated requests succeed afterwards."""
+    # Seed admin user
+    with get_session() as db:
+        admin = User(username="admin_test", password_hash=hash_password("adminpass"), role="admin")
+        db.add(admin)
+        db.commit()
+
+    # Login to get admin token
+    res = client.post("/api/auth/login", json={"username": "admin_test", "password": "adminpass"})
+    token = res.json()["data"]["access_token"]
+    headers = {"Authorization": f"Bearer {token}"}
+
+    # Disable auth via PUT /api/settings/ with Bearer token
+    put_res = client.put("/api/settings/", headers=headers, json={"auth_enabled": "false"})
+    assert put_res.status_code == 200
+
+    # Verify auth status reports auth_enabled: False
+    status_res = client.get("/api/auth/auth-status")
+    assert status_res.status_code == 200
+    assert status_res.json()["data"]["auth_enabled"] is False
+
+    # Verify endpoint works without any Authorization header
+    me_res = client.get("/api/auth/me")
+    assert me_res.status_code == 200
+    assert me_res.json()["data"]["username"] == "local"
+
+
+def test_disable_auth_mode_unauthorized_without_token(client):
+    """Verify PUT /api/settings/ fails with 401 when auth is active and no Bearer token is provided."""
+    put_res = client.put("/api/settings/", json={"auth_enabled": "false"})
+    assert put_res.status_code == 401
+

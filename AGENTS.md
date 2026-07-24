@@ -58,6 +58,10 @@ Jesteś Głównym Architektem i Programistą w projekcie BlockBT. Pracujesz w ry
   * Status: [DONE]
   * Cel: Usunięcie przycisków w nagłówku, przeniesienie czatu AI Analyst na kanwę, motyw ciemny QuantStats Tearsheet z angielskim szablonem i łącznikiem `-`, poprawienie komend Makefile.
 
+* **Phase 24: Refaktoryzacja Wyglądu, Ujednolicenie Układu & Zacementowanie w DESIGN.md**
+  * Status: [DONE]
+  * Cel: Naprawa nachodzenia uchwytów połączeń React Flow na tekst węzłów (-8px offset), pogrubienie obramowań węzłów do `border-2`, znormalizowanie wcięć i marginesów kontenerów oraz dodanie Sekcji 8 w DESIGN.md.
+
 * **Faza xx: Konteneryzacja, docker i docker compose**
   * Status: [PENDING]
 

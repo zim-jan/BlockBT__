@@ -199,6 +199,31 @@ export const api = {
       }>>('/api/settings/ollama/status')
       return res.data
     },
+    getAll: () => request<ApiResponse<Record<string, string>>>('/api/settings/'),
+    update: (payload: Record<string, any>) =>
+      request<ApiResponse<Record<string, string>>>('/api/settings/', {
+        method: 'PUT',
+        body: JSON.stringify(payload),
+      }),
+    getPrompts: () => request<ApiResponse<components['schemas']['SystemPromptResponse'][]>>('/api/settings/prompts'),
+    createPrompt: (payload: components['schemas']['SystemPromptCreate']) =>
+      request<ApiResponse<components['schemas']['SystemPromptResponse']>>('/api/settings/prompts', {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      }),
+    updatePrompt: (id: number, payload: components['schemas']['SystemPromptCreate']) =>
+      request<ApiResponse<components['schemas']['SystemPromptResponse']>>(`/api/settings/prompts/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(payload),
+      }),
+    setDefaultPrompt: (id: number) =>
+      request<ApiResponse<components['schemas']['SystemPromptResponse']>>(`/api/settings/prompts/${id}/default`, {
+        method: 'POST',
+      }),
+    deletePrompt: (id: number) =>
+      request<void>(`/api/settings/prompts/${id}`, {
+        method: 'DELETE',
+      }),
   },
 
   results: {
@@ -217,6 +242,10 @@ export const api = {
         method: 'POST',
         body: JSON.stringify(payload),
       })
+      return res.data
+    },
+    getTearsheet: async (jobId: number) => {
+      const res = await request<ApiResponse<{ html?: string }>>(`/api/results/${jobId}/tearsheet`)
       return res.data
     },
   },

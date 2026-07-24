@@ -98,7 +98,7 @@ class Settings(BaseSettings):
         vbtpro = self.VBTPRO_PATH
         if vbtpro is not None and vbtpro.exists():
             return vbtpro
-        candidate = self.PROJECT_ROOT / "vectorbt.pro-main"
+        candidate = self.PROJECT_ROOT / "vectorbtpro_src"
         if candidate.exists():
             return candidate
         return None
