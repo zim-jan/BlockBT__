@@ -57,7 +57,7 @@ export function useWorkflowOptimization() {
     // "AAPL,MSFT" przechodziło walidację i padało dopiero na fetchu danych
     // (a błąd bywał niewidoczny). Uczciwy komunikat zamiast cichego FAILED.
     if (String(dData.symbol ?? '').includes(',')) {
-      alert('Optymalizacja wspiera jeden symbol na raz. Zostaw w bloku Data pojedynczy ticker.')
+      alert('Optimization supports one symbol at a time. Leave a single ticker in the Data block.')
       return
     }
 
@@ -193,7 +193,7 @@ export function useWorkflowOptimization() {
     // Audyt 2026-07-17: WFO (jak optymalizacja) wspiera jeden symbol —
     // "AAPL,MSFT" padałoby dopiero na fetchu danych w tle
     if (String(dData.symbol ?? '').includes(',')) {
-      alert('Walk-Forward wspiera jeden symbol na raz. Zostaw w bloku Data pojedynczy ticker.')
+      alert('Walk-Forward supports one symbol at a time. Leave a single ticker in the Data block.')
       return
     }
 

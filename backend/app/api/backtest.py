@@ -215,7 +215,7 @@ def trigger_dag_backtest(
         parser = GraphParser(nodes=payload.dag.nodes, edges=payload.dag.edges)
         parser.validate()
     except GraphValidationError as e:
-        raise HTTPException(status_code=422, detail=str(e))
+        raise HTTPException(status_code=422, detail=str(e)) from e
 
     user_id = get_user_id(request)
     with get_session() as db:

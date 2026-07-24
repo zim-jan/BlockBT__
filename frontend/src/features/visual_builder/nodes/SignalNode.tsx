@@ -10,10 +10,10 @@ export function SignalNode({ id, data, selected }: NodeProps<SignalNode>) {
   const isSelected = Boolean(selected || selectedNodeId === id)
 
   const labelMap: Record<string, string> = {
-    sma_crossover: 'Przecięcie (Crossover)',
-    ranking: 'Ranking Tickerów',
-    mapping: 'Mapowanie (Threshold)',
-    distribution: 'Alokacja (Weighting)',
+    sma_crossover: 'Crossover',
+    ranking: 'Ticker Ranking',
+    mapping: 'Threshold Mapping',
+    distribution: 'Allocation Weighting',
   }
 
   return (
@@ -38,7 +38,7 @@ export function SignalNode({ id, data, selected }: NodeProps<SignalNode>) {
 
       <div className="space-y-1.5 font-mono text-xs">
         <div className="flex items-center justify-between bg-[#0b0d14] px-2 py-1 rounded border border-white/5">
-          <span className="text-slate-400 text-[11px]">Typ Logiki:</span>
+          <span className="text-slate-400 text-[11px]">Logic Type:</span>
           <span className="font-bold text-amber-300 text-[11px]">
             {labelMap[data.signalType] || data.signalType || 'Crossover'}
           </span>

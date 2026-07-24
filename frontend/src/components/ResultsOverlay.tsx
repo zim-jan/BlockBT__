@@ -79,12 +79,12 @@ export const ResultsOverlay: React.FC = () => {
           } else if (typeof resData?.data === 'string') {
             setTearsheetHtml(resData.data)
           } else {
-            setTearsheetHtml('<p style="color:#9ca3af;padding:2rem;font-family:sans-serif;">Brak danych HTML z raportu QuantStats.</p>')
+            setTearsheetHtml('<p style="color:#9ca3af;padding:2rem;font-family:sans-serif;">No HTML data from QuantStats report.</p>')
           }
         })
         .catch((err) => {
           console.error('[ResultsOverlay] Failed to load tearsheet:', err)
-          setTearsheetHtml(`<p style="color:#ef4444;padding:2rem;font-family:sans-serif;">Błąd pobierania raportu: ${err.message || 'Nieznany błąd'}</p>`)
+          setTearsheetHtml(`<p style="color:#ef4444;padding:2rem;font-family:sans-serif;">Error loading report: ${err.message || 'Unknown error'}</p>`)
         })
         .finally(() => setIsTearsheetLoading(false))
     }
@@ -153,7 +153,7 @@ export const ResultsOverlay: React.FC = () => {
       <div className="flex items-center justify-between px-6 h-16 border-b border-white/10 bg-[#1c2130] select-none">
         <div className="flex items-center gap-6">
           <div className="flex items-center gap-2 text-lg font-semibold text-slate-100">
-            <span>📊 Wyniki Symulacji</span>
+            <span>📊 Simulation Results</span>
           </div>
 
           {hasValidMetrics && (
@@ -164,7 +164,7 @@ export const ResultsOverlay: React.FC = () => {
                   activeTab === 'overview' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-slate-200'
                 }`}
               >
-                Przegląd
+                Overview
               </button>
               <button
                 onClick={() => setActiveTab('chart')}
@@ -172,7 +172,7 @@ export const ResultsOverlay: React.FC = () => {
                   activeTab === 'chart' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-slate-200'
                 }`}
               >
-                Wykres Equity
+                Equity Curve
               </button>
               <button
                 onClick={() => setActiveTab('tearsheet')}
@@ -193,7 +193,7 @@ export const ResultsOverlay: React.FC = () => {
               className="flex items-center gap-1.5 px-3 py-1 text-xs font-semibold rounded-lg bg-indigo-600/20 text-indigo-400 border border-indigo-500/30 hover:bg-indigo-600/30 transition-colors"
             >
               <Bot className="w-3.5 h-3.5" />
-              <span>Czatuj z AI Analyst</span>
+              <span>Chat with AI Analyst</span>
             </button>
           )}
 
@@ -213,9 +213,9 @@ export const ResultsOverlay: React.FC = () => {
             <div className="p-4 bg-[#1c2130] rounded-full border border-white/10">
               <BarChart2 className="w-12 h-12 text-indigo-400" />
             </div>
-            <h3 className="text-xl font-bold text-slate-200">Brak Dostępnych Wyników Symulacji</h3>
+            <h3 className="text-xl font-bold text-slate-200">No Simulation Results Available</h3>
             <p className="text-sm text-slate-400 max-w-md text-center">
-              Uruchom symulację backtestu na kanwie, aby wygenerować wykresy equity, wskaźniki Sharpe/Drawdown oraz raporty QuantStats.
+              Run a backtest simulation on the canvas to generate equity charts, Sharpe/Drawdown metrics, and QuantStats reports.
             </p>
           </div>
         ) : (
@@ -271,8 +271,8 @@ export const ResultsOverlay: React.FC = () => {
                       paper_bgcolor: 'rgba(0,0,0,0)',
                       plot_bgcolor: 'rgba(0,0,0,0)',
                       font: { color: '#9ca3af' },
-                      xaxis: { gridcolor: 'rgba(255,255,255,0.05)', title: { text: 'Data' } },
-                      yaxis: { gridcolor: 'rgba(255,255,255,0.05)', title: { text: 'Kapitał ($)' } },
+                      xaxis: { gridcolor: 'rgba(255,255,255,0.05)', title: { text: 'Date' } },
+                      yaxis: { gridcolor: 'rgba(255,255,255,0.05)', title: { text: 'Equity ($)' } },
                     }}
                     config={{ responsive: true }}
                     style={{ width: '100%', height: '100%', minHeight: '400px' }}
@@ -280,18 +280,18 @@ export const ResultsOverlay: React.FC = () => {
                   />
                 ) : (
                   <div className="flex items-center justify-center h-full min-h-[400px] text-slate-400 text-sm">
-                    Brak skompletowanych punktów wykresu equity.
+                    No equity curve data points available.
                   </div>
                 )}
               </div>
             )}
 
             {activeTab === 'tearsheet' && (
-              <div className="w-full h-full min-h-[550px] rounded-xl overflow-hidden border border-white/10 bg-white relative">
+              <div className="w-full h-full min-h-[550px] rounded-xl overflow-hidden border border-white/10 bg-[#0b0d14] relative">
                 {isTearsheetLoading ? (
                   <div className="flex items-center justify-center h-[550px] bg-[#0b0d14] text-slate-300 gap-2">
                     <Loader2 className="w-6 h-6 animate-spin text-indigo-500" />
-                    <span>Ładowanie raportu QuantStats...</span>
+                    <span>Loading QuantStats Tearsheet...</span>
                   </div>
                 ) : (
                   <iframe

@@ -41,7 +41,7 @@ export function WfoNode({ id, data, selected }: NodeProps<WfoNode>) {
       <div className="space-y-1.5 font-mono text-xs">
         {/* Window & Step */}
         <div className="flex items-center justify-between bg-[#0b0d14] px-2 py-1 rounded border border-white/5">
-          <span className="text-slate-400 text-[11px]">Okno / Krok:</span>
+          <span className="text-slate-400 text-[11px]">Window / Step:</span>
           <span className="font-bold text-slate-100">{windowSize || '365d'} / {stepSize || '90d'}</span>
         </div>
 
@@ -60,7 +60,7 @@ export function WfoNode({ id, data, selected }: NodeProps<WfoNode>) {
 
         {isFailed && (
           <div className="text-[11px] text-red-400 bg-red-950/30 p-1.5 rounded border border-red-500/20 text-center font-mono">
-            {error || 'Błąd WFO'}
+            {error || 'WFO error'}
           </div>
         )}
 
@@ -72,7 +72,7 @@ export function WfoNode({ id, data, selected }: NodeProps<WfoNode>) {
           disabled={isExecutionRunning}
           className="w-full py-1.5 mt-1 text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg transition-colors shadow-md disabled:opacity-50"
         >
-          {isExecutionRunning ? 'Przetwarzanie WFO...' : 'Run WFO'}
+          {isExecutionRunning ? 'Processing WFO...' : 'Run WFO'}
         </button>
       </div>
 

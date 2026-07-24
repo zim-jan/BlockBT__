@@ -22,7 +22,7 @@ describe('WorkflowEditor', () => {
   it('renders correctly', () => {
     renderWithProvider(<WorkflowEditor />)
     expect(screen.getByText(/Data Source/i)).toBeInTheDocument()
-    expect(screen.getByText(/Zapisz/i)).toBeInTheDocument()
+    expect(screen.getByText(/Save/i)).toBeInTheDocument()
   })
 
   it('toggles Easy Connect mode', () => {

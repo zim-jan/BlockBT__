@@ -2,8 +2,9 @@
 import pytest
 from fastapi.testclient import TestClient
 
-from app.db.session import get_session
+from app.db.session import get_session, init_db
 from app.main import app
+from app.models.orm import AppSetting
 from app.models.user import User
 from app.services.auth import hash_password
 
@@ -11,12 +12,6 @@ from app.services.auth import hash_password
 @pytest.fixture
 def client():
     return TestClient(app)
-
-
-from app.models.orm import AppSetting
-
-
-from app.db.session import init_db
 
 
 @pytest.fixture(autouse=True)
@@ -135,7 +130,7 @@ def test_admin_user_crud(client):
 
 
 def test_user_id_populated_on_strategy_and_job_creation(client):
-    from app.models.orm import Strategy, BacktestJob
+    from app.models.orm import BacktestJob, Strategy
     
     # Create user
     with get_session() as db:

@@ -72,6 +72,7 @@ vectorbtpro/
 vectorbt/
 vectorbt.pro-main/
 vectorbt_src/
+/vectorbtpro_src/*
 
 /backend/backend.log
 /.github/copilot-instructions.md
@@ -89,3 +90,4 @@ vectorbt_src/
 /graphify-out/.graphify_labels.json.sig
 /graphify-out/.graphify_analysis.json
 /docs/skills_and_plugins_audit.md
+

@@ -1,6 +1,5 @@
 
 from fastapi import APIRouter, HTTPException, Request
-from loguru import logger
 from sqlalchemy import select
 
 from app.core.auth_middleware import is_auth_enabled

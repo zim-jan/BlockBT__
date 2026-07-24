@@ -59,7 +59,7 @@ const ToastItem: React.FC<{ toast: ToastMessage; onClose: () => void }> = ({ toa
       </div>
       <button
         onClick={onClose}
-        aria-label="Zamknij powiadomienie"
+        aria-label="Close notification"
         className="p-1 rounded-lg hover:bg-slate-800/60 text-slate-400 hover:text-slate-200 transition-colors"
       >
         <X className="w-4 h-4" />

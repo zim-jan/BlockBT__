@@ -28,10 +28,10 @@ from app.api import (
     strategies,
     workflows,
 )
+from app.core.auth_middleware import AuthMiddleware
 from app.db.session import get_session, init_db
 from app.models.orm import SystemPrompt
 from app.services.mcp.llm_client import _SYSTEM_PROMPT
-from app.core.auth_middleware import AuthMiddleware
 
 """Główny punkt wejścia aplikacji FastAPI BlockBT — MVP Fazy 2.
 

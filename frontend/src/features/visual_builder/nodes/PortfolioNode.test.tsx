@@ -32,7 +32,7 @@ describe('PortfolioNode compact card', () => {
     error: undefined,
   }
 
-  it('renders "Uruchom Backtest" button when no jobStatus', () => {
+  it('renders "Run Backtest" button when no jobStatus', () => {
     render(
       <ReactFlowProvider>
         <PortfolioNode id="portfolio-1" data={defaultData} />
@@ -40,7 +40,7 @@ describe('PortfolioNode compact card', () => {
     )
 
     expect(screen.getByText('Portfolio')).toBeInTheDocument()
-    expect(screen.getByText('Uruchom Backtest')).toBeInTheDocument()
+    expect(screen.getByText('Run Backtest')).toBeInTheDocument()
   })
 
   it('renders return when status is COMPLETED', () => {

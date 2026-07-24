@@ -271,3 +271,20 @@
   4. **Kompaktowe Węzły DAG & Kanwa:** Odchudzone karty dla DataNode, IndicatorNode, SignalNode, PortfolioNode, OptimizerNode i WfoNode. [DONE]
   5. **Results Drawer (Bottom Drawer):** Rozsuwany dolny panel z pełnowymiarowymi wykresami Plotly, tearsheetem QuantStats i czatem AI Analyst. [DONE]
   6. **Weryfikacja:** `npm run build` pass (0 błędów), suita testów backendowych 254/254 pass. [DONE]
+
+* **Faza 22: Refaktoryzacja Frontendu & Język Angielski jako Domyślny** [DONE]
+  Cel: Przełączenie domyślnego języka frontendu na angielski, bez modyfikacji komentarzy deweloperskich.
+  1. **Internacjonalizacja UI:** Przetłumaczenie wszystkich etykiet, nagłówków, przycisków, powiadomień toast oraz modali z języka polskiego na angielski.
+  2. **Zachowanie Komentarzy:** Wszystkie komentarze deweloperskie w kodzie źródłowym pozostały w formie oryginalnej.
+  3. **Aktualizacja Testów:** Dostosowanie matcherów tekstowych w testach Vitest do angielskich fraz UI.
+  4. **Dokumentacja Środowiska w AGENTS.md:** Dodanie wytycznych dotyczących komend `Makefile` oraz narzędzia `uv`.
+
+* **Faza 23: Poprawki Makefile, Czyszczenie UI oraz Motyw Ciemny Tearsheetu QuantStats** [DONE]
+  Cel: Poprawa komend Makefile, usunięcie niepotrzebnych przycisków z nagłówka, ciemny motyw i anglojęzyczny szablon QuantStats Tearsheet oraz przycisk AI Analyst na kanwie.
+  1. **Makefile & Linter:** Usunięcie nieaktywnych celów dockera, usunięcie 100% błędów lintera ruff w backendzie, aktualizacja `make lint` do `uv run ruff check backend/ --ignore E501 && cd frontend && npx tsc --noEmit`.
+  2. **Czyszczenie UI:** Usunięcie przycisków `Load Template` i `Deploy Strategy` z nagłówka `MainLayout.tsx`.
+  3. **Tearsheet w Języku Angielskim:** Zmiana `BlockBT — Tearsheet analityczny` na `BlockBT - Analytics Tearsheet` (półpauza zastąpiona przez `-`), przetłumaczenie napisów w `qsadapter.py`.
+  4. **Przycisk AI Analyst:** Usunięcie emotek i umieszczenie przycisku `Chat with AI Analyst` (ikona Lucide `Bot`) bezpośrednio w panelu kanwy `WorkflowEditor.tsx` po wykonaniu backtestu.
+  5. **QuantStats Tearsheet Dark Mode:** Dostosowanie stylów CSS w `qsadapter.py` oraz kontenera iframe w `ResultsOverlay.tsx` do ciemnej palety barw (`#0b0d14`, `#131722`) zgodnie z `DESIGN.md`.
+  6. **Weryfikacja:** `make lint` pass (0 błędów), testy Vitest 47/47 pass, testy pytest 256/256 pass.
+

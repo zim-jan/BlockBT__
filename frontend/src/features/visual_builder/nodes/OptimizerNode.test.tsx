@@ -46,7 +46,7 @@ describe('OptimizerNode compact card', () => {
 
   it('renders a fallback error label when FAILED without message', () => {
     renderNode({ ...baseData, jobStatus: 'FAILED' })
-    expect(screen.getByText(/Błąd optymalizacji/i)).toBeInTheDocument()
+    expect(screen.getByText(/Optimization error/i)).toBeInTheDocument()
   })
 
   it('shows best score when COMPLETED', () => {

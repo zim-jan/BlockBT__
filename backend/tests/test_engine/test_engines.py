@@ -56,7 +56,6 @@ class TestOpenSourceEngine:
 
     def test_vbt_fallback_to_vendored_src(self, monkeypatch):
         """Weryfikuje, czy przy braku zainstalowanej paczki vectorbt silnik poprawnie ładuje vectorbt_src."""
-        import sys
         import app.services.engine.opensource_engine as engine_mod
 
         # Reset vectorbt setup

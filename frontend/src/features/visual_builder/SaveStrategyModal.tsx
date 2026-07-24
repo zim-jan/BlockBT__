@@ -25,7 +25,7 @@ export const SaveStrategyModal: React.FC<SaveStrategyModalProps> = ({ isOpen, on
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!name.trim()) {
-      showToast.warning('Nazwa wymagana', 'Wprowadź nazwę strategii przed zapisaniem.')
+      showToast.warning('Name required', 'Enter a strategy name before saving.')
       return
     }
 
@@ -46,17 +46,17 @@ export const SaveStrategyModal: React.FC<SaveStrategyModalProps> = ({ isOpen, on
       console.log('[SaveStrategyModal] ✅ API response:', res)
 
       if (res && res.success) {
-        showToast.success('Zapisano strategię', `Strategia "${name}" została zapisana w bazie.`)
+        showToast.success('Strategy Saved', `Strategy "${name}" has been saved to database.`)
         setName('')
         setDescription('')
         onClose()
       } else {
-        const errStr = res?.error || 'Nieznany błąd serwera'
-        showToast.error('Błąd zapisu', `Nie udało się zapisać strategii: ${errStr}`)
+        const errStr = res?.error || 'Unknown server error'
+        showToast.error('Save error', `Failed to save strategy: ${errStr}`)
       }
     } catch (err) {
       console.error('[SaveStrategyModal] ❌ Exception during strategy save:', err)
-      showToast.error('Błąd zapisu', `Wystąpił wyjątek: ${(err as Error).message || 'Błąd połączenia'}`)
+      showToast.error('Save error', `An exception occurred: ${(err as Error).message || 'Connection error'}`)
     } finally {
       setIsSubmitting(false)
     }
@@ -82,7 +82,7 @@ export const SaveStrategyModal: React.FC<SaveStrategyModalProps> = ({ isOpen, on
         <div className="flex items-center justify-between border-b border-white/10 pb-4">
           <div className="flex items-center gap-2 text-indigo-400 font-semibold text-lg">
             <Save className="w-5 h-5" />
-            <span>Zapisz Strategię DAG</span>
+            <span>Save DAG Strategy</span>
           </div>
           <button
             onClick={onClose}
@@ -94,24 +94,24 @@ export const SaveStrategyModal: React.FC<SaveStrategyModalProps> = ({ isOpen, on
 
         <form onSubmit={handleSave} className="space-y-4">
           <div>
-            <label className="block text-xs font-medium text-slate-300 mb-1">Nazwa Strategii *</label>
+            <label className="block text-xs font-medium text-slate-300 mb-1">Strategy Name *</label>
             <input
               type="text"
               required
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="np. Momentum SMA (AAPL, MSFT)"
+              placeholder="e.g. Momentum SMA (AAPL, MSFT)"
               className="w-full bg-[#0b0d14] border border-white/10 rounded-lg px-3 py-2.5 text-sm text-slate-100 focus:outline-none focus:border-indigo-500 font-medium"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-slate-300 mb-1">Opis (opcjonalnie)</label>
+            <label className="block text-xs font-medium text-slate-300 mb-1">Description (optional)</label>
             <textarea
               rows={3}
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Opisz założenia taktyczne, wskaźniki i parametry..."
+              placeholder="Describe tactical assumptions, indicators, and parameters..."
               className="w-full bg-[#0b0d14] border border-white/10 rounded-lg p-3 text-sm text-slate-100 focus:outline-none focus:border-indigo-500 resize-none"
             />
           </div>
@@ -122,14 +122,14 @@ export const SaveStrategyModal: React.FC<SaveStrategyModalProps> = ({ isOpen, on
               onClick={onClose}
               className="px-4 py-2 rounded-lg text-sm font-medium text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition-colors"
             >
-              Anuluj
+              Cancel
             </button>
             <button
               type="submit"
               disabled={isSubmitting}
               className="px-5 py-2 rounded-lg text-sm font-semibold bg-indigo-600 hover:bg-indigo-500 text-white transition-colors disabled:opacity-50"
             >
-              {isSubmitting ? 'Zapisywanie...' : 'Zapisz w Bazie'}
+              {isSubmitting ? 'Saving...' : 'Save Strategy'}
             </button>
           </div>
         </form>

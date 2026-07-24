@@ -38,7 +38,7 @@ export function DataNode({ id, data, selected }: NodeProps<DataNode>) {
       <div className="space-y-1.5 font-mono text-xs">
         {/* Source & PIT Badge */}
         <div className="flex items-center justify-between bg-[#0b0d14] px-2 py-1 rounded border border-white/5">
-          <span className="text-slate-400 text-[11px]">Źródło:</span>
+          <span className="text-slate-400 text-[11px]">Source:</span>
           <span className="font-semibold text-blue-300 text-[11px]">{sourceLabel}</span>
         </div>
 
@@ -51,7 +51,7 @@ export function DataNode({ id, data, selected }: NodeProps<DataNode>) {
         {/* Date range */}
         {!isSynthetic && (
           <div className="flex items-center justify-between text-[11px] text-slate-300 bg-[#0b0d14] px-2 py-1 rounded border border-white/5">
-            <span className="text-slate-400">Okres:</span>
+            <span className="text-slate-400">Period:</span>
             <span>{data.startDate || '2023-01-01'} → {data.endDate || '2025-01-01'}</span>
           </div>
         )}

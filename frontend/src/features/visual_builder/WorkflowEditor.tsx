@@ -12,8 +12,9 @@ import {SignalNode} from './nodes/SignalNode'
 import {PortfolioNode} from './nodes/PortfolioNode'
 import OptimizerNode from './nodes/OptimizerNode'
 import {WfoNode} from './nodes/WfoNode'
-import { Trash2, Save, FolderOpen, Play, BarChart2, Plus } from 'lucide-react'
+import { Trash2, Save, FolderOpen, Play, BarChart2, Plus, Bot } from 'lucide-react'
 import { useWorkflowExecution } from '../../hooks/useWorkflowExecution'
+import { useChatStore } from '../../store/chatStore'
 
 const nodeTypes: any = {
   dataNode: DataNode,
@@ -43,9 +44,11 @@ export function WorkflowEditor() {
     setSelectedNodeId,
     setIsSaveModalOpen,
     setIsLoadModalOpen,
-    setIsResultsOpen
+    setIsResultsOpen,
+    activeJobId,
   } = useWorkflowStore()
 
+  const openChat = useChatStore((s) => s.openChat)
   const { runBacktest, isRunning, canRunBacktest } = useWorkflowExecution()
 
 
@@ -62,10 +65,10 @@ export function WorkflowEditor() {
   }, [])
 
   const handleOpenSave = () => {
-    console.log('[WorkflowEditor] Clicked Zapisz button', { nodesLength: nodes.length });
+    console.log('[WorkflowEditor] Clicked Save button', { nodesLength: nodes.length });
     if (nodes.length === 0) {
-      alert('Pusta kanwa - dodaj węzły');
-      showToast.warning('Pusta kanwa', 'Dodaj węzły przed zapisaniem strategii.')
+      alert('Empty canvas - add nodes');
+      showToast.warning('Empty canvas', 'Add nodes before saving strategy.')
       return
     }
     console.log('[WorkflowEditor] Setting isSaveModalOpen to true');
@@ -99,7 +102,7 @@ export function WorkflowEditor() {
         {/* Left Toolbar: Add Nodes */}
         <Panel position="top-left" className="flex flex-col gap-2 bg-[#131722] p-3 rounded-xl border border-white/20 shadow-2xl">
           <div className="text-[12px] font-bold text-slate-200 uppercase tracking-wider mb-1 flex items-center gap-1.5 border-b border-white/10 pb-1.5">
-            <Plus className="w-4 h-4 text-indigo-400" /> <span>Dodaj Węzeł</span>
+            <Plus className="w-4 h-4 text-indigo-400" /> <span>Add Node</span>
           </div>
           <button onClick={() => addNode('dataNode')} className="px-3 py-1.5 text-xs font-semibold bg-[#1c2130] hover:bg-[#262c3e] border border-blue-500/40 text-blue-300 hover:text-blue-200 rounded-lg transition-colors text-left flex items-center gap-1">
             + Data Source
@@ -137,38 +140,48 @@ export function WorkflowEditor() {
           <button
             onClick={runBacktest}
             disabled={isRunning || !canRunBacktest}
-            title={!canRunBacktest ? 'Dodaj wymagane węzły (Data, Indicator, Portfolio) i połącz je krawędziami' : ''}
+            title={!canRunBacktest ? 'Add required nodes (Data, Indicator, Portfolio) and connect them with edges' : ''}
             className="flex items-center gap-1.5 px-4 py-2 text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg transition-all shadow-[0_0_15px_rgba(16,185,129,0.3)] disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Play className="w-4 h-4 fill-current" />
-            <span>{isRunning ? 'Uruchamianie...' : 'RUN BACKTEST'}</span>
+            <span>{isRunning ? 'Running...' : 'RUN BACKTEST'}</span>
           </button>
 
           <button onClick={handleOpenSave} className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium bg-[#1c2130] hover:bg-[#262c3e] border border-white/10 text-slate-200 rounded-lg transition-colors">
             <Save className="w-3.5 h-3.5 text-indigo-400" />
-            <span>Zapisz</span>
+            <span>Save</span>
           </button>
 
           <button onClick={() => setIsLoadModalOpen(true)} className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium bg-[#1c2130] hover:bg-[#262c3e] border border-white/10 text-slate-200 rounded-lg transition-colors">
             <FolderOpen className="w-3.5 h-3.5 text-cyan-400" />
-            <span>Wczytaj</span>
+            <span>Load</span>
           </button>
 
           <button onClick={clearCanvas} className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium bg-[#1c2130] hover:bg-red-500/20 border border-red-500/30 text-red-400 rounded-lg transition-colors">
             <Trash2 className="w-3.5 h-3.5" />
-            <span>Wyczyść</span>
+            <span>Clear</span>
           </button>
 
           <button 
             onClick={() => {
-              console.log('[WorkflowEditor] Clicked Pokaz Wyniki');
+              console.log('[WorkflowEditor] Clicked Show Results');
               setIsResultsOpen(true);
             }} 
             className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium bg-indigo-600/20 hover:bg-indigo-600/40 border border-indigo-500/30 text-indigo-300 rounded-lg transition-colors ml-2"
           >
             <BarChart2 className="w-4 h-4" />
-            <span>Pokaż Wyniki</span>
+            <span>Show Results</span>
           </button>
+
+          {activeJobId && (
+            <button
+              onClick={() => openChat(activeJobId)}
+              className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-lg bg-indigo-600/30 hover:bg-indigo-600/50 text-indigo-300 border border-indigo-500/40 transition-colors shadow-md"
+            >
+              <Bot className="w-4 h-4 text-indigo-400" />
+              <span>Chat with AI Analyst</span>
+            </button>
+          )}
         </Panel>
       </ReactFlow>
 

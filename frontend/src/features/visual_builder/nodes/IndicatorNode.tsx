@@ -37,7 +37,7 @@ export function IndicatorNode({ id, data, selected }: NodeProps<IndicatorNode>) 
       <div className="space-y-1.5 font-mono text-xs">
         {/* Indicator Type Header */}
         <div className="flex items-center justify-between bg-[#0b0d14] px-2 py-1 rounded border border-white/5">
-          <span className="text-slate-400 text-[11px]">Wskaźnik:</span>
+          <span className="text-slate-400 text-[11px]">Indicator:</span>
           <span className="font-bold text-purple-300 capitalize text-[11px]">{data.indicatorType || 'SMA'}</span>
         </div>
 

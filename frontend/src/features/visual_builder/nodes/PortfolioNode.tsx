@@ -55,14 +55,14 @@ export function PortfolioNode({ id, data, selected }: PortfolioNodeProps) {
       <div className="space-y-1.5 font-mono text-xs">
         {/* Capital */}
         <div className="flex items-center justify-between bg-[#0b0d14] px-2 py-1 rounded border border-white/5">
-          <span className="text-slate-400 text-[11px]">Kapitał:</span>
+          <span className="text-slate-400 text-[11px]">Capital:</span>
           <span className="font-bold text-slate-100">${(data.init_cash ?? 10000).toLocaleString()}</span>
         </div>
 
         {/* Fees & Slippage */}
         <div className="flex items-center justify-between bg-[#0b0d14] px-2 py-1 rounded border border-white/5 text-[11px]">
-          <span className="text-slate-400">Koszty:</span>
-          <span className="text-emerald-300 font-semibold">{feesPct}% / poślizg {slipPct}%</span>
+          <span className="text-slate-400">Costs:</span>
+          <span className="text-emerald-300 font-semibold">{feesPct}% fees / {slipPct}% slip</span>
         </div>
 
         {/* SL / TP Badges if configured */}
@@ -93,13 +93,13 @@ export function PortfolioNode({ id, data, selected }: PortfolioNodeProps) {
         {(isPending || isRunning) && (
           <div className="flex items-center justify-center gap-2 text-xs text-blue-400 bg-blue-950/30 py-1 rounded border border-blue-500/20 animate-pulse font-mono">
             <span className="w-2 h-2 rounded-full bg-blue-400 animate-ping" />
-            <span>{isPending ? 'Kolejkowanie...' : 'Obliczanie...'}</span>
+            <span>{isPending ? 'Queued...' : 'Calculating...'}</span>
           </div>
         )}
 
         {isFailed && (
           <div className="text-[11px] text-red-400 bg-red-950/30 p-1.5 rounded border border-red-500/20 text-center font-mono">
-            {error || 'Błąd symulacji'}
+            {error || 'Simulation error'}
           </div>
         )}
 
@@ -110,10 +110,10 @@ export function PortfolioNode({ id, data, selected }: PortfolioNodeProps) {
               runBacktest()
             }}
             disabled={isExecutionRunning || !canRunBacktest}
-            title={!canRunBacktest ? 'Wymagane poprawne połączenia węzłów i uzupełnione pola' : ''}
+            title={!canRunBacktest ? 'Requires valid node connections and filled parameters' : ''}
             className="w-full py-1.5 mt-1 text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg transition-colors shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {isExecutionRunning ? 'Uruchamianie...' : 'Uruchom Backtest'}
+            {isExecutionRunning ? 'Running...' : 'Run Backtest'}
           </button>
         )}
       </div>

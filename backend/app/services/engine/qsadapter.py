@@ -99,30 +99,30 @@ class QSAdapterService:
                 "    </table>"
             )
         else:
-            table = "    <p class=\"empty\">Brak dostępnych metryk dla tego portfela.</p>"
+            table = "    <p class=\"empty\">No metrics available for this portfolio.</p>"
 
         return f"""<!DOCTYPE html>
 <html>
 <head>
   <meta charset="utf-8">
-  <meta name="language" content="pl">
-  <title>BlockBT — Tearsheet</title>
+  <meta name="language" content="en">
+  <title>BlockBT - Analytics Tearsheet</title>
   <style>
-    body {{ font-family: system-ui, sans-serif; margin: 2rem; color: #1f2937; }}
-    h1 {{ font-size: 1.5rem; }}
-    .generated {{ color: #6b7280; font-size: 0.85rem; margin-bottom: 1.5rem; }}
-    table.metrics {{ border-collapse: collapse; width: 100%; max-width: 640px; }}
+    body {{ font-family: system-ui, -apple-system, sans-serif; margin: 2rem; color: #f9fafb; background-color: #0b0d14; }}
+    h1 {{ font-size: 1.5rem; color: #f9fafb; border-bottom: 1px solid rgba(255, 255, 255, 0.1); padding-bottom: 0.5rem; }}
+    .generated {{ color: #9ca3af; font-size: 0.85rem; margin-bottom: 1.5rem; }}
+    table.metrics {{ border-collapse: collapse; width: 100%; max-width: 640px; background-color: #131722; border-radius: 8px; overflow: hidden; border: 1px solid rgba(255, 255, 255, 0.1); }}
     table.metrics th, table.metrics td {{
-      border: 1px solid #e5e7eb; padding: 0.5rem 0.75rem; text-align: left;
+      border: 1px solid rgba(255, 255, 255, 0.08); padding: 0.6rem 0.85rem; text-align: left; font-size: 0.875rem;
     }}
-    table.metrics th {{ background: #f3f4f6; }}
-    td.metric-value {{ font-variant-numeric: tabular-nums; text-align: right; }}
+    table.metrics th {{ background-color: #1c2130; color: #9ca3af; font-weight: 600; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.05em; }}
+    td.metric-value {{ font-variant-numeric: tabular-nums; text-align: right; color: #f9fafb; font-weight: 600; font-family: monospace; }}
     p.empty {{ color: #9ca3af; font-style: italic; }}
   </style>
 </head>
 <body>
-  <h1>BlockBT — Tearsheet analityczny</h1>
-  <p class="generated">Wygenerowano (UTC): {html.escape(timestamp)}</p>
+  <h1>BlockBT - Analytics Tearsheet</h1>
+  <p class="generated">Generated (UTC): {html.escape(timestamp)}</p>
 {table}
 </body>
 </html>"""

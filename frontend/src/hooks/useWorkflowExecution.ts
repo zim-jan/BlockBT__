@@ -56,13 +56,13 @@ export function useWorkflowExecution() {
     const portfolioNode = nodes.find((n) => n.type === 'portfolioNode')
 
     if (!dataNode || !indicatorNode || !portfolioNode) {
-      showToast.warning('Brakująca struktura DAG', 'Kanwa musi zawierać co najmniej węzły Data, Indicator oraz Portfolio.')
+      showToast.warning('Missing DAG Structure', 'Canvas must contain at least Data, Indicator, and Portfolio nodes.')
       return
     }
 
     // Edge validation is delegated to backend GraphParser via /api/backtest/dag
     if (edges.length === 0) {
-      showToast.warning('Brakujące połączenia', 'Węzły muszą być połączone krawędziami (np. Data → Indicator → Portfolio).')
+      showToast.warning('Missing Connections', 'Nodes must be connected with edges (e.g. Data → Indicator → Portfolio).')
       return
     }
 
@@ -81,7 +81,7 @@ export function useWorkflowExecution() {
 
     // SMA validation (only for SMA crossover)
     if (indicatorType === 'sma_crossover' && smaFast >= smaSlow) {
-      showToast.warning('Nieprawidłowe parametry', 'Wartość Fast SMA musi być mniejsza od Slow SMA.')
+      showToast.warning('Invalid Parameters', 'Fast SMA value must be smaller than Slow SMA.')
       return
     }
 

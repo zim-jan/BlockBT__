@@ -1,7 +1,7 @@
+from typing import Any
+
 from fastapi import APIRouter, HTTPException
 from sqlalchemy import select
-
-from typing import Any
 
 from app.db.session import get_session
 from app.models.orm import AppSetting, SystemPrompt

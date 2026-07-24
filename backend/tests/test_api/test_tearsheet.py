@@ -13,7 +13,6 @@ def client(db_session):
     return TestClient(app)
 
 
-from app.models.orm import AppSetting, BacktestJob, Strategy
 
 def _create_job(status: str) -> int:
     """Tworzy strategię i job o zadanym statusie; zwraca job_id."""
@@ -109,4 +108,4 @@ def test_tearsheet_completed_job_without_metrics(client):
     assert data["data"]["job_id"] == job_id
     assert data["data"]["format"] == "html"
     assert "<html>" in data["data"]["html"]
-    assert "Brak dostępnych metryk" in data["data"]["html"]
+    assert "No metrics available" in data["data"]["html"]

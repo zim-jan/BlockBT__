@@ -66,16 +66,9 @@ export function MainLayout({ children }: MainLayoutProps) {
               <p className="font-label text-sm text-on-surface-variant mt-1">Design, test, and optimize trading strategies.</p>
             </div>
             <div className="flex gap-4 items-center">
-                <div className={`status-badge mr-4 ${isLoading ? 'loading' : isError ? 'error' : 'ok'}`}>
+                <div className={`status-badge ${isLoading ? 'loading' : isError ? 'error' : 'ok'}`}>
                     {isLoading ? '⏳ Connecting...' : isError ? '🔴 API Offline' : `🟢 API ${health?.status}`}
                 </div>
-                <button className="px-4 py-2 bg-surface-container-high border border-outline-variant/50 font-label text-sm font-medium hover:bg-surface-bright transition-colors">
-                  Load Template
-                </button>
-                <button className="px-4 py-2 bg-primary text-on-primary font-label text-sm font-bold shadow-[0_0_15px_rgba(129,236,255,0.2)] hover:shadow-[0_0_20px_rgba(129,236,255,0.4)] transition-all relative overflow-hidden group">
-                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
-                  Deploy Strategy
-                </button>
             </div>
         </header>
 

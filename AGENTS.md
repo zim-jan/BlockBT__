@@ -48,10 +48,38 @@ Jesteś Głównym Architektem i Programistą w projekcie BlockBT. Pracujesz w ry
 ---
 
 ## [PHASES & CURRENT STATE]
-> Historia zakończonych faz (1-19): patrz `CHANGELOG.md`.
+> Historia zakończonych faz (1-21): patrz `CHANGELOG.md`.
+
+* **Phase 22: Refaktoryzacja Frontendu & Język Angielski jako Domyślny**
+  * Status: [DONE]
+  * Cel: Refaktor interfejsu użytkownika na język angielski jako domyślny. Zachowanie komentarzy deweloperskich. Aktualizacja testów frontendu oraz dokumentacji środowiskowej.
+
+* **Phase 23: Poprawki Makefile, Czyszczenie UI oraz Motyw Ciemny Tearsheetu QuantStats**
+  * Status: [DONE]
+  * Cel: Usunięcie przycisków w nagłówku, przeniesienie czatu AI Analyst na kanwę, motyw ciemny QuantStats Tearsheet z angielskim szablonem i łącznikiem `-`, poprawienie komend Makefile.
 
 * **Faza xx: Konteneryzacja, docker i docker compose**
   * Status: [PENDING]
+
+---
+
+## [DEVELOPMENT ENVIRONMENT & MAKEFILE COMMANDS]
+Projekt wykorzystuje `uv` do zarządzania pakietami Python oraz `Makefile` do automatyzacji komend deweloperskich.
+
+* **Uruchamianie aplikacji:**
+  - Backend FastAPI: `make api` (uruchamia `uv run uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload`)
+  - Frontend Vite: `make frontend` (`cd frontend && npm run dev`) lub `make rebuild-front`
+* **Testowanie:**
+  - Testy backendu (Python/pytest): `make test` lub `uv run pytest backend/tests/ -v --tb=short`
+  - Testy frontendu (Vitest): `cd frontend && npx vitest run` lub `npm test`
+* **Jakość kodu i typowanie:**
+  - Linter i sprawdzanie typów: `make lint` (`uv run ruff check backend/` oraz `cd frontend && npx tsc --noEmit`)
+  - Generowanie typów API TypeScript z OpenAPI: `make generate-api`
+* **Zarządzanie procesami i czyszczenie:**
+  - Czyszczenie zasobów na porcie 8000: `make kill-api`
+  - Czyszczenie pamięci podręcznej i plików tymczasowych: `make clean`
+* **Zarządzanie pakietami Python:**
+  - Wszystkie komendy Python i instalacje bibliotek wykonuj za pomocą `uv` (`uv run`, `uv pip`, `uv add`).
 
 ---
 

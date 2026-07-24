@@ -1,7 +1,7 @@
 
 from fastapi import APIRouter, HTTPException, Request
-from sqlalchemy import select
 from loguru import logger
+from sqlalchemy import select
 
 from app.core.user_scope import get_user_id, scoped_query
 from app.db.session import get_session

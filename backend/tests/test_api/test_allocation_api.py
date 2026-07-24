@@ -11,7 +11,7 @@ from fastapi.testclient import TestClient
 
 from app.db.session import get_session
 from app.main import app
-from app.models.orm import BacktestJob, Strategy
+from app.models.orm import AppSetting, BacktestJob, Strategy
 
 client = TestClient(app)
 
@@ -30,8 +30,6 @@ _ALLOCATION = {
     },
 }
 
-
-from app.models.orm import AppSetting, BacktestJob, Strategy
 
 def _create_job(metrics: dict) -> int:
     with get_session() as db:

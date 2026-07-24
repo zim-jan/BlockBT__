@@ -54,4 +54,4 @@ def test_generate_tearsheet_empty_metrics():
     html_output = QSAdapterService.generate_tearsheet(BrokenPortfolio())
 
     assert "<html>" in html_output
-    assert "Brak dostępnych metryk" in html_output
+    assert "No metrics available" in html_output

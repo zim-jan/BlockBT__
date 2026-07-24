@@ -870,7 +870,7 @@ class OpenSourceEngine(BaseStrategyEngine):
             return np.asarray(tensor)
         except Exception as e:
             logger.error(f"Typing Cast Error: {e}")
-            raise ValueError(f"Nie można zrzutować tensora na typ {cast_type}. Numba JIT zablokowana.")
+            raise ValueError(f"Nie można zrzutować tensora na typ {cast_type}. Numba JIT zablokowana.") from e
 
     def apply_time_shift(self, signal_tensor: pd.Series | pd.DataFrame, periods: int = 1) -> pd.Series | pd.DataFrame:
         """

@@ -43,20 +43,20 @@ export function OptimizerNode({ id, data, selected }: NodeProps<OptimizerNode>) 
       <div className="space-y-1.5 font-mono text-xs">
         {/* Metric */}
         <div className="flex items-center justify-between bg-[#0b0d14] px-2 py-1 rounded border border-white/5">
-          <span className="text-slate-400 text-[11px]">Metryka:</span>
+          <span className="text-slate-400 text-[11px]">Metric:</span>
           <span className="font-bold text-pink-400 text-[11px] truncate max-w-[110px]">{data.metric || 'Total Return [%]'}</span>
         </div>
 
         {/* Trials */}
         <div className="flex items-center justify-between bg-[#0b0d14] px-2 py-1 rounded border border-white/5">
-          <span className="text-slate-400 text-[11px]">Próby:</span>
+          <span className="text-slate-400 text-[11px]">Trials:</span>
           <span className="font-bold text-slate-100">{data.nTrials ?? 20} trials</span>
         </div>
 
         {/* Parameter bounds summary */}
         {boundsSummary && (
           <div className="bg-[#0b0d14] px-2 py-1 rounded border border-white/5 text-[10px] text-slate-300 truncate">
-            <span className="text-pink-300 font-semibold">Zakresy: </span>
+            <span className="text-pink-300 font-semibold">Bounds: </span>
             <span>{boundsSummary}</span>
           </div>
         )}
@@ -70,7 +70,7 @@ export function OptimizerNode({ id, data, selected }: NodeProps<OptimizerNode>) 
 
         {isFailed && (
           <div className="text-[11px] text-red-400 bg-red-950/30 p-1.5 rounded border border-red-500/20 text-center font-mono">
-            {data.error || 'Błąd optymalizacji'}
+            {data.error || 'Optimization error'}
           </div>
         )}
 
@@ -82,7 +82,7 @@ export function OptimizerNode({ id, data, selected }: NodeProps<OptimizerNode>) 
           disabled={isRunning}
           className="w-full py-1.5 mt-1 text-xs font-semibold bg-pink-600 hover:bg-pink-500 text-white rounded-lg transition-colors shadow-md disabled:opacity-50"
         >
-          {isRunning ? 'Optymalizowanie...' : 'Run Optimization'}
+          {isRunning ? 'Optimizing...' : 'Run Optimization'}
         </button>
       </div>
     </div>

@@ -24,7 +24,6 @@ def test_portfolio_stop_loss_take_profit():
     df = pd.DataFrame({"close": [100, 90, 110, 105, 95]})
 
     result = engine.run_dag_backtest(df, dag_dict)
-    metrics = result.get("metrics", {})
 
     # Weryfikacja: `_count_stop_exits` klasyfikuje zamknięte transakcje po cenie
     # wyjścia względem poziomu stopu (patrz ADR-0003) i surfacuje licznik w `raw`.

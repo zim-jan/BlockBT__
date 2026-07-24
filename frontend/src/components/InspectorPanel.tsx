@@ -45,13 +45,13 @@ export const InspectorPanel: React.FC = () => {
 
   const getTitle = () => {
     switch (nodeType) {
-      case 'dataNode': return 'Konfiguracja Źródła Danych'
-      case 'indicatorNode': return 'Wskaźnik i Logika'
-      case 'signalNode': return 'Sygnał Transakcyjny'
-      case 'portfolioNode': return 'Portfel & Ryzyko'
-      case 'optimizerNode': return 'Optymalizacja Optuna'
+      case 'dataNode': return 'Data Source Configuration'
+      case 'indicatorNode': return 'Indicator & Logic'
+      case 'signalNode': return 'Trading Signal'
+      case 'portfolioNode': return 'Portfolio & Risk'
+      case 'optimizerNode': return 'Optuna Optimization'
       case 'wfoNode': return 'Walk-Forward Analysis'
-      default: return 'Edytor Węzła'
+      default: return 'Node Editor'
     }
   }
 
@@ -73,7 +73,7 @@ export const InspectorPanel: React.FC = () => {
         <button
           onClick={() => setSelectedNodeId(null)}
           className="p-1.5 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-slate-200 transition-colors"
-          aria-label="Zamknij panel edycji"
+          aria-label="Close edit panel"
         >
           <X className="w-5 h-5" />
         </button>
@@ -125,7 +125,7 @@ const DataNodeInspector: React.FC<{ data: DataNodeData; onChange: (k: string, v:
   return (
     <div className="space-y-4">
       <div>
-        <label className="block text-xs font-medium text-slate-300 mb-1">Źródło Danych</label>
+        <label className="block text-xs font-medium text-slate-300 mb-1">Data Source</label>
         <select
           value={data.dataSource ?? 'yahoo'}
           onChange={(e) => onChange('dataSource', e.target.value)}
@@ -138,22 +138,22 @@ const DataNodeInspector: React.FC<{ data: DataNodeData; onChange: (k: string, v:
       </div>
 
       <div>
-        <label className="block text-xs font-medium text-slate-300 mb-1">Symbol Ticker(y)</label>
+        <label className="block text-xs font-medium text-slate-300 mb-1">Ticker Symbol(s)</label>
         <input
           type="text"
           value={data.symbol ?? 'AAPL'}
           onChange={(e) => onChange('symbol', e.target.value.toUpperCase())}
           disabled={isSynthetic}
           className="w-full bg-[#0b0d14] border border-white/10 rounded-lg px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-indigo-500 font-mono disabled:opacity-50"
-          placeholder={isSynthetic ? 'SYNTHETIC' : 'np. AAPL lub AAPL, MSFT, GOOG'}
+          placeholder={isSynthetic ? 'SYNTHETIC' : 'e.g. AAPL or AAPL, MSFT, GOOG'}
         />
-        <p className="text-[11px] text-slate-400 mt-1">Wiele symboli rozdziel przecinkami dla symulacji Multi-Wide.</p>
+        <p className="text-[11px] text-slate-400 mt-1">Separate multiple symbols with commas for Multi-Wide simulation.</p>
       </div>
 
       {!isSynthetic && (
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="block text-xs font-medium text-slate-300 mb-1">Data Początkowa</label>
+            <label className="block text-xs font-medium text-slate-300 mb-1">Start Date</label>
             <input
               type="date"
               value={data.startDate ?? '2023-01-01'}
@@ -162,7 +162,7 @@ const DataNodeInspector: React.FC<{ data: DataNodeData; onChange: (k: string, v:
             />
           </div>
           <div>
-            <label className="block text-xs font-medium text-slate-300 mb-1">Data Końcowa</label>
+            <label className="block text-xs font-medium text-slate-300 mb-1">End Date</label>
             <input
               type="date"
               value={data.endDate ?? '2025-01-01'}
@@ -174,18 +174,18 @@ const DataNodeInspector: React.FC<{ data: DataNodeData; onChange: (k: string, v:
       )}
 
       <div>
-        <label className="block text-xs font-medium text-slate-300 mb-1">Interwał (Timeframe)</label>
+        <label className="block text-xs font-medium text-slate-300 mb-1">Timeframe</label>
         <select
           value={data.timeframe ?? '1d'}
           onChange={(e) => onChange('timeframe', e.target.value)}
           className="w-full bg-[#0b0d14] border border-white/10 rounded-lg px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-indigo-500"
         >
-          <option value="1d">1 Dzień (1d)</option>
-          <option value="1h">1 Godzina (1h)</option>
-          <option value="5m">5 Minut (5m)</option>
-          <option value="15m">15 Minut (15m)</option>
-          <option value="30m">30 Minut (30m)</option>
-          <option value="1w">1 Tydzień (1w)</option>
+          <option value="1d">1 Day (1d)</option>
+          <option value="1h">1 Hour (1h)</option>
+          <option value="5m">5 Minutes (5m)</option>
+          <option value="15m">15 Minutes (15m)</option>
+          <option value="30m">30 Minutes (30m)</option>
+          <option value="1w">1 Week (1w)</option>
         </select>
       </div>
 
@@ -198,7 +198,7 @@ const DataNodeInspector: React.FC<{ data: DataNodeData; onChange: (k: string, v:
           className="accent-indigo-500 rounded cursor-pointer"
         />
         <label htmlFor="pit-enforce" className="text-xs text-slate-300 cursor-pointer font-medium">
-          Point-In-Time Enforcement (Brak Look-ahead)
+          Point-In-Time Enforcement (No Look-ahead)
         </label>
       </div>
     </div>
@@ -223,13 +223,13 @@ const IndicatorNodeInspector: React.FC<{ data: IndicatorNodeData; onChange: (k: 
   return (
     <div className="space-y-4">
       <div>
-        <label className="block text-xs font-medium text-slate-300 mb-1">Typ Wskaźnika</label>
+        <label className="block text-xs font-medium text-slate-300 mb-1">Indicator Type</label>
         <select
           value={data.indicatorType ?? 'sma_crossover'}
           onChange={(e) => onChange('indicatorType', e.target.value)}
           className="w-full bg-[#0b0d14] border border-white/10 rounded-lg px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-indigo-500"
         >
-          <option value="sma_crossover">SMA Crossover (Przecięcie Średnich)</option>
+          <option value="sma_crossover">SMA Crossover</option>
           <option value="macd">MACD (Moving Average Convergence Divergence)</option>
           <option value="rsi">RSI Oscillator</option>
           <option value="custom">Custom Numba JIT Code</option>
@@ -249,7 +249,7 @@ const IndicatorNodeInspector: React.FC<{ data: IndicatorNodeData; onChange: (k: 
       {data.indicatorType === 'sma_crossover' && (
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="block text-xs font-medium text-slate-300 mb-1">Szybka Średnia (Fast)</label>
+            <label className="block text-xs font-medium text-slate-300 mb-1">Fast Moving Average</label>
             <input
               type="number"
               min={2}
@@ -260,7 +260,7 @@ const IndicatorNodeInspector: React.FC<{ data: IndicatorNodeData; onChange: (k: 
             />
           </div>
           <div>
-            <label className="block text-xs font-medium text-slate-300 mb-1">Wolna Średnia (Slow)</label>
+            <label className="block text-xs font-medium text-slate-300 mb-1">Slow Moving Average</label>
             <input
               type="number"
               min={5}
@@ -310,7 +310,7 @@ const IndicatorNodeInspector: React.FC<{ data: IndicatorNodeData; onChange: (k: 
       {data.indicatorType === 'rsi' && (
         <div className="space-y-3">
           <div>
-            <label className="block text-xs font-medium text-slate-300 mb-1">Okres RSI (Window)</label>
+            <label className="block text-xs font-medium text-slate-300 mb-1">RSI Period (Window)</label>
             <input
               type="number"
               value={Number(data.rsiWindow ?? 14)}
@@ -320,7 +320,7 @@ const IndicatorNodeInspector: React.FC<{ data: IndicatorNodeData; onChange: (k: 
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-medium text-slate-300 mb-1">Wyprzedanie (Lower Limit)</label>
+              <label className="block text-xs font-medium text-slate-300 mb-1">Oversold (Lower Limit)</label>
               <input
                 type="number"
                 value={Number(data.rsiLower ?? 30)}
@@ -329,7 +329,7 @@ const IndicatorNodeInspector: React.FC<{ data: IndicatorNodeData; onChange: (k: 
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-slate-300 mb-1">Wykupienie (Upper Limit)</label>
+              <label className="block text-xs font-medium text-slate-300 mb-1">Overbought (Upper Limit)</label>
               <input
                 type="number"
                 value={Number(data.rsiUpper ?? 70)}
@@ -344,7 +344,7 @@ const IndicatorNodeInspector: React.FC<{ data: IndicatorNodeData; onChange: (k: 
       {/* Custom Numba JIT sandbox */}
       {data.indicatorType === 'custom' && (
         <div>
-          <label className="block text-xs font-medium text-slate-300 mb-1">Kod Wskaźnika (Numba JIT Sandbox)</label>
+          <label className="block text-xs font-medium text-slate-300 mb-1">Indicator Code (Numba JIT Sandbox)</label>
           <textarea
             rows={8}
             value={data.codeContent ?? ''}
@@ -358,7 +358,7 @@ const IndicatorNodeInspector: React.FC<{ data: IndicatorNodeData; onChange: (k: 
       {/* Dynamic Registry parameters */}
       {isDynamic && currentRegistryInd?.params && (
         <div className="space-y-3 pt-2 border-t border-white/10">
-          <span className="text-xs font-semibold text-purple-400 uppercase tracking-wider">Parametry Introspekcji</span>
+          <span className="text-xs font-semibold text-purple-400 uppercase tracking-wider">Introspection Parameters</span>
           {currentRegistryInd.params.map((p: any) => (
             <div key={p.name}>
               <label className="block text-xs font-medium text-slate-300 mb-1">{p.name}</label>
@@ -382,16 +382,16 @@ const IndicatorNodeInspector: React.FC<{ data: IndicatorNodeData; onChange: (k: 
 const SignalNodeInspector: React.FC<{ data: SignalNodeData; onChange: (k: string, v: any) => void }> = ({ data, onChange }) => (
   <div className="space-y-4">
     <div>
-      <label className="block text-xs font-medium text-slate-300 mb-1">Typ Operatora Logicznego</label>
+      <label className="block text-xs font-medium text-slate-300 mb-1">Logic Operator Type</label>
       <select
         value={data.signalType ?? 'sma_crossover'}
         onChange={(e) => onChange('signalType', e.target.value)}
         className="w-full bg-[#0b0d14] border border-white/10 rounded-lg px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-indigo-500"
       >
-        <option value="sma_crossover">Crossover (Przecięcie Sygnałów)</option>
-        <option value="ranking">Ranking / Sortowanie Tickerów</option>
-        <option value="mapping">Mapowanie Progowanie (Threshold)</option>
-        <option value="distribution">Dystrybucja Alokacji (Weighting)</option>
+        <option value="sma_crossover">Crossover (Signal Crossover)</option>
+        <option value="ranking">Ticker Ranking / Sorting</option>
+        <option value="mapping">Threshold Mapping</option>
+        <option value="distribution">Allocation Weighting</option>
       </select>
     </div>
   </div>
@@ -403,7 +403,7 @@ const SignalNodeInspector: React.FC<{ data: SignalNodeData; onChange: (k: string
 const PortfolioNodeInspector: React.FC<{ data: PortfolioNodeData; onChange: (k: string, v: any) => void }> = ({ data, onChange }) => (
   <div className="space-y-4">
     <div>
-      <label className="block text-xs font-medium text-slate-300 mb-1">Kapitał Początkowy ($)</label>
+      <label className="block text-xs font-medium text-slate-300 mb-1">Initial Capital ($)</label>
       <input
         type="number"
         value={data.init_cash ?? 10000}
@@ -414,7 +414,7 @@ const PortfolioNodeInspector: React.FC<{ data: PortfolioNodeData; onChange: (k: 
 
     <div className="grid grid-cols-2 gap-3">
       <div>
-        <label className="block text-xs font-medium text-slate-300 mb-1">Prowizja (Fees %)</label>
+        <label className="block text-xs font-medium text-slate-300 mb-1">Fees (%)</label>
         <input
           type="number"
           step="0.01"
@@ -424,7 +424,7 @@ const PortfolioNodeInspector: React.FC<{ data: PortfolioNodeData; onChange: (k: 
         />
       </div>
       <div>
-        <label className="block text-xs font-medium text-slate-300 mb-1">Poślizg (Slippage %)</label>
+        <label className="block text-xs font-medium text-slate-300 mb-1">Slippage (%)</label>
         <input
           type="number"
           step="0.01"
@@ -436,7 +436,7 @@ const PortfolioNodeInspector: React.FC<{ data: PortfolioNodeData; onChange: (k: 
     </div>
 
     <div className="pt-3 border-t border-white/10 space-y-3">
-      <h4 className="text-xs font-semibold text-indigo-400 uppercase tracking-wider">Zarządzanie Ryzykiem (SL / TP)</h4>
+      <h4 className="text-xs font-semibold text-indigo-400 uppercase tracking-wider">Risk Management (SL / TP)</h4>
 
       <div className="grid grid-cols-2 gap-3">
         <div>
@@ -446,7 +446,7 @@ const PortfolioNodeInspector: React.FC<{ data: PortfolioNodeData; onChange: (k: 
             step="0.1"
             value={data.sl_stop ? Number((data.sl_stop * 100).toFixed(2)) : ''}
             onChange={(e) => onChange('sl_stop', e.target.value ? Number(e.target.value) / 100 : undefined)}
-            placeholder="np. 2 (2%)"
+            placeholder="e.g. 2 (2%)"
             className="w-full bg-[#0b0d14] border border-white/10 rounded-lg px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-indigo-500 font-mono"
           />
         </div>
@@ -458,7 +458,7 @@ const PortfolioNodeInspector: React.FC<{ data: PortfolioNodeData; onChange: (k: 
             step="0.1"
             value={data.tp_stop ? Number((data.tp_stop * 100).toFixed(2)) : ''}
             onChange={(e) => onChange('tp_stop', e.target.value ? Number(e.target.value) / 100 : undefined)}
-            placeholder="np. 5 (5%)"
+            placeholder="e.g. 5 (5%)"
             className="w-full bg-[#0b0d14] border border-white/10 rounded-lg px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-indigo-500 font-mono"
           />
         </div>
@@ -466,26 +466,26 @@ const PortfolioNodeInspector: React.FC<{ data: PortfolioNodeData; onChange: (k: 
 
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label className="block text-xs font-medium text-slate-300 mb-1">Wielkość Pozycji</label>
+          <label className="block text-xs font-medium text-slate-300 mb-1">Position Size</label>
           <input
             type="number"
             value={data.size ?? ''}
             onChange={(e) => onChange('size', e.target.value ? Number(e.target.value) : undefined)}
-            placeholder="Domyślna (100%)"
+            placeholder="Default (100%)"
             className="w-full bg-[#0b0d14] border border-white/10 rounded-lg px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-indigo-500 font-mono"
           />
         </div>
 
         <div>
-          <label className="block text-xs font-medium text-slate-300 mb-1">Typ Wielkości</label>
+          <label className="block text-xs font-medium text-slate-300 mb-1">Size Type</label>
           <select
             value={data.size_type ?? 'percent'}
             onChange={(e) => onChange('size_type', e.target.value)}
             className="w-full bg-[#0b0d14] border border-white/10 rounded-lg px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-indigo-500"
           >
-            <option value="percent">Procent (Percent)</option>
-            <option value="amount">Ilość Akcji (Amount)</option>
-            <option value="value">Wartość $ (Value)</option>
+            <option value="percent">Percent</option>
+            <option value="amount">Amount (Shares)</option>
+            <option value="value">Value ($)</option>
           </select>
         </div>
       </div>
@@ -514,7 +514,7 @@ const OptimizerNodeInspector: React.FC<{
   const handleSyncBounds = () => {
     const indicator = getConnectedIndicator()
     if (!indicator || indicator.type !== 'indicatorNode') {
-      showToast.warning('Brak połączenia', 'Podłącz węzeł Indicator do węzła Optymalizatora.')
+      showToast.warning('Missing connection', 'Connect an Indicator node to the Optimizer node.')
       return
     }
     const iData = indicator.data as IndicatorNodeData
@@ -533,14 +533,14 @@ const OptimizerNodeInspector: React.FC<{
       }
     }
     onChange('paramBounds', newBounds)
-    showToast.success('Zsynchronizowano', 'Zakresy parametrów zsynchronizowane z wskaźnikiem.')
+    showToast.success('Synchronized', 'Parameter ranges synchronized with indicator.')
   }
 
   const handleApplyToIndicator = () => {
     if (!data.bestParameters) return
     const indicator = getConnectedIndicator()
     if (!indicator || indicator.type !== 'indicatorNode') {
-      showToast.warning('Brak połączenia', 'Podłącz węzeł Indicator do węzła Optymalizatora.')
+      showToast.warning('Missing connection', 'Connect an Indicator node to the Optimizer node.')
       return
     }
 
@@ -557,7 +557,7 @@ const OptimizerNodeInspector: React.FC<{
     }
 
     updateNodeData(indicator.id, mappedParams)
-    showToast.success('Zastosowano', 'Najlepsze parametry zapisane w węźle Indicator!')
+    showToast.success('Applied', 'Best parameters saved to Indicator node!')
   }
 
   const updateBound = (key: string, bound: Partial<ParameterBound>) => {
@@ -577,7 +577,7 @@ const OptimizerNodeInspector: React.FC<{
   return (
     <div className="space-y-4">
       <div>
-        <label className="block text-xs font-medium text-slate-300 mb-1">Docelowa Metryka Optymalizacji</label>
+        <label className="block text-xs font-medium text-slate-300 mb-1">Optimization Target Metric</label>
         <select
           value={data.metric ?? 'Total Return [%]'}
           onChange={(e) => onChange('metric', e.target.value)}
@@ -591,7 +591,7 @@ const OptimizerNodeInspector: React.FC<{
       </div>
 
       <div>
-        <label className="block text-xs font-medium text-slate-300 mb-1">Liczba Prób Optuna (n_trials)</label>
+        <label className="block text-xs font-medium text-slate-300 mb-1">Optuna Trials (n_trials)</label>
         <input
           type="number"
           min={5}
@@ -604,7 +604,7 @@ const OptimizerNodeInspector: React.FC<{
 
       <div className="pt-3 border-t border-white/10 space-y-3">
         <div className="flex items-center justify-between">
-          <span className="text-xs font-semibold text-pink-400 uppercase tracking-wider">Zakresy Parametrów (Bounds)</span>
+          <span className="text-xs font-semibold text-pink-400 uppercase tracking-wider">Parameter Bounds</span>
           <button
             onClick={handleSyncBounds}
             className="flex items-center gap-1 text-[11px] font-medium bg-[#1c2130] hover:bg-[#262c3e] border border-pink-500/30 text-pink-300 px-2 py-1 rounded transition-colors"
@@ -646,13 +646,13 @@ const OptimizerNodeInspector: React.FC<{
       {data.bestParameters && (
         <div className="p-3 bg-pink-950/30 border border-pink-500/30 rounded-lg space-y-2 mt-4">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-pink-300">Najlepszy Wynik:</span>
+            <span className="text-xs font-semibold text-pink-300">Best Result:</span>
             <button
               onClick={handleApplyToIndicator}
               className="flex items-center gap-1 px-2 py-1 text-[11px] font-semibold bg-emerald-600 hover:bg-emerald-500 text-white rounded transition-colors"
             >
               <CheckCircle className="w-3 h-3" />
-              <span>Zastosuj</span>
+              <span>Apply</span>
             </button>
           </div>
           <div className="text-xs font-mono text-slate-300 space-y-1">
@@ -675,41 +675,41 @@ const OptimizerNodeInspector: React.FC<{
 const WfoNodeInspector: React.FC<{ data: WfoNodeData; onChange: (k: string, v: any) => void }> = ({ data, onChange }) => (
   <div className="space-y-4">
     <div>
-      <label className="block text-xs font-medium text-slate-300 mb-1">Tryb Walk-Forward (Mode)</label>
+      <label className="block text-xs font-medium text-slate-300 mb-1">Walk-Forward Mode</label>
       <select
         value={(data as any).mode ?? 'rolling'}
         onChange={(e) => onChange('mode', e.target.value)}
         className="w-full bg-[#0b0d14] border border-white/10 rounded-lg px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-indigo-500"
       >
-        <option value="rolling">Rolling (Stałe Okno przesuwne)</option>
-        <option value="anchored">Anchored (Okno narastające od początku)</option>
+        <option value="rolling">Rolling (Fixed Sliding Window)</option>
+        <option value="anchored">Anchored (Expanding Window)</option>
       </select>
     </div>
 
     <div>
-      <label className="block text-xs font-medium text-slate-300 mb-1">Rozmiar Okna (In-Sample Window)</label>
+      <label className="block text-xs font-medium text-slate-300 mb-1">In-Sample Window Size</label>
       <input
         type="text"
         value={data.windowSize ?? '365d'}
         onChange={(e) => onChange('windowSize', e.target.value)}
         className="w-full bg-[#0b0d14] border border-white/10 rounded-lg px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-indigo-500 font-mono"
-        placeholder="np. 365d"
+        placeholder="e.g. 365d"
       />
     </div>
 
     <div>
-      <label className="block text-xs font-medium text-slate-300 mb-1">Krok Przesunięcia (Step Size)</label>
+      <label className="block text-xs font-medium text-slate-300 mb-1">Step Size</label>
       <input
         type="text"
         value={data.stepSize ?? '90d'}
         onChange={(e) => onChange('stepSize', e.target.value)}
         className="w-full bg-[#0b0d14] border border-white/10 rounded-lg px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-indigo-500 font-mono"
-        placeholder="np. 90d"
+        placeholder="e.g. 90d"
       />
     </div>
 
     <div>
-      <label className="block text-xs font-medium text-slate-300 mb-1">Metryka Ewaluacji</label>
+      <label className="block text-xs font-medium text-slate-300 mb-1">Evaluation Metric</label>
       <select
         value={(data as any).metric ?? 'Total Return [%]'}
         onChange={(e) => onChange('metric', e.target.value)}

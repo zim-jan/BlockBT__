@@ -101,6 +101,7 @@ def test_timeframe_4h_rejected_loudly():
 
 def test_intraday_730_day_lookback_limit_raises_descriptive_error(tmp_path):
     import pytest
+
     from app.services.connectors.yahoo_finance import YahooFinanceConnector
 
     connector = YahooFinanceConnector(cache_dir=tmp_path)
@@ -115,6 +116,7 @@ def test_intraday_730_day_lookback_limit_raises_descriptive_error(tmp_path):
 
 def test_1m_7_day_lookback_limit_raises_descriptive_error(tmp_path):
     import pytest
+
     from app.services.connectors.yahoo_finance import YahooFinanceConnector
 
     connector = YahooFinanceConnector(cache_dir=tmp_path)

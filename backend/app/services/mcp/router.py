@@ -142,6 +142,9 @@ def get_domain_context(domain: str) -> str:
             "with explicit inline fixed styles (`position: fixed`, `top: 0`, `left: 0`, `right: 0`, `bottom: 0`, `zIndex: 99999/100000`) "
             "to prevent Tailwind v4 PostCSS layout collapse. QuantStats Tearsheet is fetched via API and rendered with `srcDoc={html}`. "
             "Form controls use explicit dark mode contrast (`color-scheme: dark` and `select option` dark styling in `index.css`).\n"
+            "- Faza 22 & 23 (UI Polish & i18n): Default UI language set to English (code comments preserved). Removed unneeded header buttons. "
+            "QuantStats Tearsheet updated with dark theme styling (#0b0d14/#131722) and hyphenated header ('BlockBT - Analytics Tearsheet'). "
+            "AI Analyst chat button rendered on canvas toolbar upon backtest completion.\n"
             "- STRICT RULE: Frontend communicates with backend ONLY via REST API. NO direct file system access."
         ),
         "mcp_integration": (
