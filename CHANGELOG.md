@@ -296,3 +296,7 @@
   4. **Zacementowanie w DESIGN.md:** Dodanie Sekcji 8 (**Reguły Odstępów, Obramowań Węzłów i Uchwytów Połączeń**) do `DESIGN.md`.
   5. **Weryfikacja:** `make lint` pass (0 błędów), testy Vitest 47/47 pass, `npm run build` pass.
 
+* **Phase 25: Implementacja modułu Dashboard & Integracja Plotly**
+  * Status: [IN_PROGRESS]
+  * Cel: Zaprojektowanie i wdrożenie panelu Dashboard (wykresy Realtime, widget historii, modal szczegółów zadań).
+  * Aktualne problemy: Faza wstrzymana z powodu wciąż występujących problemów wizualnych po stronie wykresów Plotly (ucina się, wycieka na historię) oraz z-indexów ukrywających Modal. Do poprawy czytelność UI (prześwitujące tła, kontrast okien modali). Błędy kompilacji TypeScript z powodu HMR. Do debugowania w przyszłości.

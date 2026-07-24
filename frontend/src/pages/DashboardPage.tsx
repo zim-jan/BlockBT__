@@ -1,0 +1,49 @@
+import { useState } from 'react'
+import { MainLayout } from '../components/layout/MainLayout'
+import { RealtimeChartWidget } from '../components/Dashboard/RealtimeChartWidget'
+import { HistoryWidget } from '../components/Dashboard/HistoryWidget'
+import { FullJobViewModal } from '../components/Dashboard/FullJobViewModal'
+
+export function DashboardPage() {
+  const [selectedJobId, setSelectedJobId] = useState<number | null>(null)
+  const [selectedStrategyId, setSelectedStrategyId] = useState<number | null>(null)
+
+  const handleJobSelect = (jobId: number, strategyId: number) => {
+    setSelectedJobId(jobId)
+    setSelectedStrategyId(strategyId)
+  }
+
+  const closeFullView = () => {
+    setSelectedJobId(null)
+    setSelectedStrategyId(null)
+  }
+
+  return (
+    <MainLayout>
+      <div className="flex flex-col h-full overflow-y-auto bg-background p-6 gap-6" style={{ contentVisibility: 'auto' }}>
+        <header>
+          <h1 className="text-3xl font-headline font-bold text-on-surface">Dashboard</h1>
+          <p className="text-on-surface-variant font-label mt-1">Real-time market data & backtest history</p>
+        </header>
+
+        {/* Real-time chart widget */}
+        <div className="w-full h-96 bg-surface-container rounded-lg border border-outline-variant/30 shrink-0 relative">
+          <RealtimeChartWidget />
+        </div>
+
+        {/* Jobs History List */}
+        <div className="flex-1 bg-surface-container rounded-lg border border-outline-variant/30 overflow-hidden flex flex-col">
+          <HistoryWidget onJobSelect={handleJobSelect} />
+        </div>
+      </div>
+
+      {selectedJobId !== null && (
+        <FullJobViewModal 
+          jobId={selectedJobId} 
+          strategyId={selectedStrategyId || 0} 
+          onClose={closeFullView} 
+        />
+      )}
+    </MainLayout>
+  )
+}

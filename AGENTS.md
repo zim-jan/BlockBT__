@@ -62,6 +62,11 @@ Jesteś Głównym Architektem i Programistą w projekcie BlockBT. Pracujesz w ry
   * Status: [DONE]
   * Cel: Naprawa nachodzenia uchwytów połączeń React Flow na tekst węzłów (-8px offset), pogrubienie obramowań węzłów do `border-2`, znormalizowanie wcięć i marginesów kontenerów oraz dodanie Sekcji 8 w DESIGN.md.
 
+* **Phase 25: Implementacja modułu Dashboard & Integracja Plotly**
+  * Status: [IN_PROGRESS]
+  * Cel: Zaprojektowanie i wdrożenie panelu Dashboard (wykresy Realtime, widget historii, modal szczegółów zadań).
+  * Aktualne problemy: Wykresy (Plotly) oraz z-index/overlaye w modalu FullJobViewModal i widgetcie RealtimeChart wciąż sprawiają problemy wizualne i układowe (ucina się, wycieka na historię, zawiesza dev-serwer). Dodatkowo do poprawy czytelność UI (prześwitujące tła, kontrast okien).
+
 * **Faza xx: Konteneryzacja, docker i docker compose**
   * Status: [PENDING]
 

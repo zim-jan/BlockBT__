@@ -32,7 +32,7 @@ export function formatApiErrorMessage(status: number, text: string): string {
   return `Błąd serwera (${status}): ${text.slice(0, 150)}`;
 }
 
-async function request<T>(path: string, options?: RequestInit): Promise<T> {
+export async function request<T>(path: string, options?: RequestInit): Promise<T> {
   const method = options?.method || 'GET';
   const requestBody = options?.body ? JSON.parse(options.body as string) : undefined;
   const token = useAuthStore.getState().token

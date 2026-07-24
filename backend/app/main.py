@@ -20,7 +20,9 @@ except ImportError:
 from app.api import (
     auth,
     backtest,
+    data,
     indicators,
+    notes,
     optimizer,
     registry,
     results,
@@ -183,6 +185,8 @@ app.include_router(optimizer.router, prefix="/api/optimizer", tags=["Optimizer"]
 app.include_router(workflows.router, prefix="/api/workflows", tags=["Workflows"])
 app.include_router(results.router, prefix="/api/results", tags=["Results"])
 app.include_router(settings.router, prefix="/api/settings", tags=["Settings"])
+app.include_router(notes.router, prefix="/api/notes", tags=["Notes"])
+app.include_router(data.router, prefix="/api/data", tags=["Data"])
 # Faza 14: Dynamic Introspection Engine — pierwszy prefiks /api/v1/ w repo.
 app.include_router(registry.router, prefix="/api/v1/registry", tags=["Registry"])
 

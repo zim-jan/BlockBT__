@@ -18,10 +18,20 @@ export function Sidebar() {
       </div>
 
       <div className="flex-1 px-4 space-y-2 mt-4">
-        <button className="w-full flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-high transition-colors text-left group cursor-not-allowed opacity-50">
-          <LayoutDashboard className="w-5 h-5 group-hover:text-on-surface transition-colors" />
-          <span className="font-label text-sm font-medium group-hover:text-on-surface transition-colors">Dashboard (Soon)</span>
-        </button>
+        <NavLink 
+            to="/dashboard" 
+            className={({ isActive }) => 
+                `w-full flex items-center gap-3 px-4 py-3 text-left relative transition-colors ${isActive ? 'bg-primary/10 text-primary' : 'text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface'}`
+            }
+        >
+          {({ isActive }) => (
+            <>
+              {isActive && <div className="absolute left-0 top-0 bottom-0 w-1 bg-primary shadow-[0_0_10px_rgba(129,236,255,0.5)]"></div>}
+              <LayoutDashboard className="w-5 h-5" />
+              <span className="font-label text-sm font-medium">Dashboard</span>
+            </>
+          )}
+        </NavLink>
 
         <NavLink 
             to="/" 

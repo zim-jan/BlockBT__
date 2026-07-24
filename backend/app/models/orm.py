@@ -60,6 +60,9 @@ class Strategy(Base):
     optimization_jobs: Mapped[list[OptimizationJob]] = relationship(
         "OptimizationJob", back_populates="strategy", lazy="select"
     )
+    notes: Mapped[list[Note]] = relationship(
+        "Note", back_populates="strategy", cascade="all, delete-orphan", lazy="select"
+    )
 
     def __repr__(self) -> str:
         return f"<Strategy id={self.id} name={self.name!r}>"
@@ -151,6 +154,39 @@ class ChatMessage(Base):
 
     def __repr__(self) -> str:
         return f"<ChatMessage id={self.id} job_id={self.job_id} role={self.role!r}>"
+
+
+# ---------------------------------------------------------------------------
+# Note
+# ---------------------------------------------------------------------------
+
+
+class Note(Base):
+    """Model reprezentujący pojedynczą notatkę przypisaną do strategii.
+
+    Może być przypięta, zawiera treść tekstową (Markdown-friendly).
+    """
+
+    __tablename__ = "notes"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    strategy_id: Mapped[int] = mapped_column(
+        ForeignKey("strategies.id", ondelete="CASCADE"), nullable=False
+    )
+    user_id: Mapped[int | None] = mapped_column(
+        ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    content: Mapped[str] = mapped_column(Text, nullable=False)
+    is_pinned: Mapped[bool] = mapped_column(default=False)
+    created_at: Mapped[datetime.datetime] = mapped_column(DateTime, nullable=False, default=_utcnow)
+    updated_at: Mapped[datetime.datetime] = mapped_column(
+        DateTime, nullable=False, default=_utcnow, onupdate=_utcnow
+    )
+
+    strategy: Mapped[Strategy] = relationship("Strategy", back_populates="notes")
+
+    def __repr__(self) -> str:
+        return f"<Note id={self.id} strategy_id={self.strategy_id} pinned={self.is_pinned}>"
 
 
 # ---------------------------------------------------------------------------
