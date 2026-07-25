@@ -14,27 +14,30 @@ NC='\033[0m' # No Color
 echo -e "${BLUE}=== Inicjalizacja BlockBT (Local) ===${NC}"
 
 # 1. Sprawdzenie .env i wygenerowanie SECRET_KEY jeśli brakuje
+#    SECRET_KEY musi być kluczem Fernet (URL-safe base64, 32 bajty) — `openssl base64`
+#    daje zwykły base64 i Fernet go odrzuca, dlatego generujemy przez cryptography.
+gen_secret_key() {
+    uv run python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+}
+
 if [ ! -f .env ]; then
-    echo -e "${YELLOW}Brak pliku .env. Generuję nowy...${NC}"
-    SECRET_KEY=$(dd if=/dev/urandom bs=32 count=1 2>/dev/null | openssl base64)
-    echo "SECRET_KEY=$SECRET_KEY" > .env
+    echo -e "${YELLOW}Brak pliku .env. Tworzę na podstawie .env.example...${NC}"
+    cp .env.example .env
+    SECRET_KEY=$(gen_secret_key)
+    sed -i "s|^SECRET_KEY=.*|SECRET_KEY=$SECRET_KEY|" .env
     echo -e "${GREEN}Plik .env został wygenerowany z nowym SECRET_KEY.${NC}"
+elif ! grep -qE "^SECRET_KEY=.+" .env; then
+    echo -e "${YELLOW}Brak SECRET_KEY w .env. Generuję i dopisuję...${NC}"
+    echo "SECRET_KEY=$(gen_secret_key)" >> .env
+    echo -e "${GREEN}Dopisano SECRET_KEY do .env.${NC}"
 else
-    if ! grep -q "SECRET_KEY" .env; then
-        echo -e "${YELLOW}Brak SECRET_KEY w .env. Generuję i dopisuję...${NC}"
-        SECRET_KEY=$(dd if=/dev/urandom bs=32 count=1 2>/dev/null | openssl base64)
-        echo "SECRET_KEY=$SECRET_KEY" >> .env
-        echo -e "${GREEN}Dopisano SECRET_KEY do .env.${NC}"
-    else
-        echo -e "${GREEN}Plik .env z SECRET_KEY już istnieje.${NC}"
-    fi
+    echo -e "${GREEN}Plik .env z SECRET_KEY już istnieje.${NC}"
 fi
 
-# 2. Utworzenie niezbędnych folderów
+# 2. Utworzenie niezbędnych folderów (ścieżki zgodne z DATA_DIR w backend/app/core/config.py)
 echo -e "${BLUE}Sprawdzanie katalogów lokalnych...${NC}"
-mkdir -p local_data/db
-mkdir -p local_data/cache
-mkdir -p local_data/logs
+mkdir -p backend/data/cache
+mkdir -p backend/data/logs
 
 # 3. Instalacja frontendu jeśli brakuje node_modules
 echo -e "${BLUE}Sprawdzanie pakietów frontendu...${NC}"
@@ -68,8 +71,9 @@ trap cleanup SIGINT SIGTERM EXIT
 
 # 4. Uruchomienie Backendu (w tle)
 echo -e "${BLUE}Uruchamianie backendu (FastAPI)...${NC}"
-# Sprawdzamy, czy `uvicorn` jest dostępny w środowisku z uv (uv run uvicorn)
-uv run uvicorn blockbt.api.main:app --reload --host 127.0.0.1 --port 8000 &
+# Pakiet `app` mieszka w backend/ (patrz [tool.setuptools.packages.find] w pyproject.toml),
+# więc uvicorn musi startować z tego katalogu.
+(cd backend && uv run uvicorn app.main:app --reload --host 127.0.0.1 --port 8000) &
 BACKEND_PID=$!
 echo -e "${GREEN}Backend uruchomiony (PID: $BACKEND_PID) na porcie 8000.${NC}"
 

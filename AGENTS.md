@@ -1,120 +1,81 @@
-# BlockBT - System Instructions & Agent Workflow
+# Instrukcje dla agentów pracujących nad BlockBT
 
-## [ROLE & DIRECTIVES]
-Jesteś Głównym Architektem i Programistą w projekcie BlockBT. Pracujesz w rygorystycznym
-środowisku (Air-Gapped Logic). Zanim wygenerujesz lub zmienisz jakikolwiek kod:
+> **UNIEWAŻNIENIE WCZEŚNIEJSZYCH USTALEŃ.** Jeśli pamiętasz cokolwiek z wcześniejszej
+> pracy w tym repozytorium — fazy projektu, statusy `[DONE]`/`[IN_PROGRESS]`,
+> instrukcje o `graphify`, `claude-mem`, `context7`, serwerze MCP
+> `BlockBT-Architectural-Router`, obowiązkowych skillach czy zapisywaniu obserwacji
+> do pamięci trwałej — **wszystko to jest nieaktualne i zostało usunięte**.
+> Ten plik jest jedynym źródłem prawdy. Nie szukaj plików, o których tu nie ma mowy.
 
-1. **Faza projektu:** sprawdź aktywną fazę w sekcji PHASES poniżej. Jeśli faza jest
-   zamknięta ([DONE] — historia w CHANGELOG.md) — NIE MODYFIKUJ jej core'owego kodu
-   bez wyraźnej zgody użytkownika.
-2. **BYOL:** bezwzględny zakaz włączania ścieżek `vectorbtpro` do otwartego repozytorium.
-3. **Lokalizacja kodu & Kontekst domenowy:** przed pisaniem nowego kodu backendowego,
-   gdy pytanie dotyczy w którym katalogu pracować lub jakich klas bazowych użyć,
-   sprawdź wytyczne domenowe w `backend/app/services/mcp/router.py` (funkcja `get_domain_context`
-   / słownik `contexts`). Uwaga: lokalny serwer MCP `BlockBT-Architectural-Router`
-   nie jest aktywnie podłączony w sesji CLI — czytaj plik `router.py` bezpośrednio.
-4. **Zadania frontendowe (HTML/CSS/client-side JS):** kolejność jest stała —
-   sprawdź kontekst domenowy w `backend/app/services/mcp/router.py` (gdzie w repo) →
-   skill `modern-web-guidance` uruchamia się automatycznie i jest OBOWIĄZKOWY dla
-   wzorców UI/CSS/Web API (nie pomijaj, nawet jeśli wzorzec wydaje się znany) → dopiero
-   potem pisz kod.
-5. **Powiązania w kodzie — Graphify:** globalny skill graphify (dzielony między
-   projektami, `~/.gemini/config/skills/graphify/`) aktywuje się sam dla pytań
-   o architekturę/powiązania. Projektowa specyfika: ten graf żyje w
-   `graphify-out/` w repo BlockBT — patrz sekcja `## Graphify` niżej po detale
-   CLI. Nie łącz niepotrzebnie analizy routera i graphify dla tego samego pytania —
-   pierwszy odpowiada „gdzie", drugi „co się z czym łączy".
-6. **Dokumentacja bibliotek zewnętrznych:** masz podłączone TRZY nakładające się
-   ścieżki (`context7-mcp`, `context7-cli`, `find-docs`) — wszystkie robią to samo
-   dwuetapowo (resolve → docs). Priorytet:
-   1. MCP `resolve-library-id` / `query-docs` (jeśli `context7` widoczny w `/mcp`) —
-      zero kosztu procesu, preferowane.
-   2. `npx ctx7@latest library/docs` — TYLKO gdy MCP niedostępne w sesji.
-   Nie wywołuj obu ścieżek dla tego samego pytania.
-7. **Zamknięcie fazy:** gdy faza jest zakończona i potwierdzona testami (razem
-   z manualnymi), dokumentacja projektu aktualna — oznacz status [DONE], przenieś
-   opis do CHANGELOG.md, zaktualizuj `domain_context` w
-   `backend/app/services/mcp/router.py`.
-8. **Delegacja zadań:** nie ma zadań delegowanych do agenta asynchronicznego (rewizja
-   2026-07-13). Jeśli w starszej dokumentacji natrafisz na oznaczenie [JULES] — ignoruj.
-9. **Aktualizacja Pamięci (Claude-Mem):** po zakończeniu istotnej fazy, przeprowadzeniu audytu kodu lub podjęciu ważnej decyzji architektonicznej/technicznej, wywołaj narzędzie MCP `observation_add` lub `observation_record_event`, aby zapisać zwięzły opis zmian i wniosków w pamięci persystentnej `claude-mem`.
+## Stan faktyczny projektu
 
-## [ARCHITECTURE CONSTRAINTS]
-* **Dual-Engine Pattern:** Logika musi zawsze posiadać fallback na darmowy `vectorbt`.
-* **Data Layer:** Pobieranie danych (np. Yahoo) musi być izolowane i zapisywane do
-  formatu Parquet przed przetworzeniem.
-* **Frontend:** React + FastAPI.
+Zweryfikowany, nie z pamięci:
 
----
+| Obszar | Jak jest |
+|:--|:--|
+| Python | **3.14+**, zależności przez `uv`, pakiet `app` mieszka w `backend/` |
+| Uwierzytelnianie | **JWT, domyślnie wyłączone.** Granica zaufania to loopback — ADR-0010, ADR-0011 |
+| Migracje | **Alembic**, uruchamiane automatycznie przy starcie backendu |
+| Rejestr wskaźników | **Trzy pozycje**: SMA, MACD, RSI (`backend/app/services/engine/introspection.py`) |
+| Tailwind | **v4**, wejściem jest `@import "tailwindcss"` w `frontend/src/assets/index.css`, stary config JS ładowany przez `@config` |
+| React | **19** (nie 18), React Flow 12 przez `@xyflow/react` |
+| ProEngine | Zaślepka bez licencji vectorbtpro — zwraca `engine_name="pro_mock"` |
+| Testy frontendu | `npm test` (vitest), 9 plików. Jsdom **nie ładuje stylów** |
 
-## [PHASES & CURRENT STATE]
-> Historia zakończonych faz (1-21): patrz `CHANGELOG.md`.
+## Zasady na każde zadanie
 
-* **Phase 22: Refaktoryzacja Frontendu & Język Angielski jako Domyślny**
-  * Status: [DONE]
-  * Cel: Refaktor interfejsu użytkownika na język angielski jako domyślny. Zachowanie komentarzy deweloperskich. Aktualizacja testów frontendu oraz dokumentacji środowiskowej.
+1. **Jeden temat na PR.** Nie doklejaj „przy okazji".
+2. **Zakaz zmian w logice i w testach**, chyba że zadanie mówi wprost inaczej.
+   Zadania dokumentacyjne i porządkowe zmieniają wyłącznie komentarze i pliki `.md`.
+3. **Zakaz nowych zależności** — ani w `pyproject.toml`, ani w `package.json`.
+4. **Nie dotykaj** `backend/app/core/` ani `backend/alembic/`.
+5. **CI musi być zielone.** Trzy joby: `backend`, `frontend`, `docs`.
+6. **Nie wprowadzaj ścieżek lokalnych** (`/home/...`, `file:///...`) ani nazwisk.
 
-* **Phase 23: Poprawki Makefile, Czyszczenie UI oraz Motyw Ciemny Tearsheetu QuantStats**
-  * Status: [DONE]
-  * Cel: Usunięcie przycisków w nagłówku, przeniesienie czatu AI Analyst na kanwę, motyw ciemny QuantStats Tearsheet z angielskim szablonem i łącznikiem `-`, poprawienie komend Makefile.
+## Jak pisać komentarze
 
-* **Phase 24: Refaktoryzacja Wyglądu, Ujednolicenie Układu & Zacementowanie w DESIGN.md**
-  * Status: [DONE]
-  * Cel: Naprawa nachodzenia uchwytów połączeń React Flow na tekst węzłów (-8px offset), pogrubienie obramowań węzłów do `border-2`, znormalizowanie wcięć i marginesów kontenerów oraz dodanie Sekcji 8 w DESIGN.md.
+Reguła: **zachowaj powód, usuń ceremonię procesu.**
 
-* **Phase 25: Implementacja modułu Dashboard & Integracja Plotly**
-  * Status: [IN_PROGRESS]
-  * Cel: Zaprojektowanie i wdrożenie panelu Dashboard (wykresy Realtime, widget historii, modal szczegółów zadań).
-  * Aktualne problemy: Wykresy (Plotly) oraz z-index/overlaye w modalu FullJobViewModal i widgetcie RealtimeChart wciąż sprawiają problemy wizualne i układowe (ucina się, wycieka na historię, zawiesza dev-serwer). Dodatkowo do poprawy czytelność UI (prześwitujące tła, kontrast okien).
+Komentarz ma tłumaczyć, *dlaczego* kod wygląda tak, a nie inaczej. Odniesienia do
+wewnętrznego procesu wytwarzania („Faza 14", „Audyt 2026-07-17", „review 2026-07-15")
+nic nie mówią osobie z zewnątrz — usuń je, ale **zachowaj informację, którą niosły**.
 
-* **Faza xx: Konteneryzacja, docker i docker compose**
-  * Status: [PENDING]
+```python
+# PRZED
+# Audyt 2026-07-17: cap na logowane body
 
----
+# PO
+# Cap na logowane body: pełne DAG-i potrafią mieć megabajty i zapychają logi.
+```
 
-## [DEVELOPMENT ENVIRONMENT & MAKEFILE COMMANDS]
-Projekt wykorzystuje `uv` do zarządzania pakietami Python oraz `Makefile` do automatyzacji komend deweloperskich.
+Odsyłacze do decyzji architektonicznych (`patrz ADR-0007`) **zostają** — dają
+czytelnikowi ścieżkę do uzasadnienia.
 
-* **Uruchamianie aplikacji:**
-  - Backend FastAPI: `make api` (uruchamia `uv run uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload`)
-  - Frontend Vite: `make frontend` (`cd frontend && npm run dev`) lub `make rebuild-front`
-* **Testowanie:**
-  - Testy backendu (Python/pytest): `make test` lub `uv run pytest backend/tests/ -v --tb=short`
-  - Testy frontendu (Vitest): `cd frontend && npx vitest run` lub `npm test`
-* **Jakość kodu i typowanie:**
-  - Linter i sprawdzanie typów: `make lint` (`uv run ruff check backend/` oraz `cd frontend && npx tsc --noEmit`)
-  - Generowanie typów API TypeScript z OpenAPI: `make generate-api`
-* **Zarządzanie procesami i czyszczenie:**
-  - Czyszczenie zasobów na porcie 8000: `make kill-api`
-  - Czyszczenie pamięci podręcznej i plików tymczasowych: `make clean`
-* **Zarządzanie pakietami Python:**
-  - Wszystkie komendy Python i instalacje bibliotek wykonuj za pomocą `uv` (`uv run`, `uv pip`, `uv add`).
+Nie skracaj komentarza kosztem treści. Komentarz, z którego zniknął powód, jest
+gorszy niż jego brak.
 
----
+## Język
 
-## Graphify
+- Dokumentacja, komentarze i docstringi: **po polsku**.
+- Kod, nazwy, klucze JSON i interfejs użytkownika: **po angielsku**.
+- Nie mieszaj obu w jednym zdaniu.
 
-Graf wiedzy tego repo w `graphify-out/`. Skill globalny (`~/.gemini/config/skills/graphify/`)
-wyzwala się sam dla pytań o architekturę — poniżej tylko projektowe doprecyzowanie:
+## Weryfikacja przed wysłaniem PR
 
-- `graphify query "<pytanie>"`, `graphify path "<A>" "<B>"`, `graphify explain "<koncept>"`
-  — preferuj nad surowym czytaniem plików, gdy `graphify-out/graph.json` istnieje.
-- Brudne pliki `graphify-out/` po hookach są normalne — nie powód do pomijania.
-- Po zmianach w kodzie: `graphify update .` (AST-only, zero kosztu API).
+```bash
+make lint                                  # ruff + tsc
+make test                                  # pytest
+make docs-check                            # mkdocs build --strict
+cd frontend && npm test && npm run build
+```
 
-## Caveman
+Jeśli Twoje środowisko nie zainstaluje TA-Liba ani `vectorbt[rust]`, testy backendu
+u Ciebie nie ruszą — to oczekiwane. Zweryfikuj to, co się da (`ruff`, `tsc`, `vitest`,
+`mkdocs`), a resztę zostaw CI. **Nie obchodź problemu przez zmiany w kodzie ani
+w konfiguracji testów.**
 
-Rules:
-- Drop: articles (a/an/the), filler (just/really/basically), pleasantries, hedging
-- Fragments OK. Short synonyms. Technical terms exact. Code unchanged.
-- Pattern: [thing] [action] [reason]. [next step].
-- Not: "Sure! I'd be happy to help you with that."
-- Yes: "Bug in auth middleware. Fix:"
+## Więcej kontekstu
 
-Switch level: /caveman lite|full|ultra|wenyan
-Stop: "stop caveman" or "normal mode"
-
-Auto-Clarity: drop caveman for security warnings, irreversible actions, user confused.
-Resume after.
-
-Boundaries: code/commits/PRs written normal.
+- [`CONTRIBUTING.md`](CONTRIBUTING.md) — konwencje, commity, czego nie przyjmiemy
+- [`README.md`](README.md) — instalacja i uczciwa lista ograniczeń
+- [`docs/adr/`](docs/adr/) — decyzje architektoniczne wraz z uzasadnieniami

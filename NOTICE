@@ -1,0 +1,27 @@
+BlockBT
+Copyright 2026 BlockBT Contributors
+
+This product includes software originally developed as an engineering
+thesis project.
+
+Licensed under the Apache License, Version 2.0. See the LICENSE file
+for the full license text.
+
+---
+
+BlockBT depends on third-party components distributed under their own
+licenses, including but not limited to:
+
+  - vectorbt (Apache-2.0)      https://github.com/polakowo/vectorbt
+  - TA-Lib (BSD-3-Clause)      https://ta-lib.org/
+  - FastAPI (MIT)              https://github.com/fastapi/fastapi
+  - React Flow / @xyflow/react (MIT)  https://github.com/xyflow/xyflow
+  - QuantStats (Apache-2.0)    https://github.com/ranaroussi/quantstats
+
+These components are NOT redistributed as part of this repository; they are
+installed from their respective package registries at build time. Refer to
+each project for its licensing terms.
+
+vectorbtpro is a commercial product and is NOT bundled, vendored, or
+redistributed here. The ProEngine integration follows a BYOL (Bring Your Own
+License) model — it loads vectorbtpro only from a path the user supplies.

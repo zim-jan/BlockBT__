@@ -11,7 +11,9 @@ export default defineConfig({
     strictPort: true,
     proxy: {
       '/api': {
-        target: 'http://127.0.0.1:8000',
+        // Domyślnie backend na hoście. W docker-compose serwisy nie dzielą
+        // loopbacku, więc tam podstawiamy nazwę serwisu przez zmienną.
+        target: process.env.VITE_API_PROXY_TARGET ?? 'http://127.0.0.1:8000',
         changeOrigin: false,
       },
     },

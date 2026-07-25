@@ -2,7 +2,7 @@
 
 - **Status:** zaakceptowana
 - **Data:** 2026-07-25
-- **Powiązane:** [ADR-0010](0010-zarzadzanie-uzytkownikami-auth-jwt.md), `docs/PLAN_P0_AUTH_ALEMBIC.md`
+- **Powiązane:** [ADR-0010](0010-zarzadzanie-uzytkownikami-auth-jwt.md), `backend/tests/test_api/test_auth_p0.py`
 
 ## Kontekst i problem
 

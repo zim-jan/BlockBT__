@@ -5,26 +5,24 @@ services:
       context: .
       dockerfile: Dockerfile.api
     container_name: blockbt-api
-    user: "${UID:-1000}:${GID:-1000}"
     restart: unless-stopped
     ports:
+      # Tylko loopback — granica zaufania aplikacji (ADR-0011).
       - "127.0.0.1:8000:8000"
     volumes:
-      # Air-Gapped persistence: SQLite DB + Parquet data cache
-      - ./local_data/db:/app/data/db
-      - ./local_data/cache:/app/data/cache
-    environment:
-      - BLOCKBT_DB_PATH=/app/data/db/blockbt.db
-      - BLOCKBT_CACHE_DIR=/app/data/cache
+      # Trwałe dane: baza SQLite, cache Parquet i logi. Ścieżka w kontenerze
+      # musi zgadzać się z DATA_DIR z backend/app/core/config.py.
+      - ./backend/data:/app/backend/data
+    env_file:
+      # SECRET_KEY nie ma wartości domyślnej — bez .env kontener nie wstanie.
+      # Skopiuj .env.example do .env przed pierwszym uruchomieniem.
+      - .env
     healthcheck:
       test: ["CMD", "curl", "-f", "http://127.0.0.1:8000/api/health"]
       interval: 10s
       timeout: 5s
       retries: 3
-    command: >
-      uvicorn app.main:app
-      --host 0.0.0.0
-      --port 8000
+      start_period: 30s
     networks:
       - blockbt-internal
 
@@ -37,10 +35,13 @@ services:
     restart: unless-stopped
     ports:
       - "127.0.0.1:3000:3000"
+    environment:
+      # Wewnątrz sieci Dockera backend nie jest pod loopbackiem frontendu —
+      # proxy Vite'a musi celować w nazwę serwisu (patrz frontend/vite.config.ts).
+      - VITE_API_PROXY_TARGET=http://blockbt-api:8000
     depends_on:
       blockbt-api:
         condition: service_healthy
-    command: npm run dev -- --host 0.0.0.0
     networks:
       - blockbt-internal
 

@@ -160,7 +160,7 @@
        (mapowanie w render `WorkflowEditor`), store przechowuje krawędzie bez zmian.
   * Odłożone (świadomie — wyższe ryzyko, do decyzji przy powrocie do fazy):
     * Pełny wzorzec easy-connect z oficjalnego przykładu React Flow
-      (`docs/external_libs/react_flow/examples_easy-connect.md`): pełnowymiarowe uchwyty
+      (https://reactflow.dev/examples/nodes/easy-connect): pełnowymiarowe uchwyty
       source+target przełączane przez `useConnection()` + `isConnectableStart={false}` na target.
       Wymaga przebudowy wszystkich 7 węzłów. Stary CSS (ukrywanie uchwytów target + niewidzialne
       40px strefy) NIE został przeniesiony do aktywnego arkusza, bo ukrycie uchwytów target
@@ -302,7 +302,7 @@
   * Aktualne problemy: Faza wstrzymana z powodu wciąż występujących problemów wizualnych po stronie wykresów Plotly (ucina się, wycieka na historię) oraz z-indexów ukrywających Modal. Do poprawy czytelność UI (prześwitujące tła, kontrast okien modali). Błędy kompilacji TypeScript z powodu HMR. Do debugowania w przyszłości.
 
 * **Faza P0-Auth: Hardening warstwy autoryzacji + migracje Alembic** [IN_PROGRESS]
-  Cel: usunięcie blokerów merge'a `przydan-dev` → `main` z review pod PR #5. Plan: `docs/PLAN_P0_AUTH_ALEMBIC.md`, decyzja architektoniczna: `docs/adr/0011-loopback-jako-granica-zaufania.md`.
+  Cel: usunięcie blokerów merge'a `przydan-dev` → `main` z review pod PR #5. Decyzja architektoniczna: `docs/adr/0011-loopback-jako-granica-zaufania.md`, testy regresyjne: `backend/tests/test_api/test_auth_p0.py`.
   1. **ZMIANA KONTRAKTU API (P0-1):** przy `auth_enabled = false` operacje uprzywilejowane (`/api/auth/users`, `PUT /api/settings/`, CRUD promptów) są dostępne **wyłącznie z loopbacku** (`127.0.0.0/8`, `::1`); z LAN-u zwracają `403`. Wcześniej `require_admin` przy braku roli nie sprawdzał niczego, co pozwalało dowolnemu klientowi założyć konto admina i włączyć auth, blokując właściciela instancji.
   2. **Anti-lockout (P0-1b):** seed pierwszego admina wydzielony do `app.services.auth.ensure_admin_user()` i wywoływany także przy włączaniu `auth_enabled` przez `PUT /api/settings/` — nie tylko w `lifespan`.
   3. **Kontrola właściciela strategii (P0-2):** `verify_resource_access` w `POST /api/backtest/`, `POST /api/backtest/dag`, `POST /api/optimizer/` i `POST /api/optimizer/wfo`. Endpoint DAG bezwarunkowo nadpisywał `strategy.parameters` cudzej strategii.

@@ -2,7 +2,7 @@
 
 * Status: zaakceptowany
 * Data: 2026-07-17
-* Decydenci: Jan Zimny (decyzja z review 2026-07-16), implementacja: sesja Claude Code
+* Decydenci: zespół BlockBT
 
 ## Kontekst i problem
 

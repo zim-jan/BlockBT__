@@ -2,7 +2,7 @@
 # BlockBT — Makefile
 # ──────────────────────────────────────────────────────────────
 
-.PHONY: help dev api frontend generate-api lint test docs docs-serve kill-api kill-front kill-all clean migrate migrate-down
+.PHONY: help dev api frontend generate-api lint test test-frontend docs docs-check docs-serve kill-api kill-front kill-all clean migrate migrate-down build-frontend rebuild-front
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | \
@@ -11,10 +11,13 @@ help: ## Show this help
 # ── Documentation ─────────────────────────────────────────────
 
 docs: ## Build documentation
-	mkdocs build
+	uv run mkdocs build
+
+docs-check: ## Build documentation with warnings as errors (same command as CI)
+	uv run mkdocs build --strict
 
 docs-serve: ## Start documentation server
-	mkdocs serve --dev-addr 127.0.0.1:8001
+	uv run mkdocs serve --dev-addr 127.0.0.1:8001
 
 # ── Database ──────────────────────────────────────────────────
 
@@ -71,6 +74,9 @@ lint: ## Run linters (ruff for Python, tsc for TypeScript)
 
 test: ## Run Python test suite
 	uv run pytest backend/tests/ -v --tb=short
+
+test-frontend: ## Run frontend test suite (vitest)
+	cd frontend && npm test
 
 build-frontend: ## Build frontend for production
 	cd frontend && npm run build

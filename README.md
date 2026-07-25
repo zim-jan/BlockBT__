@@ -1,101 +1,169 @@
-# BlockBT (Local Algorithmic Backtesting)
+# BlockBT
 
-Projekt **BlockBT** to profesjonalne, w pełni lokalne środowisko do przeprowadzania backtestingu strategii algorytmicznych. Składa się z nowoczesnego interfejsu **React** (Vite) oraz szybkiego i asynchronicznego serwera **FastAPI**.
+**Lokalne środowisko do backtestingu strategii algorytmicznych z wizualnym edytorem grafowym.**
 
-System jest tworzony zgodnie z zasadą "Air-Gapped": wszystkie Twoje dane giełdowe, strategie i integracje z LLM działają ściśle lokalnie lub w zamkniętym kontenerze Docker. Projekt nie posiada autoryzacji (zaprojektowany dla jednego użytkownika lokalnego).
+Budujesz strategię, łącząc bloki na płótnie — źródło danych, wskaźniki, warunki wejścia
+i wyjścia, portfel. Backend zamienia ten graf na wektorowy backtest na `vectorbt`
+i zwraca wyniki. Wszystko działa na Twojej maszynie, na `127.0.0.1`.
 
-## Stos Technologiczny
+[![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 
-*   **Frontend**: React 18, TypeScript, Vite, Tailwind CSS, **React Flow 12 (@xyflow/react)**.
-*   **Backend**: Python 3.14+, FastAPI, Pydantic, SQLAlchemy. Zarządzanie zależnościami przy użyciu `uv`.
-*   **Silnik (Engine)**: Dwusilnikowa (Dual-Engine Ready) struktura z domyślnym silnikiem opartym na wektoryzowanym `vectorbt`.
-*   **Baza i Dane**: SQLite i lokalne pliki Parquet w katalogu `local_data/`.
-*   **Dokumentacja**: MkDocs (dostępna w `docs/` i budowana przez mkdocs-material).
+---
 
-## Narzędzia Makefile
+## Co potrafi
 
-Projekt zawiera `Makefile` ułatwiający codzienne zadania:
+- **Wizualny edytor strategii** — graf oparty na React Flow 12. Węzły łączysz myszą,
+  walidator pilnuje, żeby połączenie miało sens.
+- **Wektorowy silnik backtestingu** — `vectorbt` z kompilacją Numba. Optymalizacja
+  parametrów wchodzi jako dodatkowy wymiar macierzy, nie jako pętla po kombinacjach.
+- **Optymalizacja parametrów** — Optuna, w tym walk-forward (WFO).
+- **Własne wskaźniki w Pythonie** — pisane w przeglądarce, wykonywane za walidatorem AST.
+- **Analityka portfela** — statystyki przez QuantStats, zarządzanie ryzykiem (SL/TP/sizing).
+- **Dane** — Yahoo Finance z cache'em Parquet; opcjonalnie Alpaca (własny klucz).
 
-*   `make dev` - Uruchamia backend i frontend (wymaga dwóch terminali).
-*   `make api` - Uruchamia tylko backend FastAPI.
-*   `make build-api` - Buduje obraz Docker dla backendu.
-*   `make rebuild-api` - Przebudowuje i restartuje kontener backendu.
-*   `make test` - Uruchamia pełną suitę testową pytest.
-*   `make clean` - Czyści cache i pliki tymczasowe.
+Architektura, decyzje i szczegóły API: [dokumentacja](docs/index.md)
+(`make docs-serve` uruchamia ją lokalnie).
 
-## Szybki Start (Docker Compose)
+---
 
-Najprostsza metoda na uruchomienie pełnego środowiska z bazą danych, frontendem i backendem. Aplikacja mapuje wszystkie porty do bezpiecznego środowiska lokalnego (`127.0.0.1`).
+## Ograniczenia — przeczytaj przed instalacją
+
+Projekt powstał jako praca inżynierska i **nie jest produktem gotowym do obrotu
+prawdziwymi pieniędzmi**. Rzeczy, o których lepiej wiedzieć od razu:
+
+| Obszar | Stan faktyczny |
+|:--|:--|
+| **Rejestr wskaźników** | **Trzy pozycje**: SMA, MACD, RSI. Kuratorowany katalog w `backend/app/services/engine/introspection.py`. Resztę dopisujesz sam jako wskaźnik własny. |
+| **ProEngine (vectorbtpro)** | Bez licencji vectorbtpro działa jako **zaślepka** zwracająca symulowane wyniki oznaczone `engine_name="pro_mock"`. To nie jest backtest. Model BYOL — biblioteki nie dostarczamy. |
+| **Tearsheet** | Generowany jako tekst/Markdown ze statystykami. **Bez wykresów.** |
+| **Uwierzytelnianie** | JWT, **domyślnie wyłączone**. Model zagrożeń zakłada, że granicą zaufania jest loopback ([ADR-0011](docs/adr/0011-loopback-jako-granica-zaufania.md)). |
+| **Piaskownica wskaźników** | Walidator AST z listą dozwolonych węzłów. Chroni przed pomyłką, **nie przed atakiem** — nie uruchamiaj cudzego kodu. Patrz [SECURITY.md](SECURITY.md). |
+| **„Air-gapped"** | Prawie. Arkusz stylów pobiera fonty z `fonts.googleapis.com` (`frontend/src/assets/index.css`). Bez internetu aplikacja działa, tylko z zapasowym krojem. |
+| **Bundle frontendu** | ~5,4 MB (Plotly). Bez code-splittingu. |
+
+---
+
+## Instalacja
+
+### Wymagania
+
+- **Python 3.14+**
+- **Node.js 20+**
+- **TA-Lib** — biblioteka C, wymagana przez `vectorbt`
+- [`uv`](https://docs.astral.sh/uv/getting-started/installation/)
+
+### 1. TA-Lib
+
+Pakiet PyPI `ta-lib` to tylko wiązanie — bez biblioteki C instalacja zależności padnie
+na etapie budowania. To najczęstsza przyczyna nieudanego `uv sync` w tym projekcie.
 
 ```bash
-docker-compose up --build
+# macOS
+brew install ta-lib
+
+# Debian / Ubuntu — pakietu nie ma w repozytoriach, budujemy ze źródeł
+wget https://github.com/TA-Lib/ta-lib/releases/download/v0.6.4/ta-lib-0.6.4-src.tar.gz
+tar -xzf ta-lib-0.6.4-src.tar.gz && cd ta-lib-0.6.4
+./configure --prefix=/usr && make -j"$(nproc)" && sudo make install && sudo ldconfig
+
+# Windows — użyj gotowego wheela ze strony projektu TA-Lib
 ```
-*   **Frontend React:** `http://127.0.0.1:3000`
-*   **Backend API:** `http://127.0.0.1:8000/docs`
 
-## Rozwój Lokalny (Development - Bez Kontenerów)
+### 2. Projekt
 
-Do szybkiej pracy i uruchamiania testów zalecamy użycie `uv` na swoim hoście.
-
-### Krok 1: Inicjalizacja Backendu
 ```bash
-uv sync --extra dev
-uv run uvicorn backend.app.main:app --reload
-```
-Aplikacja automatycznie utworzy pustą bazę danych SQLite przy uruchomieniu (Lifespan Context Manager).
+git clone <adres-repozytorium> && cd BlockBT
 
-### Krok 2: Uruchomienie Frontendu React
-W oddzielnym terminalu:
+uv sync --extra dev                   # backend (uv sam pobierze Pythona 3.14)
+cd frontend && npm ci && cd ..        # frontend
+
+cp .env.example .env
+uv run python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+# wklej wynik jako SECRET_KEY w .env — bez tego aplikacja nie wstanie
+```
+
+### 3. Uruchomienie
+
 ```bash
-cd frontend
-npm install
-npm run dev --host 0.0.0.0
+make api                              # backend  → http://127.0.0.1:8000/docs
+cd frontend && npm run dev            # frontend → http://127.0.0.1:3000
 ```
 
-### Krok 3: Budowanie Dokumentacji
-Aby wygenerować i przeczytać profesjonalną dokumentację MkDocs w języku polskim:
+Albo jednym poleceniem: `./run_local.sh` (odpala oba procesy i sam generuje `.env`).
+
+Baza SQLite i migracje Alembica wykonują się przy starcie backendu. Dane lądują
+w `backend/data/`.
+
+### Docker (alternatywa)
+
 ```bash
-uv run mkdocs serve
+cp .env.example .env   # ustaw SECRET_KEY
+docker compose up --build
 ```
 
-## Architektura DAG (Phase 9)
+Obraz backendu buduje TA-Lib ze źródeł — pierwsze uruchomienie trwa kilka minut.
 
-BlockBT używa skierowanego grafu acyklicznego (DAG) do opisu strategii backtestingowych. Frontend Visual Builder eksportuje graf jako JSON i wysyła go do backendu.
+---
 
-### Endpoint: `POST /api/backtest/dag`
+## Polecenia
 
-Przyjmuje strukturę `DAGBacktestRequest`:
-```json
-{
-  "strategy_id": 1,
-  "dag": {
-    "nodes": [...],
-    "edges": [...],
-    "meta_nodes": [...]
-  }
-}
-```
+| Polecenie | Działanie |
+|:--|:--|
+| `make api` | backend FastAPI (port 8000) |
+| `make frontend` | frontend Vite (port 3000) |
+| `make lint` | `ruff` + `tsc --noEmit` |
+| `make test` | testy backendu (pytest) |
+| `make test-frontend` | testy frontendu (vitest) |
+| `make docs-check` | `mkdocs build --strict` — to samo co CI |
+| `make docs-serve` | dokumentacja na `127.0.0.1:8001` |
+| `make migrate` | migracje Alembica |
+| `make generate-api` | regeneracja typów TS z OpenAPI (wymaga działającego backendu) |
+| `make clean` | czyszczenie cache'ów |
 
-### Kategorie Węzłów
+`make help` wypisuje pełną listę.
 
-| Kategoria | Rola | Dozwolone połączenia wychodzące |
-|-----------|------|-------------------------------|
-| **DataIngestion** | Źródło danych (vbt.YFData) | Indicators, Execution |
-| **Indicators** | Transformacje (SMA, MACD) | LogicOperators, Execution |
-| **LogicOperators** | Maski logiczne (entries/exits) oraz **TimeShift** (prewencja Look-ahead bias) | Execution |
-| **Execution** | Portfel (vbt.Portfolio.from_signals) | — |
-| **Meta** | Optymalizatory (parametry) | — (via target_nodes) |
+---
 
-### Walidacja
+## Stos technologiczny
 
-Backend `GraphParser` automatycznie sprawdza:
-- Brak cykli (algorytm Kahna)
-- Zgodność typów portów (COMPATIBILITY_MATRIX)
-- Dokładnie jeden węzeł Execution
-- Brak osieroconych węzłów (wszystkie ścieżki prowadzą do Execution)
+**Frontend** — React 19, TypeScript, Vite, Tailwind CSS v4, React Flow 12
+(`@xyflow/react`), Zustand, TanStack Query, Plotly.
 
-## Wytyczne Deweloperskie (Skrót)
-- Piszemy komentarze i docstringi po polsku (API i klucze JSON pozostają w języku angielskim).
-- Utrzymujemy ścisłą walidację schematów Pydantic dla API FastAPI.
-- Plik `.env` i konfiguracja `pydantic-settings` mają rygorystyczne wartości bezpieczne (np. zapobieganie wysyłaniu nieautoryzowanych zapytań do serwerów chmurowych).
-- Ograniczenia `import sort` lintera dbają o kolejność, jeśli dodajesz import, dopisz go na końcu, `uv run ruff check --fix` naprawi to za Ciebie.
+**Backend** — Python 3.14, FastAPI, Pydantic v2, SQLAlchemy 2 + Alembic, `vectorbt`
+z Numbą, Optuna, QuantStats, TA-Lib.
+
+**Dokumentacja** — MkDocs Material, ADR-y w `docs/adr/`.
+
+---
+
+## Jak to działa
+
+Frontend eksportuje strategię jako DAG (JSON) i wysyła na `POST /api/backtest/dag`.
+Backend parsuje graf i uruchamia backtest wektorowo.
+
+| Kategoria węzła | Rola | Dozwolone połączenia wychodzące |
+|:--|:--|:--|
+| **DataIngestion** | źródło danych | Indicators, Execution |
+| **Indicators** | transformacje (SMA, MACD, RSI, własne) | LogicOperators, Execution |
+| **LogicOperators** | maski logiczne (entries/exits) | Execution |
+| **Execution** | portfel (`Portfolio.from_signals`) | — |
+| **Meta** | optymalizatory parametrów | — (przez `target_nodes`) |
+
+`GraphParser` sprawdza przed uruchomieniem: brak cykli (algorytm Kahna), zgodność typów
+portów, dokładnie jeden węzeł Execution, brak osieroconych węzłów.
+
+**Look-ahead bias:** sygnały wejścia i wyjścia są bezwarunkowo przesuwane o jeden okres
+(`fshift`) w silniku, bez udziału użytkownika — [ADR-0007](docs/adr/0007-usuniecie-bloku-timeshift-auto-shift.md).
+
+---
+
+## Współtworzenie
+
+Zasady, konwencje i lista rzeczy, których nie przyjmiemy: [CONTRIBUTING.md](CONTRIBUTING.md).
+Podatności zgłaszaj zgodnie z [SECURITY.md](SECURITY.md), nie przez publiczne issue.
+
+## Licencja
+
+[Apache-2.0](LICENSE). Zależności zewnętrzne mają własne licencje — patrz [NOTICE](NOTICE).
+
+`vectorbtpro` jest produktem komercyjnym i **nie jest** tu dołączony ani redystrybuowany.

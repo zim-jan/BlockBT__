@@ -1,6 +1,6 @@
-"""Testy regresyjne findingów P0/P1 z docs/PLAN_P0_AUTH_ALEMBIC.md.
+"""Testy regresyjne dziur w warstwie autoryzacji (patrz ADR-0010, ADR-0011).
 
-Każdy test odpowiada jednemu findingowi i czerwieni się na kodzie sprzed naprawy.
+Każdy test odpowiada jednej naprawionej luce i czerwieni się na kodzie sprzed naprawy.
 """
 
 import pytest

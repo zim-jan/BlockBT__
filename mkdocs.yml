@@ -1,5 +1,10 @@
 site_name: Dokumentacja Techniczna BlockBT
 site_description: System Backtestingu Strategii Algorytmicznych z UI React i FastAPI
+
+# Każde ostrzeżenie (martwy odsyłacz, plik poza nav) kończy build błędem.
+# To samo ustawienie egzekwuje CI i `make docs-check`.
+strict: true
+
 theme:
   name: material
   language: pl
@@ -45,7 +50,9 @@ plugins:
 
 nav:
   - Home: index.md
-  - Architektura: architecture/overview.md
+  - Architektura:
+      - Przegląd: architecture/overview.md
+      - Analiza VectorBT i React Flow: architecture/02_Analiza VectorBT i React Flow.md
   - Backend:
       - Database: backend/database.md
       - Connectors: backend/connectors.md
@@ -71,3 +78,4 @@ nav:
       - ADR-0008 Parytet egzekucji optymalizatora: adr/0008-parytet-egzekucji-optymalizatora.md
       - ADR-0009 Analiza alokacji kapitału: adr/0009-analiza-alokacji-kapitalu.md
       - ADR-0010 Zarządzanie użytkownikami (JWT Auth): adr/0010-zarzadzanie-uzytkownikami-auth-jwt.md
+      - ADR-0011 Loopback jako granica zaufania: adr/0011-loopback-jako-granica-zaufania.md

@@ -52,45 +52,31 @@ openapi.json
 .vscode/
 *.swp
 
-.agentignore
-BOOTSTRAP.md
-HEARTBEAT.md
-IDENTITY.md
-MEMORY.md
-SOUL.md
-TOOLS.md
-USER.md
-vectorbt.pro-main.zip
-vectorbt.pro-main/*
-vectorbtpro/*
-.openclaw/*
-data/
-**/__pycache__/
-*.pycvectorbt/
-*.pyc
-vectorbtpro/
+# 7. Silniki backtestingu pobierane lokalnie (BYOL — nie trafiają do repozytorium)
 vectorbt/
-vectorbt.pro-main/
 vectorbt_src/
+vectorbtpro/
 /vectorbtpro_src/*
+vectorbt.pro-main/
+vectorbt.pro-main.zip
 
-/backend/backend.log
-/.github/copilot-instructions.md
-/dep.log
-# MkDocs build output — regenerowane z docs/, nie wersjonujemy (review 2026-07-15)
+# 8. Dane i artefakty generowane w trakcie pracy
+data/
+/backend/data/
+**/__pycache__/
+*.pyc
+*.log
+
+# MkDocs build output — regenerowany z docs/, nie wersjonujemy
 /site/
 
-# Claude Code local working dir (worktrees, sesyjne ustawienia) — nie wersjonujemy
+# Narzędzia agentowe działające lokalnie — konfiguracja jest prywatna
 .claude/
-/.agents/rules/graphify.md
-/.agents/workflows/graphify.md
-/.opencode/plugins/graphify.js
-/.opencode/opencode.json
-/TESTY_MANUALNE/audyt ux ui design.md
-/graphify-out/.graphify_labels.json.sig
-/graphify-out/.graphify_analysis.json
-/docs/skills_and_plugins_audit.md
-
+.agents/
+.opencode/
+.windsurf/
+.gemini/
+/graphify-out/
 
 # npm install odpalony w katalogu głównym zamiast frontend/ zostawia pusty lockfile
 /package-lock.json

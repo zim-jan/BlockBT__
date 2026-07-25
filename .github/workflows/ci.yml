@@ -1,0 +1,120 @@
+name: CI
+
+on:
+  push:
+    branches: [main, przydan-dev-public]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  TA_LIB_VERSION: "0.6.4"
+
+jobs:
+  # ── Backend: ruff + pytest ────────────────────────────────────────────
+  backend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # TA-Lib to biblioteka C. Pakiet PyPI `ta-lib` jest tylko wiązaniem
+      # i bez niej nie zbuduje się, a apt jej nie pakuje.
+      - name: Cache TA-Lib
+        id: cache-talib
+        uses: actions/cache@v4
+        with:
+          path: /usr/local/ta-lib-install
+          key: talib-${{ runner.os }}-${{ env.TA_LIB_VERSION }}
+
+      - name: Build TA-Lib from source
+        if: steps.cache-talib.outputs.cache-hit != 'true'
+        run: |
+          wget -q "https://github.com/TA-Lib/ta-lib/releases/download/v${TA_LIB_VERSION}/ta-lib-${TA_LIB_VERSION}-src.tar.gz"
+          tar -xzf "ta-lib-${TA_LIB_VERSION}-src.tar.gz"
+          cd "ta-lib-${TA_LIB_VERSION}"
+          ./configure --prefix=/usr
+          make -j"$(nproc)"
+          make install DESTDIR=/usr/local/ta-lib-install
+
+      - name: Install TA-Lib
+        run: |
+          sudo cp -r /usr/local/ta-lib-install/usr/* /usr/
+          sudo ldconfig
+
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      # Wersja Pythona pochodzi z .python-version (3.14). Ważne, żeby był to
+      # finalny 3.14, nie release candidate — pydantic 2.13 wywala się na rc2
+      # przy `typing._eval_type(..., prefer_fwd_module=...)`.
+      - name: Install Python and dependencies
+        run: |
+          uv python install
+          uv sync --extra dev
+
+      - name: Ruff
+        run: uv run ruff check backend/ --ignore E501
+
+      - name: Pytest
+        run: uv run pytest backend/tests/ --tb=short
+
+  # ── Frontend: tsc + vitest + build + asercja rozmiaru CSS ─────────────
+  frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - run: npm ci
+
+      - name: Typecheck
+        run: npx tsc --noEmit
+
+      - name: Tests
+        run: npm test
+
+      - name: Build
+        run: npm run build
+
+      # Testy jadą w jsdom, który NIE ładuje stylów — zielony vitest przechodzi
+      # nawet gdy Tailwind wygeneruje 20% klas. Zdarzyło się to w tym projekcie
+      # przy migracji na Tailwind v4. Bez tej asercji CI nie wykryje powtórki.
+      # Punkt odniesienia: 74 kB przy pełnym arkuszu, próg 60 kB daje zapas.
+      - name: Assert CSS bundle size
+        run: |
+          CSS_FILE=$(find dist/assets -name '*.css' -printf '%s %p\n' | sort -rn | head -1)
+          CSS_SIZE=${CSS_FILE%% *}
+          CSS_PATH=${CSS_FILE#* }
+          echo "Największy arkusz: $CSS_PATH ($CSS_SIZE B)"
+          if [ "${CSS_SIZE:-0}" -lt 60000 ]; then
+            echo "::error::Arkusz ma $CSS_SIZE B (< 60 kB) — prawdopodobna regresja Tailwinda."
+            echo "Sprawdź 'content' w frontend/tailwind.config.js i '@import \"tailwindcss\"' w frontend/src/assets/index.css."
+            exit 1
+          fi
+
+  # ── Docs: mkdocs --strict ─────────────────────────────────────────────
+  docs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      # mkdocs nie potrzebuje TA-Liba ani silnika — instalujemy same narzędzia
+      # dokumentacyjne, żeby ten job był szybki i niezależny od backendu.
+      - name: Build documentation
+        run: uvx --with mkdocs-material --with 'mkdocstrings[python]' mkdocs build --strict

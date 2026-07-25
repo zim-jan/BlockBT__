@@ -1,31 +1,41 @@
-FROM python:3.12-slim
+FROM python:3.14-slim
 
-# System deps required for numba (llvmlite) and scientific packages
+# Zależności systemowe: build-essential dla numba/llvmlite, curl dla healthchecku.
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
+    curl \
+    wget \
     && rm -rf /var/lib/apt/lists/*
 
-# Install uv
+# TA-Lib to biblioteka C — pakiet PyPI `ta-lib` jest tylko wiązaniem i bez niej
+# się nie zbuduje. Debian jej nie pakuje, więc kompilujemy ze źródeł.
+ARG TA_LIB_VERSION=0.6.4
+RUN wget -q https://github.com/TA-Lib/ta-lib/releases/download/v${TA_LIB_VERSION}/ta-lib-${TA_LIB_VERSION}-src.tar.gz \
+    && tar -xzf ta-lib-${TA_LIB_VERSION}-src.tar.gz \
+    && cd ta-lib-${TA_LIB_VERSION} \
+    && ./configure --prefix=/usr \
+    && make -j"$(nproc)" \
+    && make install \
+    && cd .. && rm -rf ta-lib-${TA_LIB_VERSION} ta-lib-${TA_LIB_VERSION}-src.tar.gz \
+    && ldconfig
+
+# Instalacja uv
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
 WORKDIR /app
 
-# --- Layer 1: install blockbt declared dependencies ---
+# Zależności w osobnej warstwie — zmiana kodu nie unieważnia cache'u instalacji.
+# vectorbt instaluje się z PyPI jako zwykła zależność z pyproject.toml; nie ma
+# już warstwy z vendorowanym klonem, bo tego katalogu nie ma w repozytorium.
 COPY pyproject.toml uv.lock README.md ./
 COPY backend/ ./backend/
 RUN uv pip install --system -e .
 
-# --- Layer 2: install vendored open-source vectorbt ---
-# Copy only the repo files needed (skip .git, .venv, tests to keep image small)
-COPY vectorbt/setup.py vectorbt/pyproject.toml vectorbt/setup.cfg* ./vendor_vbt/
-COPY vectorbt/vectorbt/ ./vendor_vbt/vectorbt/
-RUN uv pip install --system ./vendor_vbt/
+# Katalogi na dane lokalne (montowane jako wolumeny) — ścieżki muszą zgadzać się
+# z DATA_DIR / PARQUET_DIR / LOG_DIR z backend/app/core/config.py.
+RUN mkdir -p /app/backend/data/cache /app/backend/data/logs
 
-# --- Layer 3: ensure uvicorn & fastapi are on PATH ---
-RUN uv pip install --system "uvicorn[standard]>=0.23" fastapi
-
-# Create local data dirs for Air-Gapped persistence (mounted as volumes)
-RUN mkdir -p /app/data/db /app/data/cache
+WORKDIR /app/backend
 
 EXPOSE 8000
 
