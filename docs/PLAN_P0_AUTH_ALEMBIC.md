@@ -1,6 +1,8 @@
 # Plan: naprawa P0 warstwy auth + migracje Alembic
 
-**Status:** zaplanowane, **kod nie zaczęty** · **Data:** 2026-07-25 · **Gałąź docelowa:** `fix/auth-p0-and-alembic` (utworzona, pusta)
+**Status:** wdrożone i zweryfikowane · **Data:** 2026-07-25 · **Gałąź:** `fix/auth-p0-and-alembic`
+
+> **Stan na 2026-07-25:** wszystkie findingi P0/P1 mają kod i test regresyjny. `pytest` **273 passed** (baza 258 + 15 nowych), `ruff check backend/ --ignore E501` czysto, `alembic upgrade head` przechodzi na świeżej bazie, na bazie po `create_all()` i na bazie sprzed Fazy 16, dwukrotne uruchomienie bez błędu. Decyzja architektoniczna: `docs/adr/0011-loopback-jako-granica-zaufania.md`.
 
 Blokery merge'a `przydan-dev` → `main`. Findingi pochodzą z review Jana pod PR #5 (potwierdzone empirycznie na uruchomionej instancji) i zostały ponownie zweryfikowane w kodzie 2026-07-25.
 

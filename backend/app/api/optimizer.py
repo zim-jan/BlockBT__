@@ -5,7 +5,7 @@ from typing import Any
 from fastapi import APIRouter, BackgroundTasks, HTTPException, Request
 from sqlalchemy import select
 
-from app.core.user_scope import get_user_id, scoped_query
+from app.core.user_scope import get_user_id, scoped_query, verify_resource_access
 from app.db.session import get_session
 from app.models.orm import JobStatus, OptimizationJob, Strategy
 from app.schemas.base import ApiResponse
@@ -55,6 +55,7 @@ def trigger_optimization(
                 status_code=404,
                 detail=f"Strategy id={payload.strategy_id} not found",
             )
+        verify_resource_access(strategy, request)
 
         # Build parameters snapshot
         params: dict[str, Any] = dict(strategy.parameters)
@@ -115,6 +116,7 @@ def trigger_wfo(
                 status_code=404,
                 detail=f"Strategy id={payload.strategy_id} not found",
             )
+        verify_resource_access(strategy, request)
 
         params: dict[str, Any] = dict(strategy.parameters)
         if payload.parameters:

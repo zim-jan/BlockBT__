@@ -2,6 +2,7 @@
 from fastapi import Request
 from fastapi.responses import JSONResponse
 from loguru import logger
+from sqlalchemy.exc import OperationalError
 from starlette.middleware.base import BaseHTTPMiddleware
 
 from app.db.session import get_session
@@ -13,13 +14,29 @@ _PUBLIC_PATHS = ("/api/health", "/api/auth/login", "/api/auth/auth-status", "/do
 
 
 def is_auth_enabled() -> bool:
-    """Check 'auth_enabled' key in AppSetting. Default: False."""
+    """Check 'auth_enabled' key in AppSetting. Default: False.
+
+    Fail-closed: gdy odczyt ustawienia się nie powiedzie (np. `database is
+    locked`), zakładamy, że auth **jest** włączony. Zwracanie False oznaczałoby,
+    że dowolny błąd SQLite wyłącza autoryzację całej aplikacji.
+
+    Jedyny wyjątek to brak samej tabeli — baza nie przeszła jeszcze `init_db()`,
+    więc nie ma w niej ani ustawień, ani kont. Nie ma czego chronić, a fail-closed
+    zwracałby 401 na każdym żądaniu do końca życia procesu.
+    """
     try:
         with get_session() as db:
             row = db.get(AppSetting, "auth_enabled")
             return row is not None and row.value.lower() == "true"
-    except Exception:
-        return False
+    except OperationalError as e:
+        if "no such table" in str(e.orig).lower():
+            logger.debug(f"Schemat bazy nie jest zainicjalizowany — auth traktowany jako wyłączony: {e.orig}")
+            return False
+        logger.error(f"Nie udało się odczytać ustawienia auth_enabled — fail-closed: {e}")
+        return True
+    except Exception as e:  # noqa: BLE001 — decyzja bezpieczeństwa, nie kontrola przepływu
+        logger.error(f"Nie udało się odczytać ustawienia auth_enabled — fail-closed: {e}")
+        return True
 
 
 class AuthMiddleware(BaseHTTPMiddleware):

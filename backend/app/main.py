@@ -57,20 +57,11 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 
     # Seed default admin if auth enabled and no users exist
     from app.core.auth_middleware import is_auth_enabled
-    from app.models.user import User
-    from app.services.auth import hash_password
-    
+    from app.services.auth import ensure_admin_user
+
     with get_session() as db:
-        if is_auth_enabled() and db.query(User).count() == 0:
-            from app.core.config import settings as cfg
-            logger.info(f"Seeding default admin user: {cfg.ADMIN_USERNAME}")
-            admin = User(
-                username=cfg.ADMIN_USERNAME,
-                password_hash=hash_password(cfg.ADMIN_PASSWORD),
-                role="admin",
-            )
-            db.add(admin)
-            db.commit()
+        if is_auth_enabled():
+            ensure_admin_user(db)
 
     # Seed default system prompt if empty
     with get_session() as db:
@@ -127,51 +118,32 @@ app.add_middleware(AuthMiddleware)
 
 @app.middleware("http")
 async def log_requests(request: Request, call_next):
-    """Middleware do logowania zapytań HTTP oraz ich struktury (body/query)."""
+    """Middleware do logowania zapytań HTTP (metadane — bez treści żądania).
+
+    Audyt 2026-07-25 (P1-4): body celowo **nie** jest czytane ani logowane.
+    `POST /api/auth/login` niósł hasła, które lądowały plaintextem w
+    `backend/data/logs`. Dodatkowo znika buforowanie całego body w pamięci
+    i ręczne odtwarzanie strumienia `receive`.
+    """
     start_time = time.time()
-    
-    # Przechwytywanie body requestu
-    body = await request.body()
-    try:
-        body_json = json.loads(body) if body else None
-    except json.JSONDecodeError:
-        body_json = body.decode("utf-8") if body else None
-    
-    # Odtworzenie strumienia body, aby mogło zostać przetworzone przez endpoint
-    async def receive():
-        return {"type": "http.request", "body": body}
-    request._receive = receive
 
     response = await call_next(request)
     process_time = time.time() - start_time
-    
+
     # Pomiń logowanie dla /api/health żeby nie śmiecić logów
     if request.url.path != "/api/health":
-        # Audyt 2026-07-17: cap na logowane body — pełne DAG-i/krzywe potrafią
-        # mieć megabajty i zaśmiecały logi oraz pamięć
-        _BODY_LOG_LIMIT = 2000
-        body_repr = body_json
-        if body_repr is not None:
-            body_text = (
-                body_repr
-                if isinstance(body_repr, str)
-                else json.dumps(body_repr, ensure_ascii=False)
-            )
-            if len(body_text) > _BODY_LOG_LIMIT:
-                body_repr = f"{body_text[:_BODY_LOG_LIMIT]}… [truncated, {len(body_text)} chars]"
         log_data = {
             "method": request.method,
-            "url": str(request.url),
+            "path": request.url.path,
             "client_ip": request.client.host if request.client else None,
             "status_code": response.status_code,
             "process_time_ms": round(process_time * 1000, 2),
             "query_params": dict(request.query_params),
-            "body": body_repr
         }
         logger.info(f"API Request: {request.method} {request.url.path} - "
                     f"{response.status_code}\nData: "
                     f"{json.dumps(log_data, indent=2, ensure_ascii=False)}")
-        
+
     return response
 
 # ---------------------------------------------------------------------------

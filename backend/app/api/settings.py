@@ -8,6 +8,7 @@ from app.db.session import get_session
 from app.models.orm import AppSetting, SystemPrompt
 from app.schemas.base import ApiResponse
 from app.schemas.settings import AppSettingUpdate, SystemPromptCreate, SystemPromptResponse
+from app.services.auth import ensure_admin_user
 from app.services.mcp.llm_client import OllamaClient
 
 router = APIRouter()
@@ -35,7 +36,8 @@ def update_settings(request: Request, update: AppSettingUpdate) -> ApiResponse[d
     """Bulk update application settings."""
     require_admin(request)
     with get_session() as db:
-        for key, value in update.model_dump(exclude_unset=True).items():
+        changes = update.model_dump(exclude_unset=True)
+        for key, value in changes.items():
             if value is not None:
                 setting = db.get(AppSetting, key)
                 if not setting:
@@ -43,9 +45,15 @@ def update_settings(request: Request, update: AppSettingUpdate) -> ApiResponse[d
                     db.add(setting)
                 else:
                     setting.value = str(value)
-        
+
         db.commit()
-        
+
+        # Anti-lockout (P0-1b): włączenie auth na bazie bez użytkowników
+        # zamknęłoby właściciela na zewnątrz aż do restartu procesu, bo seed
+        # admina działał wyłącznie w `lifespan`.
+        if str(changes.get("auth_enabled", "")).lower() == "true":
+            ensure_admin_user(db)
+
         # Return the new state
         settings = db.execute(select(AppSetting)).scalars().all()
         data = {s.key: s.value for s in settings}
@@ -62,8 +70,9 @@ def list_system_prompts() -> ApiResponse[list[SystemPromptResponse]]:
 
 
 @router.post("/prompts", response_model=ApiResponse[SystemPromptResponse])
-def create_system_prompt(payload: SystemPromptCreate) -> ApiResponse[SystemPromptResponse]:
-    """Create a new system prompt."""
+def create_system_prompt(request: Request, payload: SystemPromptCreate) -> ApiResponse[SystemPromptResponse]:
+    """Create a new system prompt (admin only)."""
+    require_admin(request)
     with get_session() as db:
         # Check if there are any prompts at all, if not, make this the default
         count = db.query(SystemPrompt).count()
@@ -82,8 +91,11 @@ def create_system_prompt(payload: SystemPromptCreate) -> ApiResponse[SystemPromp
 
 
 @router.put("/prompts/{prompt_id}", response_model=ApiResponse[SystemPromptResponse])
-def update_system_prompt(prompt_id: int, payload: SystemPromptCreate) -> ApiResponse[SystemPromptResponse]:
-    """Update an existing system prompt."""
+def update_system_prompt(
+    request: Request, prompt_id: int, payload: SystemPromptCreate
+) -> ApiResponse[SystemPromptResponse]:
+    """Update an existing system prompt (admin only)."""
+    require_admin(request)
     with get_session() as db:
         prompt = db.get(SystemPrompt, prompt_id)
         if not prompt:
@@ -98,8 +110,9 @@ def update_system_prompt(prompt_id: int, payload: SystemPromptCreate) -> ApiResp
 
 
 @router.delete("/prompts/{prompt_id}", status_code=204)
-def delete_system_prompt(prompt_id: int) -> None:
-    """Delete a system prompt."""
+def delete_system_prompt(request: Request, prompt_id: int) -> None:
+    """Delete a system prompt (admin only)."""
+    require_admin(request)
     with get_session() as db:
         prompt = db.get(SystemPrompt, prompt_id)
         if not prompt:
@@ -118,8 +131,9 @@ def delete_system_prompt(prompt_id: int) -> None:
 
 
 @router.post("/prompts/{prompt_id}/default", response_model=ApiResponse[SystemPromptResponse])
-def set_default_prompt(prompt_id: int) -> ApiResponse[SystemPromptResponse]:
-    """Mark a system prompt as the default."""
+def set_default_prompt(request: Request, prompt_id: int) -> ApiResponse[SystemPromptResponse]:
+    """Mark a system prompt as the default (admin only)."""
+    require_admin(request)
     with get_session() as db:
         prompt = db.get(SystemPrompt, prompt_id)
         if not prompt:

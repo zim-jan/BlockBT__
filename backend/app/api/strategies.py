@@ -3,7 +3,7 @@ from fastapi import APIRouter, HTTPException, Request
 from loguru import logger
 from sqlalchemy import select
 
-from app.core.user_scope import get_user_id, scoped_query
+from app.core.user_scope import get_user_id, scoped_query, verify_resource_access
 from app.db.session import get_session
 from app.models.orm import Strategy
 from app.schemas.base import ApiResponse
@@ -45,9 +45,7 @@ def get_strategy(strategy_id: int, request: Request) -> ApiResponse[StrategyResp
         if not s:
             raise HTTPException(status_code=404, detail="Strategy not found")
         
-        user_id = get_user_id(request)
-        if user_id is not None and s.user_id is not None and s.user_id != user_id:
-            raise HTTPException(status_code=403, detail="Access denied")
+        verify_resource_access(s, request)
         
         data = StrategyResponse(
             id=str(s.id),
@@ -95,9 +93,7 @@ def update_strategy(strategy_id: int, payload: StrategyCreate, request: Request)
         if not s:
             raise HTTPException(status_code=404, detail="Strategy not found")
         
-        user_id = get_user_id(request)
-        if user_id is not None and s.user_id is not None and s.user_id != user_id:
-            raise HTTPException(status_code=403, detail="Access denied")
+        verify_resource_access(s, request)
         
         s.name = payload.name
         s.description = payload.description if payload.description is not None else s.description
@@ -125,9 +121,7 @@ def delete_strategy(strategy_id: int, request: Request) -> ApiResponse[dict[str,
         if not s:
             raise HTTPException(status_code=404, detail="Strategy not found")
             
-        user_id = get_user_id(request)
-        if user_id is not None and s.user_id is not None and s.user_id != user_id:
-            raise HTTPException(status_code=403, detail="Access denied")
+        verify_resource_access(s, request)
             
         db.delete(s)
         return ApiResponse(success=True, data={"id": str(strategy_id)})

@@ -2,7 +2,7 @@
 # BlockBT — Makefile
 # ──────────────────────────────────────────────────────────────
 
-.PHONY: help dev api frontend generate-api lint test docs docs-serve kill-api kill-front kill-all clean
+.PHONY: help dev api frontend generate-api lint test docs docs-serve kill-api kill-front kill-all clean migrate migrate-down
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | \
@@ -15,6 +15,14 @@ docs: ## Build documentation
 
 docs-serve: ## Start documentation server
 	mkdocs serve --dev-addr 127.0.0.1:8001
+
+# ── Database ──────────────────────────────────────────────────
+
+migrate: ## Apply Alembic migrations to the configured database
+	uv run alembic upgrade head
+
+migrate-down: ## Roll back the last Alembic migration
+	uv run alembic downgrade -1
 
 # ── Development ───────────────────────────────────────────────
 

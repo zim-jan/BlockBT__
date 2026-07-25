@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException, Request
 from sqlalchemy import select
 
-from app.core.user_scope import get_user_id, scoped_query
+from app.core.user_scope import get_user_id, scoped_query, verify_resource_access
 from app.db.session import get_session
 from app.models.orm import Note, Strategy
 from app.schemas.base import ApiResponse
@@ -19,9 +19,7 @@ def get_notes_for_strategy(strategy_id: int, request: Request) -> ApiResponse[li
         if not strategy:
             raise HTTPException(status_code=404, detail="Strategy not found")
             
-        user_id = get_user_id(request)
-        if user_id is not None and strategy.user_id is not None and strategy.user_id != user_id:
-            raise HTTPException(status_code=403, detail="Access denied")
+        verify_resource_access(strategy, request)
 
         stmt = (
             select(Note)
@@ -55,10 +53,9 @@ def create_note(strategy_id: int, payload: NoteCreate, request: Request) -> ApiR
         if not strategy:
             raise HTTPException(status_code=404, detail="Strategy not found")
             
-        user_id = get_user_id(request)
-        if user_id is not None and strategy.user_id is not None and strategy.user_id != user_id:
-            raise HTTPException(status_code=403, detail="Access denied")
+        verify_resource_access(strategy, request)
 
+        user_id = get_user_id(request)
         new_note = Note(
             strategy_id=strategy_id,
             user_id=user_id,

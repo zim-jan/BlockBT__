@@ -1,4 +1,6 @@
 
+import time
+
 from fastapi import APIRouter, HTTPException, Request
 from sqlalchemy import select
 
@@ -18,10 +20,50 @@ from app.services.auth import create_access_token, hash_password, verify_passwor
 
 router = APIRouter()
 
+# --------------------------------------------------------------------------
+# Rate limiting logowania (P1-5)
+#
+# Licznik w pamięci procesu — świadomie bez nowej zależności ani Redisa:
+# BlockBT jest instancją single-process, a celem jest utrudnienie zgadywania
+# hasła, nie ochrona przed rozproszonym atakiem. Restart API czyści licznik.
+# --------------------------------------------------------------------------
+_LOGIN_MAX_ATTEMPTS = 5
+_LOGIN_WINDOW_SECONDS = 60.0
+_login_attempts: dict[tuple[str, str], list[float]] = {}
+
+
+def _enforce_login_rate_limit(client_ip: str, username: str) -> None:
+    """Raise 429 po przekroczeniu limitu prób dla pary (IP, username)."""
+    now = time.monotonic()
+
+    # Sprzątanie wygasłych kluczy — bez tego słownik rośnie w nieskończoność
+    # przy zmiennych nazwach użytkownika (enumeracja).
+    for key, stamps in list(_login_attempts.items()):
+        if all(now - t >= _LOGIN_WINDOW_SECONDS for t in stamps):
+            del _login_attempts[key]
+
+    key = (client_ip, username)
+    recent = [t for t in _login_attempts.get(key, []) if now - t < _LOGIN_WINDOW_SECONDS]
+
+    if len(recent) >= _LOGIN_MAX_ATTEMPTS:
+        _login_attempts[key] = recent
+        retry_after = int(_LOGIN_WINDOW_SECONDS - (now - min(recent))) + 1
+        raise HTTPException(
+            status_code=429,
+            detail="Too many login attempts. Try again later.",
+            headers={"Retry-After": str(retry_after)},
+        )
+
+    recent.append(now)
+    _login_attempts[key] = recent
+
 
 @router.post("/login", response_model=ApiResponse[LoginResponse])
-def login(request_data: LoginRequest) -> ApiResponse[LoginResponse]:
+def login(request: Request, request_data: LoginRequest) -> ApiResponse[LoginResponse]:
     """Authenticate and return JWT."""
+    client_ip = request.client.host if request.client else "unknown"
+    _enforce_login_rate_limit(client_ip, request_data.username)
+
     with get_session() as db:
         user = db.scalar(select(User).where(User.username == request_data.username))
         if not user or not verify_password(request_data.password, user.password_hash):

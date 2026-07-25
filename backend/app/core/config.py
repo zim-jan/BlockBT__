@@ -40,9 +40,11 @@ class Settings(BaseSettings):
                     'Generate with: python -c "from cryptography.fernet import Fernet; '
                     'print(Fernet.generate_key().decode())"'
     )
-    # First admin account (seeded when auth enabled + no users exist)
+    # First admin account (seeded when auth enabled + no users exist).
+    # Brak wartości => hasło generowane losowo i wypisywane jednorazowo do logu.
+    # Świadomie nie ma tu domyślnego hasła — każda instalacja miałaby to samo.
     ADMIN_USERNAME: str = "admin"
-    ADMIN_PASSWORD: str = "blockbt"
+    ADMIN_PASSWORD: str | None = None
 
 
     # ------------------------------------------------------------------

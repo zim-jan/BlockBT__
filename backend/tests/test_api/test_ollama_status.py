@@ -9,7 +9,10 @@ from app.main import app
 from app.models.orm import AppSetting
 from app.services.mcp.llm_client import OllamaClient
 
-client = TestClient(app)
+# Host klienta ustawiony na loopback: przy wyłączonym auth operacje uprzywilejowane
+# (tu: POST /api/settings/prompts) są dozwolone wyłącznie z localhosta. Domyślny
+# TestClient przedstawia się jako "testclient", co jest traktowane jak zdalny LAN.
+client = TestClient(app, client=("127.0.0.1", 50000))
 
 
 def test_ollama_status_endpoint_online(monkeypatch):

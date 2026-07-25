@@ -4,7 +4,7 @@ from typing import Any
 from fastapi import APIRouter, BackgroundTasks, HTTPException, Request
 from sqlalchemy import select
 
-from app.core.user_scope import get_user_id, scoped_query
+from app.core.user_scope import get_user_id, scoped_query, verify_resource_access
 from app.core.utils.graph_parser import GraphParser, GraphValidationError
 from app.db.session import get_session
 from app.models.orm import BacktestJob, JobStatus, Strategy
@@ -179,6 +179,7 @@ def trigger_backtest(
                 status_code=404,
                 detail=f"Strategy id={payload.strategy_id} not found",
             )
+        verify_resource_access(strategy, request)
 
         # Merge strategy parameters with any per-request overrides
         params: dict[str, Any] = dict(strategy.parameters)
@@ -225,6 +226,7 @@ def trigger_dag_backtest(
                 status_code=404,
                 detail=f"Strategy id={payload.strategy_id} not found",
             )
+        verify_resource_access(strategy, request)
 
         # Update strategy parameters to store the DAG structure
         dag_dict = payload.dag.model_dump()

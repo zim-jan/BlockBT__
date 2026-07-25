@@ -38,6 +38,29 @@ System został zaprojektowany w modelu **bezszwowej opcjonalności** (Seamless O
    - Endpoint `/api/auth/me` zwraca profil domyślnego użytkownika lokalnego (`id=0, username="local", role="admin"`).
    - Baza danych nie wymusza filtrowania po użytkowniku (`user_id = None`).
    - `LoginPage.tsx` automatycznie przekierowuje na stronę główną `/`.
+   - **Operacje uprzywilejowane wymagają loopbacku** (zmiana kontraktu, 2026-07-25) — patrz niżej.
+
+### Granica zaufania w trybie bez logowania
+
+Przy `auth_enabled = false` nie istnieją role, więc `require_admin` nie miał czego sprawdzać i przepuszczał wszystko. Otwierało to eskalację: dowolny klient z sieci lokalnej wykonywał `POST /api/auth/users` (rola `admin`), następnie `PUT /api/settings/ {auth_enabled: true}` — i właściciel instancji tracił dostęp do własnej maszyny.
+
+Od 2026-07-25 granicą zaufania jest **adres klienta**:
+
+| Endpointy | `auth_enabled = false` | `auth_enabled = true` |
+|:--|:--|:--|
+| `POST/PUT/DELETE /api/auth/users`, `GET /api/auth/users` | tylko `127.0.0.0/8` i `::1` | rola `admin` |
+| `PUT /api/settings/` | tylko loopback | rola `admin` |
+| `POST/PUT/DELETE /api/settings/prompts*` | tylko loopback | rola `admin` |
+
+Wywołanie spoza loopbacku zwraca `403`. Odczyty (`GET /api/settings/`, `GET /api/settings/prompts`) pozostają otwarte jak dotąd.
+
+**Skutek dla klientów:** przy wystawieniu API przez reverse proxy adresem klienta staje się proxy. Jeśli proxy działa na tej samej maszynie, operacje uprzywilejowane pozostaną dostępne dla całej sieci — w takiej konfiguracji należy włączyć `auth_enabled`.
+
+**Skutek dla testów:** `TestClient` przedstawia się jako host `testclient`, który **nie** jest loopbackiem. Testy wywołujące operacje uprzywilejowane przy wyłączonym auth muszą tworzyć klienta jawnie: `TestClient(app, client=("127.0.0.1", 50000))`.
+
+### Zasoby bez właściciela (`user_id IS NULL`)
+
+Wiersze powstałe przed Fazą 16 nie mają `user_id`. Wcześniej `verify_resource_access` przepuszczał je bezwarunkowo, co udostępniało całą starą bazę każdemu zalogowanemu użytkownikowi. Obecnie przy włączonym auth widzi je **wyłącznie administrator**; migracja `0001_user_scoping` dodatkowo przypisuje je pierwszemu kontu o roli `admin`.
 
 2. **Tryb Wieloużytkownikowy (`auth_enabled = true`):**
    - Flaga `auth_enabled` włączana jest w zakładce `User Management` w ustawieniach aplikacji (tabela `app_settings`).
@@ -87,7 +110,14 @@ System został zaprojektowany w modelu **bezszwowej opcjonalności** (Seamless O
 
 ## Pierwsze Uruchomienie (Seeding Admina)
 
-Gdy włączona zostanie opcja `auth_enabled = true` i baza danych nie zawiera żadnych kont, przy starcie aplikacji automatycznie tworzony jest domyślny administrator:
+Gdy `auth_enabled = true`, a baza danych nie zawiera żadnych kont, automatycznie tworzony jest administrator:
 
 - **Login:** `ADMIN_USERNAME` (domyślnie: `admin`)
-- **Hasło:** `ADMIN_PASSWORD` (domyślnie: `blockbt`)
+- **Hasło:** `ADMIN_PASSWORD` — **bez wartości domyślnej**. Gdy zmienna nie jest ustawiona, hasło jest losowane (`secrets.token_urlsafe(16)`) i **jednorazowo** wypisywane do logu na poziomie `WARNING`. Nie da się go odczytać później — trzeba je zapisać przy pierwszym starcie albo zresetować konto.
+
+Seed uruchamia się w **dwóch** miejscach, co jest istotne dla poprawności:
+
+1. `lifespan` przy starcie API,
+2. `PUT /api/settings/` w momencie przestawienia `auth_enabled` na `true`.
+
+Bez punktu (2) włączenie autentykacji na bazie bez użytkowników zamykało właściciela na zewnątrz aż do restartu procesu — każde żądanie kończyło się `401`, a konta nie było jak założyć. Wspólną implementacją jest `app.services.auth.ensure_admin_user()`.

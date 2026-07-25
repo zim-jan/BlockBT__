@@ -300,3 +300,16 @@
   * Status: [IN_PROGRESS]
   * Cel: Zaprojektowanie i wdrożenie panelu Dashboard (wykresy Realtime, widget historii, modal szczegółów zadań).
   * Aktualne problemy: Faza wstrzymana z powodu wciąż występujących problemów wizualnych po stronie wykresów Plotly (ucina się, wycieka na historię) oraz z-indexów ukrywających Modal. Do poprawy czytelność UI (prześwitujące tła, kontrast okien modali). Błędy kompilacji TypeScript z powodu HMR. Do debugowania w przyszłości.
+
+* **Faza P0-Auth: Hardening warstwy autoryzacji + migracje Alembic** [IN_PROGRESS]
+  Cel: usunięcie blokerów merge'a `przydan-dev` → `main` z review pod PR #5. Plan: `docs/PLAN_P0_AUTH_ALEMBIC.md`, decyzja architektoniczna: `docs/adr/0011-loopback-jako-granica-zaufania.md`.
+  1. **ZMIANA KONTRAKTU API (P0-1):** przy `auth_enabled = false` operacje uprzywilejowane (`/api/auth/users`, `PUT /api/settings/`, CRUD promptów) są dostępne **wyłącznie z loopbacku** (`127.0.0.0/8`, `::1`); z LAN-u zwracają `403`. Wcześniej `require_admin` przy braku roli nie sprawdzał niczego, co pozwalało dowolnemu klientowi założyć konto admina i włączyć auth, blokując właściciela instancji.
+  2. **Anti-lockout (P0-1b):** seed pierwszego admina wydzielony do `app.services.auth.ensure_admin_user()` i wywoływany także przy włączaniu `auth_enabled` przez `PUT /api/settings/` — nie tylko w `lifespan`.
+  3. **Kontrola właściciela strategii (P0-2):** `verify_resource_access` w `POST /api/backtest/`, `POST /api/backtest/dag`, `POST /api/optimizer/` i `POST /api/optimizer/wfo`. Endpoint DAG bezwarunkowo nadpisywał `strategy.parameters` cudzej strategii.
+  4. **Zasoby bez właściciela (P0-3):** `user_id IS NULL` (baza sprzed Fazy 16) widzi wyłącznie admin. Zduplikowane, dziurawe kopie tej kontroli w `strategies.py` (3×) i `notes.py` (2×) zastąpione wywołaniem `verify_resource_access`.
+  5. **Fail-closed (P1-1):** błąd odczytu `auth_enabled` (np. `database is locked`) zwraca `True` zamiast `False` — awaria SQLite nie wyłącza już autoryzacji.
+  6. **Prompty AI tylko dla admina (P1-2):** `require_admin` w czterech endpointach `/api/settings/prompts*` (wektor prompt injection na globalny prompt systemowy).
+  7. **Hasło administratora (P1-3):** `ADMIN_PASSWORD` bez wartości domyślnej (było `"blockbt"`); przy braku konfiguracji generowane przez `secrets.token_urlsafe(16)` i jednorazowo wypisywane do logu.
+  8. **Logi bez treści żądań (P1-4):** `log_requests` przestał czytać i logować body — hasła z `POST /api/auth/login` trafiały plaintextem do `backend/data/logs`. Zostają metoda, ścieżka, IP, status, czas i query params.
+  9. **Rate limiting logowania (P1-5):** 5 prób / 60 s na parę (IP, username) → `429` z nagłówkiem `Retry-After`. Licznik w pamięci procesu, bez nowych zależności.
+  10. **Alembic (P1-6):** `script_location` naprawiony na `backend/alembic` (wskazywał na nieistniejący katalog po starej strukturze), `sqlalchemy.url` usunięty z `alembic.ini` na rzecz rozwiązywania URL w `env.py` identycznie jak w `app/db/session.py`. Migracja `0001_user_scoping` — idempotentna, tworzy `users`, dokłada kolumny `user_id` i przypisuje osierocone wiersze pierwszemu adminowi. Nowe cele: `make migrate`, `make migrate-down`.
