@@ -1,9 +1,35 @@
 import { useQuery } from '@tanstack/react-query'
 import { request } from '../../services/api'
-import { Loader2, PlayCircle } from 'lucide-react'
+import { Loader2 } from 'lucide-react'
 
 interface HistoryWidgetProps {
   onJobSelect: (jobId: number, strategyId: number) => void
+}
+
+/** Faza 10: multi-symbol zwraca listę tickerów zamiast stringa. */
+function formatSymbol(symbol: unknown): string {
+  if (Array.isArray(symbol)) return symbol.join(', ')
+  return (symbol as string) || '-'
+}
+
+/**
+ * Zwraca stopy zwrotu joba. Multi-symbol nie ma `metrics.total_return_pct` —
+ * metryki są per ticker (`{ AAPL: { 'Total Return [%]': ... }, ... }`), więc
+ * wyciągamy je osobno, zachowując kolejność z kolumny Symbol.
+ */
+function jobReturns(job: any): { label: string; value: number }[] {
+  const metrics = job?.metrics
+  if (!metrics) return []
+
+  if (job.is_multi_symbol) {
+    return Object.entries(metrics)
+      .map(([ticker, m]: [string, any]) => ({ label: ticker, value: m?.['Total Return [%]'] }))
+      .filter((r) => typeof r.value === 'number')
+  }
+
+  return typeof metrics.total_return_pct === 'number'
+    ? [{ label: '', value: metrics.total_return_pct }]
+    : []
 }
 
 export function HistoryWidget({ onJobSelect }: HistoryWidgetProps) {
@@ -60,24 +86,44 @@ export function HistoryWidget({ onJobSelect }: HistoryWidgetProps) {
                     {job.status}
                   </span>
                 </td>
-                <td className="py-3 px-2 text-sm text-on-surface">{job.symbol || '-'}</td>
+                <td className="py-3 px-2 text-sm text-on-surface">{formatSymbol(job.symbol)}</td>
                 <td className="py-3 px-2 text-xs text-on-surface-variant">{job.parameters?.engine_name || 'vectorbt-opensource'}</td>
                 <td className="py-3 px-2 text-sm font-medium">
-                  {job.metrics?.total_return_pct !== undefined ? (
-                    <span className={job.metrics.total_return_pct >= 0 ? 'text-green-400' : 'text-error'}>
-                      {job.metrics.total_return_pct.toFixed(2)}%
-                    </span>
-                  ) : '-'}
+                  {(() => {
+                    const returns = jobReturns(job)
+                    if (returns.length === 0) return '-'
+                    return (
+                      <span
+                        className="inline-flex items-center gap-1"
+                        title={returns.map((r) => `${r.label ? r.label + ' ' : ''}${r.value.toFixed(2)}%`).join(', ')}
+                      >
+                        {returns.map((r, i) => (
+                          <span key={r.label || i}>
+                            {i > 0 && <span className="text-on-surface-variant mr-1">/</span>}
+                            <span className={r.value >= 0 ? 'text-green-400' : 'text-error'}>
+                              {r.value.toFixed(2)}%
+                            </span>
+                          </span>
+                        ))}
+                      </span>
+                    )
+                  })()}
                 </td>
                 <td className="py-3 px-2 text-xs text-on-surface-variant">
                   {new Date(job.created_at).toLocaleString()}
                 </td>
                 <td className="py-3 px-2 text-right">
-                  <button 
-                    className="text-primary hover:text-primary/80 transition-colors p-1"
-                    title="View Details"
+                  {/* Jawny przycisk „Open" zamiast ikony ▶ — ta myliła się z uruchomieniem
+                      backtestu, a klik i tak tylko otwiera szczegóły (uwaga z testów S6.8). */}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      onJobSelect(job.id, job.strategy_id)
+                    }}
+                    className="text-xs font-label px-2.5 py-1 rounded bg-primary/20 text-primary hover:bg-primary/30 transition-colors"
+                    title="Open job details"
                   >
-                    <PlayCircle className="w-5 h-5" />
+                    Open
                   </button>
                 </td>
               </tr>
