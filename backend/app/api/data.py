@@ -1,22 +1,51 @@
 import asyncio
+import json
+import math
+from typing import Any
+
+import numpy as np
+import talib
 import yfinance as yf
-import pandas as pd
 from fastapi import APIRouter, HTTPException, Query
 from loguru import logger
-from typing import Any, Optional
-import json
 
 from app.schemas.base import ApiResponse
-from ta.trend import SMAIndicator, MACD, EMAIndicator
-from ta.momentum import RSIIndicator
 
 router = APIRouter()
 
-@router.get("/realtime", summary="Get realtime-like intraday data", response_model=ApiResponse[list[dict[str, Any]]])
+# Kolumny surowe z yfinance, które nie są wskaźnikami — pomijane przy eksporcie.
+_RAW_COLUMNS = frozenset(
+    {"Open", "High", "Low", "Close", "Volume", "Dividends", "Stock Splits", "Capital Gains"}
+)
+
+
+def _json_safe(value: Any) -> Any:
+    """Zamienia wartości niereprezentowalne w JSON (NaN, ±inf) na ``None``.
+
+    Wskaźniki mają NaN na pierwszych ``period - 1`` świecach (okres rozgrzewania).
+    Bez tej konwersji serializator wypuszcza literalne ``NaN``, którego
+    ``JSON.parse`` w przeglądarce nie przyjmuje — cały wykres zostaje pusty.
+    """
+    if value is None:
+        return None
+    if isinstance(value, (float, np.floating)):
+        return None if not math.isfinite(float(value)) else float(value)
+    if isinstance(value, (int, np.integer)):
+        return int(value)
+    return value
+
+
+@router.get(
+    "/realtime",
+    summary="Get realtime-like intraday data",
+    response_model=ApiResponse[list[dict[str, Any]]],
+)
 async def get_realtime_data(
     symbol: str = "BTC-USD",
     interval: str = "5m",
-    indicators: Optional[str] = Query(None, description="JSON string of indicators e.g. [{'type': 'SMA', 'period': 20}]")
+    indicators: str | None = Query(
+        None, description="JSON string of indicators e.g. [{'type': 'SMA', 'period': 20}]"
+    ),
 ) -> ApiResponse[list[dict[str, Any]]]:
     """Pobiera świeczki intraday za pomocą yfinance do celów demonstracyjnych na Dashboardzie."""
     try:
@@ -38,22 +67,28 @@ async def get_realtime_data(
             if not df.empty and indicators:
                 try:
                     inds = json.loads(indicators)
+                    # TA-Lib operuje na tablicach numpy float64, nie na Series.
+                    close = df["Close"].to_numpy(dtype=np.float64)
                     for ind in inds:
                         itype = ind.get("type")
                         period_val = int(ind.get("period", 14))
-                        
+                        # TA-Lib wymaga timeperiod >= 2 — mniejsze wartości rzucają Exception.
+                        period_val = max(2, period_val)
+
                         col_name = f"{itype}_{period_val}"
                         if itype == "SMA":
-                            df[col_name] = SMAIndicator(close=df["Close"], window=period_val).sma_indicator()
+                            df[col_name] = talib.SMA(close, timeperiod=period_val)
                         elif itype == "EMA":
-                            df[col_name] = EMAIndicator(close=df["Close"], window=period_val).ema_indicator()
+                            df[col_name] = talib.EMA(close, timeperiod=period_val)
                         elif itype == "RSI":
-                            df[col_name] = RSIIndicator(close=df["Close"], window=period_val).rsi()
+                            df[col_name] = talib.RSI(close, timeperiod=period_val)
                         elif itype == "MACD":
-                            macd = MACD(close=df["Close"], window_slow=26, window_fast=12, window_sign=9)
-                            df["MACD_line"] = macd.macd()
-                            df["MACD_signal"] = macd.macd_signal()
-                            df["MACD_diff"] = macd.macd_diff()
+                            macd_line, macd_signal, macd_hist = talib.MACD(
+                                close, fastperiod=12, slowperiod=26, signalperiod=9
+                            )
+                            df["MACD_line"] = macd_line
+                            df["MACD_signal"] = macd_signal
+                            df["MACD_diff"] = macd_hist
                 except Exception as ex:
                     logger.error(f"Error calculating indicators: {ex}")
             return df
@@ -65,24 +100,24 @@ async def get_realtime_data(
             logger.warning(f"No realtime data found for {symbol}")
             return ApiResponse(success=True, data=[])
             
-        # Dropping NA might remove too much data if periods are large, 
-        # so we keep them and just replace NaNs with None for JSON serialization
-        df = df.where(pd.notnull(df), None)
-        
+        # Nie odrzucamy wierszy z NaN (przy dużym oknie wskaźnika ucięłoby to
+        # większość świec) — zamiast tego każda wartość przechodzi przez
+        # _json_safe, które zamienia NaN/±inf na None.
+        indicator_columns = [col for col in df.columns if col not in _RAW_COLUMNS]
+
         data = []
         for index, row in df.iterrows():
             point = {
                 "date": index.isoformat(),
-                "open": row["Open"],
-                "high": row["High"],
-                "low": row["Low"],
-                "close": row["Close"],
-                "volume": row["Volume"]
+                "open": _json_safe(row["Open"]),
+                "high": _json_safe(row["High"]),
+                "low": _json_safe(row["Low"]),
+                "close": _json_safe(row["Close"]),
+                "volume": _json_safe(row["Volume"]),
             }
             # Dodaj obliczone wskaźniki
-            for col in df.columns:
-                if col not in ["Open", "High", "Low", "Close", "Volume", "Dividends", "Stock Splits", "Capital Gains"]:
-                    point[col] = row[col]
+            for col in indicator_columns:
+                point[col] = _json_safe(row[col])
             data.append(point)
             
         return ApiResponse(success=True, data=data)
