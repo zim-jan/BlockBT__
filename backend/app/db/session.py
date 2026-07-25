@@ -66,6 +66,12 @@ _SessionLocal = sessionmaker(bind=_engine, autoflush=False, autocommit=False,
                              future=True, expire_on_commit=False)
 
 
+def get_engine():
+    """Return the active engine. Używaj zamiast importowania `_engine` —
+    testy przeładowują ten moduł, więc referencja do obiektu bywa nieaktualna."""
+    return _engine
+
+
 def init_db() -> None:
     """Create all Phase 2 tables (idempotent — safe to call on every startup)."""
     Base.metadata.create_all(bind=_engine)

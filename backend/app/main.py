@@ -31,7 +31,8 @@ from app.api import (
     workflows,
 )
 from app.core.auth_middleware import AuthMiddleware
-from app.db.session import get_session, init_db
+from app.db.migrations import init_or_migrate_db
+from app.db.session import get_session
 from app.models.orm import SystemPrompt
 from app.services.mcp.llm_client import _SYSTEM_PROMPT
 
@@ -52,7 +53,7 @@ podczas startu przy pomocy menedżera kontekstu (lifespan).
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     """Zarządza cyklem życia aplikacji (startup/shutdown), w tym bazą danych."""
     logger.info("Start API BlockBT — inicjalizacja bazy danych…")
-    init_db()
+    init_or_migrate_db()
     logger.info("Baza danych gotowa.")
 
     # Seed default admin if auth enabled and no users exist

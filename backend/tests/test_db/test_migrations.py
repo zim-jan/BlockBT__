@@ -96,6 +96,81 @@ def test_upgrade_on_legacy_database_adds_columns_and_backfills(db_url):
     assert owner == admin_id, "osierocony wiersz nie został przypisany adminowi"
 
 
+@pytest.fixture
+def isolated_engine(tmp_path, monkeypatch):
+    """Przestaw `app.db.session` na własną bazę i posprzątaj po teście.
+
+    `init_or_migrate_db()` czyta silnik przez `db_session.get_engine()`, więc
+    samo podmienienie zmiennych środowiskowych nie wystarczy — moduł trzeba
+    przeładować, a po teście przywrócić, żeby nie zatruć bazy sesyjnej.
+    """
+    from importlib import reload
+
+    import app.db.session as session_module
+
+    url = f"sqlite:///{tmp_path}/startup.db"
+    monkeypatch.delenv("BLOCKBT_DB_PATH", raising=False)
+    monkeypatch.setenv("BLOCKBT_DB_URL", url)
+    monkeypatch.setenv("DATABASE_URL", url)
+    reload(session_module)
+
+    yield url
+
+    monkeypatch.undo()
+    reload(session_module)
+
+
+def _alembic_revision(engine: sa.Engine) -> str | None:
+    with engine.connect() as conn:
+        if "alembic_version" not in sa.inspect(engine).get_table_names():
+            return None
+        return conn.execute(sa.text("SELECT version_num FROM alembic_version")).scalar()
+
+
+def test_startup_on_fresh_database_creates_and_stamps(isolated_engine):
+    """Świeża baza: schemat z create_all(), rewizja ostemplowana — bez odtwarzania historii."""
+    from app.db.migrations import init_or_migrate_db
+
+    init_or_migrate_db()
+
+    engine = sa.create_engine(isolated_engine)
+    tables = set(sa.inspect(engine).get_table_names())
+    assert "users" in tables
+    assert "strategies" in tables
+    assert _alembic_revision(engine) == "0001", "brak stempla — kolejna migracja ruszy od zera"
+
+    # Powtórny start nie może niczego zepsuć.
+    init_or_migrate_db()
+    assert _alembic_revision(engine) == "0001"
+
+
+def test_startup_on_legacy_database_runs_migration(isolated_engine):
+    """Baza sprzed Fazy 16 dostaje user_id bez ręcznego `make migrate`."""
+    from app.db.migrations import init_or_migrate_db
+
+    engine = sa.create_engine(isolated_engine)
+    with engine.begin() as conn:
+        conn.execute(sa.text("""
+            CREATE TABLE strategies (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name VARCHAR(128) NOT NULL,
+                description TEXT NOT NULL,
+                code_content TEXT NOT NULL,
+                parameters JSON NOT NULL,
+                created_at DATETIME NOT NULL
+            )
+        """))
+        conn.execute(sa.text(
+            "INSERT INTO strategies (name, description, code_content, parameters, created_at) "
+            "VALUES ('Pre-Faza-16', '', '', '{}', '2026-01-01 00:00:00')"
+        ))
+
+    init_or_migrate_db()
+
+    assert "user_id" in _columns(engine, "strategies")
+    assert _alembic_revision(engine) == "0001"
+
+
 def test_upgrade_on_create_all_database_is_noop(db_url):
     """Baza z `create_all()` po Fazie 16 ma już wszystko — migracja nie psuje jej."""
     import app.models.user  # noqa: F401 — rejestruje tabelę users

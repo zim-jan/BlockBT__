@@ -113,7 +113,22 @@ Wiersze powstałe przed Fazą 16 nie mają `user_id`. Wcześniej `verify_resourc
 Gdy `auth_enabled = true`, a baza danych nie zawiera żadnych kont, automatycznie tworzony jest administrator:
 
 - **Login:** `ADMIN_USERNAME` (domyślnie: `admin`)
-- **Hasło:** `ADMIN_PASSWORD` — **bez wartości domyślnej**. Gdy zmienna nie jest ustawiona, hasło jest losowane (`secrets.token_urlsafe(16)`) i **jednorazowo** wypisywane do logu na poziomie `WARNING`. Nie da się go odczytać później — trzeba je zapisać przy pierwszym starcie albo zresetować konto.
+- **Hasło:** `ADMIN_PASSWORD` — **bez wartości domyślnej**. Gdy zmienna nie jest ustawiona, hasło jest losowane (`secrets.token_urlsafe(16)`) i **jednorazowo** wypisywane do logu na poziomie `WARNING`. Nie da się go odczytać później — trzeba je zapisać przy pierwszym starcie albo zresetować konto. W `.env.example` wpis jest celowo zakomentowany; nigdy nie umieszczaj tam wartości przykładowej, bo trafi na wszystkie instalacje.
+
+---
+
+## Schemat Bazy i Migracje
+
+`Base.metadata.create_all()` tworzy brakujące tabele, ale **nie wykonuje `ALTER TABLE`** — instalacja z bazą sprzed Fazy 16 kończyła się błędem `no such column: strategies.user_id`. Od 2026-07-25 start aplikacji (`lifespan` → `app.db.migrations.init_or_migrate_db()`) stosuje wzorzec **„stamp albo upgrade"**:
+
+| Stan bazy | Działanie |
+|:--|:--|
+| pusta | `create_all()` + `alembic stamp head` |
+| istniejąca | `alembic upgrade head`, potem `create_all()` dla tabel spoza migracji |
+
+Stempel na świeżej bazie jest istotny: bez niego kolejna migracja próbowałaby odtworzyć całą historię na schemacie, który już wszystko ma, i **każda** przyszła migracja musiałaby być idempotentna.
+
+Błąd migracji celowo przerywa start aplikacji — lepiej nie wstać niż działać na rozjechanym schemacie. Ręczne uruchomienie pozostaje dostępne przez `make migrate` (i `make migrate-down` dla cofnięcia jednej rewizji).
 
 Seed uruchamia się w **dwóch** miejscach, co jest istotne dla poprawności:
 
