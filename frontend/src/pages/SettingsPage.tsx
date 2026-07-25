@@ -304,7 +304,7 @@ function AIPromptsTab() {
                   type="text"
                   value={promptName}
                   onChange={(e) => setPromptName(e.target.value)}
-                  className="w-full bg-surface-container-low border border-outline-variant/40 p-2.5 text-on-surface focus:outline-none focus:border-primary"
+                  className="w-full bg-surface-container-low border border-outline-variant/40 p-2.5 text-on-surface focus:outline-hidden focus:border-primary"
                   placeholder="e.g. Risk Conservative Analyst"
                 />
               </div>
@@ -314,7 +314,7 @@ function AIPromptsTab() {
                   value={promptContent}
                   onChange={(e) => setPromptContent(e.target.value)}
                   rows={6}
-                  className="w-full bg-surface-container-low border border-outline-variant/40 p-2.5 text-on-surface font-mono text-xs focus:outline-none focus:border-primary"
+                  className="w-full bg-surface-container-low border border-outline-variant/40 p-2.5 text-on-surface font-mono text-xs focus:outline-hidden focus:border-primary"
                   placeholder="You are a quantitative analyst specializing in..."
                 />
               </div>
@@ -501,7 +501,7 @@ function UsersTab() {
 
         {/* Warning Alert */}
         <div className="px-4 py-3 bg-amber-500/10 border border-amber-500/20 text-amber-300 text-xs flex items-center gap-2">
-          <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+          <AlertTriangle className="w-4 h-4 shrink-0" />
           <span>
             Toggling authentication state requires a backend restart for all session endpoints to fully adapt.
           </span>
@@ -542,7 +542,7 @@ function UsersTab() {
                     type="text"
                     value={formData.username}
                     onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-                    className="w-full bg-surface-container-low border border-outline-variant/40 p-2 text-on-surface focus:outline-none focus:border-primary"
+                    className="w-full bg-surface-container-low border border-outline-variant/40 p-2 text-on-surface focus:outline-hidden focus:border-primary"
                     placeholder="Username"
                   />
                 </div>
@@ -554,7 +554,7 @@ function UsersTab() {
                     type="password"
                     value={formData.password}
                     onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                    className="w-full bg-surface-container-low border border-outline-variant/40 p-2 text-on-surface focus:outline-none focus:border-primary"
+                    className="w-full bg-surface-container-low border border-outline-variant/40 p-2 text-on-surface focus:outline-hidden focus:border-primary"
                     placeholder="Password"
                   />
                 </div>
@@ -563,7 +563,7 @@ function UsersTab() {
                   <select
                     value={formData.role}
                     onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-                    className="w-full bg-surface-container-low border border-outline-variant/40 p-2 text-on-surface focus:outline-none focus:border-primary"
+                    className="w-full bg-surface-container-low border border-outline-variant/40 p-2 text-on-surface focus:outline-hidden focus:border-primary"
                   >
                     <option value="user">User</option>
                     <option value="admin">Admin</option>

@@ -101,7 +101,7 @@ export const SaveStrategyModal: React.FC<SaveStrategyModalProps> = ({ isOpen, on
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="e.g. Momentum SMA (AAPL, MSFT)"
-              className="w-full bg-[#0b0d14] border border-white/10 rounded-lg px-3 py-2.5 text-sm text-slate-100 focus:outline-none focus:border-indigo-500 font-medium"
+              className="w-full bg-[#0b0d14] border border-white/10 rounded-lg px-3 py-2.5 text-sm text-slate-100 focus:outline-hidden focus:border-indigo-500 font-medium"
             />
           </div>
 
@@ -112,7 +112,7 @@ export const SaveStrategyModal: React.FC<SaveStrategyModalProps> = ({ isOpen, on
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Describe tactical assumptions, indicators, and parameters..."
-              className="w-full bg-[#0b0d14] border border-white/10 rounded-lg p-3 text-sm text-slate-100 focus:outline-none focus:border-indigo-500 resize-none"
+              className="w-full bg-[#0b0d14] border border-white/10 rounded-lg p-3 text-sm text-slate-100 focus:outline-hidden focus:border-indigo-500 resize-none"
             />
           </div>
 

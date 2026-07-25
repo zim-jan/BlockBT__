@@ -129,7 +129,7 @@ const DataNodeInspector: React.FC<{ data: DataNodeData; onChange: (k: string, v:
         <select
           value={data.dataSource ?? 'yahoo'}
           onChange={(e) => onChange('dataSource', e.target.value)}
-          className="w-full bg-[#0b0d14] border border-white/10 rounded-lg px-3.5 py-2.5 text-sm text-slate-100 focus:outline-none focus:border-indigo-500"
+          className="w-full bg-[#0b0d14] border border-white/10 rounded-lg px-3.5 py-2.5 text-sm text-slate-100 focus:outline-hidden focus:border-indigo-500"
         >
           <option value="yahoo">Yahoo Finance (vbt.YFData)</option>
           <option value="alpaca">Alpaca Market Data</option>
@@ -144,7 +144,7 @@ const DataNodeInspector: React.FC<{ data: DataNodeData; onChange: (k: string, v:
           value={data.symbol ?? 'AAPL'}
           onChange={(e) => onChange('symbol', e.target.value.toUpperCase())}
           disabled={isSynthetic}
-          className="w-full bg-[#0b0d14] border border-white/10 rounded-lg px-3.5 py-2.5 text-sm text-slate-100 focus:outline-none focus:border-indigo-500 font-mono disabled:opacity-50"
+          className="w-full bg-[#0b0d14] border border-white/10 rounded-lg px-3.5 py-2.5 text-sm text-slate-100 focus:outline-hidden focus:border-indigo-500 font-mono disabled:opacity-50"
           placeholder={isSynthetic ? 'SYNTHETIC' : 'e.g. AAPL or AAPL, MSFT, GOOG'}
         />
         <p className="text-[11px] text-slate-400 mt-1.5 leading-normal">Separate multiple symbols with commas for Multi-Wide simulation.</p>
@@ -158,7 +158,7 @@ const DataNodeInspector: React.FC<{ data: DataNodeData; onChange: (k: string, v:
               type="date"
               value={data.startDate ?? '2023-01-01'}
               onChange={(e) => onChange('startDate', e.target.value)}
-              className="w-full bg-[#0b0d14] border border-white/10 rounded-lg px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-indigo-500 font-mono"
+              className="w-full bg-[#0b0d14] border border-white/10 rounded-lg px-3 py-2 text-xs text-slate-100 focus:outline-hidden focus:border-indigo-500 font-mono"
             />
           </div>
           <div>
@@ -167,7 +167,7 @@ const DataNodeInspector: React.FC<{ data: DataNodeData; onChange: (k: string, v:
               type="date"
               value={data.endDate ?? '2025-01-01'}
               onChange={(e) => onChange('endDate', e.target.value)}
-              className="w-full bg-[#0b0d14] border border-white/10 rounded-lg px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-indigo-500 font-mono"
+              className="w-full bg-[#0b0d14] border border-white/10 rounded-lg px-3 py-2 text-xs text-slate-100 focus:outline-hidden focus:border-indigo-500 font-mono"
             />
           </div>
         </div>
@@ -178,7 +178,7 @@ const DataNodeInspector: React.FC<{ data: DataNodeData; onChange: (k: string, v:
         <select
           value={data.timeframe ?? '1d'}
           onChange={(e) => onChange('timeframe', e.target.value)}
-          className="w-full bg-[#0b0d14] border border-white/10 rounded-lg px-3.5 py-2.5 text-sm text-slate-100 focus:outline-none focus:border-indigo-500"
+          className="w-full bg-[#0b0d14] border border-white/10 rounded-lg px-3.5 py-2.5 text-sm text-slate-100 focus:outline-hidden focus:border-indigo-500"
         >
           <option value="1d">1 Day (1d)</option>
           <option value="1h">1 Hour (1h)</option>
@@ -227,7 +227,7 @@ const IndicatorNodeInspector: React.FC<{ data: IndicatorNodeData; onChange: (k: 
         <select
           value={data.indicatorType ?? 'sma_crossover'}
           onChange={(e) => onChange('indicatorType', e.target.value)}
-          className="w-full bg-[#0b0d14] border border-white/10 rounded-lg px-3.5 py-2.5 text-sm text-slate-100 focus:outline-none focus:border-indigo-500"
+          className="w-full bg-[#0b0d14] border border-white/10 rounded-lg px-3.5 py-2.5 text-sm text-slate-100 focus:outline-hidden focus:border-indigo-500"
         >
           <option value="sma_crossover">SMA Crossover</option>
           <option value="macd">MACD (Moving Average Convergence Divergence)</option>
@@ -256,7 +256,7 @@ const IndicatorNodeInspector: React.FC<{ data: IndicatorNodeData; onChange: (k: 
               max={200}
               value={data.smaFast ?? 10}
               onChange={(e) => onChange('smaFast', Number(e.target.value))}
-              className="w-full bg-[#0b0d14] border border-white/10 rounded-lg px-3.5 py-2.5 text-sm text-slate-100 focus:outline-none focus:border-indigo-500 font-mono"
+              className="w-full bg-[#0b0d14] border border-white/10 rounded-lg px-3.5 py-2.5 text-sm text-slate-100 focus:outline-hidden focus:border-indigo-500 font-mono"
             />
           </div>
           <div>
@@ -267,7 +267,7 @@ const IndicatorNodeInspector: React.FC<{ data: IndicatorNodeData; onChange: (k: 
               max={500}
               value={data.smaSlow ?? 30}
               onChange={(e) => onChange('smaSlow', Number(e.target.value))}
-              className="w-full bg-[#0b0d14] border border-white/10 rounded-lg px-3.5 py-2.5 text-sm text-slate-100 focus:outline-none focus:border-indigo-500 font-mono"
+              className="w-full bg-[#0b0d14] border border-white/10 rounded-lg px-3.5 py-2.5 text-sm text-slate-100 focus:outline-hidden focus:border-indigo-500 font-mono"
             />
           </div>
         </div>
@@ -282,7 +282,7 @@ const IndicatorNodeInspector: React.FC<{ data: IndicatorNodeData; onChange: (k: 
               type="number"
               value={data.macdFast ?? 12}
               onChange={(e) => onChange('macdFast', Number(e.target.value))}
-              className="w-full bg-[#0b0d14] border border-white/10 rounded-lg px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-indigo-500 font-mono"
+              className="w-full bg-[#0b0d14] border border-white/10 rounded-lg px-3 py-2 text-xs text-slate-100 focus:outline-hidden focus:border-indigo-500 font-mono"
             />
           </div>
           <div>
@@ -291,7 +291,7 @@ const IndicatorNodeInspector: React.FC<{ data: IndicatorNodeData; onChange: (k: 
               type="number"
               value={data.macdSlow ?? 26}
               onChange={(e) => onChange('macdSlow', Number(e.target.value))}
-              className="w-full bg-[#0b0d14] border border-white/10 rounded-lg px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-indigo-500 font-mono"
+              className="w-full bg-[#0b0d14] border border-white/10 rounded-lg px-3 py-2 text-xs text-slate-100 focus:outline-hidden focus:border-indigo-500 font-mono"
             />
           </div>
           <div>
@@ -300,7 +300,7 @@ const IndicatorNodeInspector: React.FC<{ data: IndicatorNodeData; onChange: (k: 
               type="number"
               value={data.macdSignal ?? 9}
               onChange={(e) => onChange('macdSignal', Number(e.target.value))}
-              className="w-full bg-[#0b0d14] border border-white/10 rounded-lg px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-indigo-500 font-mono"
+              className="w-full bg-[#0b0d14] border border-white/10 rounded-lg px-3 py-2 text-xs text-slate-100 focus:outline-hidden focus:border-indigo-500 font-mono"
             />
           </div>
         </div>
@@ -315,7 +315,7 @@ const IndicatorNodeInspector: React.FC<{ data: IndicatorNodeData; onChange: (k: 
               type="number"
               value={Number(data.rsiWindow ?? 14)}
               onChange={(e) => onChange('rsiWindow', Number(e.target.value))}
-              className="w-full bg-[#0b0d14] border border-white/10 rounded-lg px-3.5 py-2.5 text-sm text-slate-100 focus:outline-none focus:border-indigo-500 font-mono"
+              className="w-full bg-[#0b0d14] border border-white/10 rounded-lg px-3.5 py-2.5 text-sm text-slate-100 focus:outline-hidden focus:border-indigo-500 font-mono"
             />
           </div>
           <div className="grid grid-cols-2 gap-3.5">
@@ -325,7 +325,7 @@ const IndicatorNodeInspector: React.FC<{ data: IndicatorNodeData; onChange: (k: 
                 type="number"
                 value={Number(data.rsiLower ?? 30)}
                 onChange={(e) => onChange('rsiLower', Number(e.target.value))}
-                className="w-full bg-[#0b0d14] border border-white/10 rounded-lg px-3.5 py-2.5 text-sm text-slate-100 focus:outline-none focus:border-indigo-500 font-mono"
+                className="w-full bg-[#0b0d14] border border-white/10 rounded-lg px-3.5 py-2.5 text-sm text-slate-100 focus:outline-hidden focus:border-indigo-500 font-mono"
               />
             </div>
             <div>
@@ -334,7 +334,7 @@ const IndicatorNodeInspector: React.FC<{ data: IndicatorNodeData; onChange: (k: 
                 type="number"
                 value={Number(data.rsiUpper ?? 70)}
                 onChange={(e) => onChange('rsiUpper', Number(e.target.value))}
-                className="w-full bg-[#0b0d14] border border-white/10 rounded-lg px-3.5 py-2.5 text-sm text-slate-100 focus:outline-none focus:border-indigo-500 font-mono"
+                className="w-full bg-[#0b0d14] border border-white/10 rounded-lg px-3.5 py-2.5 text-sm text-slate-100 focus:outline-hidden focus:border-indigo-500 font-mono"
               />
             </div>
           </div>
@@ -350,7 +350,7 @@ const IndicatorNodeInspector: React.FC<{ data: IndicatorNodeData; onChange: (k: 
             value={data.codeContent ?? ''}
             onChange={(e) => onChange('codeContent', e.target.value)}
             placeholder="def custom_signal(close):\n    entries = close > 100\n    exits = close < 90\n    return entries, exits"
-            className="w-full bg-[#0b0d14] border border-white/10 rounded-lg p-3.5 text-xs font-mono text-emerald-400 focus:outline-none focus:border-indigo-500 leading-relaxed resize-none"
+            className="w-full bg-[#0b0d14] border border-white/10 rounded-lg p-3.5 text-xs font-mono text-emerald-400 focus:outline-hidden focus:border-indigo-500 leading-relaxed resize-none"
           />
         </div>
       )}
@@ -366,7 +366,7 @@ const IndicatorNodeInspector: React.FC<{ data: IndicatorNodeData; onChange: (k: 
                 type={p.type === 'int' || p.type === 'float' ? 'number' : 'text'}
                 value={data[p.name] ?? p.default ?? ''}
                 onChange={(e) => onChange(p.name, p.type === 'int' ? Number(e.target.value) : e.target.value)}
-                className="w-full bg-[#0b0d14] border border-white/10 rounded-lg px-3.5 py-2.5 text-sm text-slate-100 focus:outline-none focus:border-indigo-500 font-mono"
+                className="w-full bg-[#0b0d14] border border-white/10 rounded-lg px-3.5 py-2.5 text-sm text-slate-100 focus:outline-hidden focus:border-indigo-500 font-mono"
               />
             </div>
           ))}
@@ -386,7 +386,7 @@ const SignalNodeInspector: React.FC<{ data: SignalNodeData; onChange: (k: string
       <select
         value={data.signalType ?? 'sma_crossover'}
         onChange={(e) => onChange('signalType', e.target.value)}
-        className="w-full bg-[#0b0d14] border border-white/10 rounded-lg px-3.5 py-2.5 text-sm text-slate-100 focus:outline-none focus:border-indigo-500"
+        className="w-full bg-[#0b0d14] border border-white/10 rounded-lg px-3.5 py-2.5 text-sm text-slate-100 focus:outline-hidden focus:border-indigo-500"
       >
         <option value="sma_crossover">Crossover (Signal Crossover)</option>
         <option value="ranking">Ticker Ranking / Sorting</option>
@@ -408,7 +408,7 @@ const PortfolioNodeInspector: React.FC<{ data: PortfolioNodeData; onChange: (k: 
         type="number"
         value={data.init_cash ?? 10000}
         onChange={(e) => onChange('init_cash', Number(e.target.value))}
-        className="w-full bg-[#0b0d14] border border-white/10 rounded-lg px-3.5 py-2.5 text-sm text-slate-100 focus:outline-none focus:border-indigo-500 font-mono"
+        className="w-full bg-[#0b0d14] border border-white/10 rounded-lg px-3.5 py-2.5 text-sm text-slate-100 focus:outline-hidden focus:border-indigo-500 font-mono"
       />
     </div>
 
@@ -420,7 +420,7 @@ const PortfolioNodeInspector: React.FC<{ data: PortfolioNodeData; onChange: (k: 
           step="0.01"
           value={data.fees ? Number((data.fees * 100).toFixed(3)) : 0.1}
           onChange={(e) => onChange('fees', Number(e.target.value) / 100)}
-          className="w-full bg-[#0b0d14] border border-white/10 rounded-lg px-3.5 py-2.5 text-sm text-slate-100 focus:outline-none focus:border-indigo-500 font-mono"
+          className="w-full bg-[#0b0d14] border border-white/10 rounded-lg px-3.5 py-2.5 text-sm text-slate-100 focus:outline-hidden focus:border-indigo-500 font-mono"
         />
       </div>
       <div>
@@ -430,7 +430,7 @@ const PortfolioNodeInspector: React.FC<{ data: PortfolioNodeData; onChange: (k: 
           step="0.01"
           value={data.slippage ? Number((data.slippage * 100).toFixed(3)) : 0.1}
           onChange={(e) => onChange('slippage', Number(e.target.value) / 100)}
-          className="w-full bg-[#0b0d14] border border-white/10 rounded-lg px-3.5 py-2.5 text-sm text-slate-100 focus:outline-none focus:border-indigo-500 font-mono"
+          className="w-full bg-[#0b0d14] border border-white/10 rounded-lg px-3.5 py-2.5 text-sm text-slate-100 focus:outline-hidden focus:border-indigo-500 font-mono"
         />
       </div>
     </div>
@@ -447,7 +447,7 @@ const PortfolioNodeInspector: React.FC<{ data: PortfolioNodeData; onChange: (k: 
             value={data.sl_stop ? Number((data.sl_stop * 100).toFixed(2)) : ''}
             onChange={(e) => onChange('sl_stop', e.target.value ? Number(e.target.value) / 100 : undefined)}
             placeholder="e.g. 2 (2%)"
-            className="w-full bg-[#0b0d14] border border-white/10 rounded-lg px-3.5 py-2.5 text-sm text-slate-100 focus:outline-none focus:border-indigo-500 font-mono"
+            className="w-full bg-[#0b0d14] border border-white/10 rounded-lg px-3.5 py-2.5 text-sm text-slate-100 focus:outline-hidden focus:border-indigo-500 font-mono"
           />
         </div>
 
@@ -459,7 +459,7 @@ const PortfolioNodeInspector: React.FC<{ data: PortfolioNodeData; onChange: (k: 
             value={data.tp_stop ? Number((data.tp_stop * 100).toFixed(2)) : ''}
             onChange={(e) => onChange('tp_stop', e.target.value ? Number(e.target.value) / 100 : undefined)}
             placeholder="e.g. 5 (5%)"
-            className="w-full bg-[#0b0d14] border border-white/10 rounded-lg px-3.5 py-2.5 text-sm text-slate-100 focus:outline-none focus:border-indigo-500 font-mono"
+            className="w-full bg-[#0b0d14] border border-white/10 rounded-lg px-3.5 py-2.5 text-sm text-slate-100 focus:outline-hidden focus:border-indigo-500 font-mono"
           />
         </div>
       </div>
@@ -472,7 +472,7 @@ const PortfolioNodeInspector: React.FC<{ data: PortfolioNodeData; onChange: (k: 
             value={data.size ?? ''}
             onChange={(e) => onChange('size', e.target.value ? Number(e.target.value) : undefined)}
             placeholder="Default (100%)"
-            className="w-full bg-[#0b0d14] border border-white/10 rounded-lg px-3.5 py-2.5 text-sm text-slate-100 focus:outline-none focus:border-indigo-500 font-mono"
+            className="w-full bg-[#0b0d14] border border-white/10 rounded-lg px-3.5 py-2.5 text-sm text-slate-100 focus:outline-hidden focus:border-indigo-500 font-mono"
           />
         </div>
 
@@ -481,7 +481,7 @@ const PortfolioNodeInspector: React.FC<{ data: PortfolioNodeData; onChange: (k: 
           <select
             value={data.size_type ?? 'percent'}
             onChange={(e) => onChange('size_type', e.target.value)}
-            className="w-full bg-[#0b0d14] border border-white/10 rounded-lg px-3.5 py-2.5 text-sm text-slate-100 focus:outline-none focus:border-indigo-500"
+            className="w-full bg-[#0b0d14] border border-white/10 rounded-lg px-3.5 py-2.5 text-sm text-slate-100 focus:outline-hidden focus:border-indigo-500"
           >
             <option value="percent">Percent</option>
             <option value="amount">Amount (Shares)</option>
@@ -581,7 +581,7 @@ const OptimizerNodeInspector: React.FC<{
         <select
           value={data.metric ?? 'Total Return [%]'}
           onChange={(e) => onChange('metric', e.target.value)}
-          className="w-full bg-[#0b0d14] border border-white/10 rounded-lg px-3.5 py-2.5 text-sm text-slate-100 focus:outline-none focus:border-indigo-500"
+          className="w-full bg-[#0b0d14] border border-white/10 rounded-lg px-3.5 py-2.5 text-sm text-slate-100 focus:outline-hidden focus:border-indigo-500"
         >
           <option value="Total Return [%]">Total Return [%]</option>
           <option value="Sharpe Ratio">Sharpe Ratio</option>
@@ -598,7 +598,7 @@ const OptimizerNodeInspector: React.FC<{
           max={500}
           value={data.nTrials ?? 20}
           onChange={(e) => onChange('nTrials', Number(e.target.value))}
-          className="w-full bg-[#0b0d14] border border-white/10 rounded-lg px-3.5 py-2.5 text-sm text-slate-100 focus:outline-none focus:border-indigo-500 font-mono"
+          className="w-full bg-[#0b0d14] border border-white/10 rounded-lg px-3.5 py-2.5 text-sm text-slate-100 focus:outline-hidden focus:border-indigo-500 font-mono"
         />
       </div>
 
@@ -679,7 +679,7 @@ const WfoNodeInspector: React.FC<{ data: WfoNodeData; onChange: (k: string, v: a
       <select
         value={(data as any).mode ?? 'rolling'}
         onChange={(e) => onChange('mode', e.target.value)}
-        className="w-full bg-[#0b0d14] border border-white/10 rounded-lg px-3.5 py-2.5 text-sm text-slate-100 focus:outline-none focus:border-indigo-500"
+        className="w-full bg-[#0b0d14] border border-white/10 rounded-lg px-3.5 py-2.5 text-sm text-slate-100 focus:outline-hidden focus:border-indigo-500"
       >
         <option value="rolling">Rolling (Fixed Sliding Window)</option>
         <option value="anchored">Anchored (Expanding Window)</option>
@@ -692,7 +692,7 @@ const WfoNodeInspector: React.FC<{ data: WfoNodeData; onChange: (k: string, v: a
         type="text"
         value={data.windowSize ?? '365d'}
         onChange={(e) => onChange('windowSize', e.target.value)}
-        className="w-full bg-[#0b0d14] border border-white/10 rounded-lg px-3.5 py-2.5 text-sm text-slate-100 focus:outline-none focus:border-indigo-500 font-mono"
+        className="w-full bg-[#0b0d14] border border-white/10 rounded-lg px-3.5 py-2.5 text-sm text-slate-100 focus:outline-hidden focus:border-indigo-500 font-mono"
         placeholder="e.g. 365d"
       />
     </div>
@@ -703,7 +703,7 @@ const WfoNodeInspector: React.FC<{ data: WfoNodeData; onChange: (k: string, v: a
         type="text"
         value={data.stepSize ?? '90d'}
         onChange={(e) => onChange('stepSize', e.target.value)}
-        className="w-full bg-[#0b0d14] border border-white/10 rounded-lg px-3.5 py-2.5 text-sm text-slate-100 focus:outline-none focus:border-indigo-500 font-mono"
+        className="w-full bg-[#0b0d14] border border-white/10 rounded-lg px-3.5 py-2.5 text-sm text-slate-100 focus:outline-hidden focus:border-indigo-500 font-mono"
         placeholder="e.g. 90d"
       />
     </div>
@@ -713,7 +713,7 @@ const WfoNodeInspector: React.FC<{ data: WfoNodeData; onChange: (k: string, v: a
       <select
         value={(data as any).metric ?? 'Total Return [%]'}
         onChange={(e) => onChange('metric', e.target.value)}
-        className="w-full bg-[#0b0d14] border border-white/10 rounded-lg px-3.5 py-2.5 text-sm text-slate-100 focus:outline-none focus:border-indigo-500"
+        className="w-full bg-[#0b0d14] border border-white/10 rounded-lg px-3.5 py-2.5 text-sm text-slate-100 focus:outline-hidden focus:border-indigo-500"
       >
         <option value="Total Return [%]">Total Return [%]</option>
         <option value="Sharpe Ratio">Sharpe Ratio</option>
