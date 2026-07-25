@@ -129,7 +129,11 @@ export function HistoryWidget({ onJobSelect }: HistoryWidgetProps) {
               </tr>
             ))}
             
-            {!jobs || jobs.length === 0 && (
+            {/* Nawiasy są istotne: bez nich wyrażenie parsuje się jako
+                `!jobs || (jobs.length === 0 && <tr>)`, więc przy błędzie zapytania
+                (`jobs === undefined`) całość daje `true`, które React renderuje jako nic —
+                tabela zostaje pusta bez żadnego komunikatu (test manualny S10.3b). */}
+            {(!jobs || jobs.length === 0) && (
               <tr>
                 <td colSpan={7} className="py-8 text-center text-sm text-on-surface-variant">
                   No backtest jobs found. Run a backtest in the Visual Builder first.
