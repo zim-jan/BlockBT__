@@ -91,3 +91,6 @@ vectorbt_src/
 /graphify-out/.graphify_analysis.json
 /docs/skills_and_plugins_audit.md
 
+
+# npm install odpalony w katalogu głównym zamiast frontend/ zostawia pusty lockfile
+/package-lock.json
