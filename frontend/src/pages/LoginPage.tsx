@@ -69,7 +69,7 @@ export function LoginPage() {
                 type="text"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                className="w-full bg-surface-container border border-outline-variant/30 rounded-none p-3 text-on-surface focus:outline-none focus:border-primary transition-colors"
+                className="w-full bg-surface-container border border-outline-variant/30 rounded-none p-3 text-on-surface focus:outline-hidden focus:border-primary transition-colors"
                 placeholder="Enter username"
                 required
               />
@@ -80,7 +80,7 @@ export function LoginPage() {
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full bg-surface-container border border-outline-variant/30 rounded-none p-3 text-on-surface focus:outline-none focus:border-primary transition-colors"
+                className="w-full bg-surface-container border border-outline-variant/30 rounded-none p-3 text-on-surface focus:outline-hidden focus:border-primary transition-colors"
                 placeholder="Enter password"
                 required
               />

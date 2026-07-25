@@ -1,5 +1,4 @@
-console.log("RealtimeChartWidget loaded");
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useRef, useState, useMemo } from 'react'
 import Plot from '../../components/PlotlyPlot'
 import { request } from '../../services/api'
 import { Loader2, Settings, Plus, X } from 'lucide-react'
@@ -47,6 +46,8 @@ export function RealtimeChartWidget() {
   const [loading, setLoading] = useState(true)
   const [showSettings, setShowSettings] = useState(false)
   const [newSymbol, setNewSymbol] = useState('')
+  const plotContainerRef = useRef<HTMLDivElement | null>(null)
+  const [plotSize, setPlotSize] = useState({ width: 0, height: 0 })
 
   // Settings form states
   const [newIndType, setNewIndType] = useState<'SMA'|'EMA'|'RSI'|'MACD'>('SMA')
@@ -55,6 +56,32 @@ export function RealtimeChartWidget() {
   useEffect(() => {
     localStorage.setItem('blockbt_chart_config', JSON.stringify(config))
   }, [config])
+
+  // Rozmiar wykresu liczymy sami i podajemy Plotly jawnie w pikselach.
+  // Autosize Plotly (`responsive: true`) mierzy kontener tylko przy montowaniu i na `resize`
+  // OKNA — gdy kontener miał wtedy 0x0, płótno zostaje w domyślnych 700x450 i wychodzi poza
+  // kartę, nachodząc na listę historii. ResizeObserver + jawne width/height eliminują
+  // zgadywanie (test manualny S2.1/S5.1/S5.2, 2026-07-25).
+  useEffect(() => {
+    const node = plotContainerRef.current
+    if (!node) return
+
+    const measure = () => {
+      const rect = node.getBoundingClientRect()
+      setPlotSize({ width: Math.round(rect.width), height: Math.round(rect.height) })
+    }
+
+    measure()
+
+    if (typeof ResizeObserver === 'undefined') {
+      window.addEventListener('resize', measure)
+      return () => window.removeEventListener('resize', measure)
+    }
+
+    const observer = new ResizeObserver(measure)
+    observer.observe(node)
+    return () => observer.disconnect()
+  }, [])
 
   const fetchData = async () => {
     try {
@@ -159,7 +186,12 @@ export function RealtimeChartWidget() {
   }, [data, config])
 
   const layout = {
-    title: false,
+    // Jawne wymiary z ResizeObserver — bez autosize Plotly nie ma czego zgadywać.
+    width: plotSize.width,
+    height: plotSize.height,
+    // uirevision zachowuje zoom/pan przy odświeżeniu danych co 60 s, ale resetuje widok
+    // po zmianie symbolu lub interwału (test manualny S5.3).
+    uirevision: `${config.activeSymbol}-${config.interval}`,
     dragmode: 'zoom' as const,
     margin: { l: 50, r: 20, t: 20, b: 40 },
     showlegend: true,
@@ -193,7 +225,7 @@ export function RealtimeChartWidget() {
             <select 
               value={config.activeSymbol}
               onChange={(e) => setConfig({...config, activeSymbol: e.target.value})}
-              className="bg-transparent text-on-surface text-xs font-semibold px-3 py-1.5 focus:outline-none cursor-pointer border-r border-outline-variant/30 appearance-none"
+              className="bg-transparent text-on-surface text-xs font-semibold px-3 py-1.5 focus:outline-hidden cursor-pointer border-r border-outline-variant/30 appearance-none"
             >
               {config.symbols.map(sym => (
                 <option key={sym} value={sym}>{sym}</option>
@@ -202,7 +234,7 @@ export function RealtimeChartWidget() {
             <select 
               value={config.interval}
               onChange={(e) => setConfig({...config, interval: e.target.value})}
-              className="bg-transparent text-on-surface-variant text-xs px-3 py-1.5 focus:outline-none cursor-pointer appearance-none"
+              className="bg-transparent text-on-surface-variant text-xs px-3 py-1.5 focus:outline-hidden cursor-pointer appearance-none"
             >
               <option value="1m">1m</option>
               <option value="5m">5m</option>
@@ -245,7 +277,7 @@ export function RealtimeChartWidget() {
                   value={newSymbol} 
                   onChange={e => setNewSymbol(e.target.value)} 
                   placeholder="Add symbol (e.g. MSFT)" 
-                  className="flex-1 bg-surface-container border border-outline-variant/40 rounded px-2 py-1 text-xs text-on-surface focus:border-primary focus:outline-none uppercase"
+                  className="flex-1 bg-surface-container border border-outline-variant/40 rounded px-2 py-1 text-xs text-on-surface focus:border-primary focus:outline-hidden uppercase"
                 />
                 <button type="submit" className="bg-primary/20 text-primary hover:bg-primary/30 p-1 rounded transition-colors">
                   <Plus className="w-4 h-4" />
@@ -272,7 +304,7 @@ export function RealtimeChartWidget() {
                 <select 
                   value={newIndType} 
                   onChange={e => setNewIndType(e.target.value as any)}
-                  className="bg-surface-container border border-outline-variant/40 rounded px-2 py-1 text-xs text-on-surface focus:border-primary focus:outline-none"
+                  className="bg-surface-container border border-outline-variant/40 rounded px-2 py-1 text-xs text-on-surface focus:border-primary focus:outline-hidden"
                 >
                   <option value="SMA">SMA</option>
                   <option value="EMA">EMA</option>
@@ -282,7 +314,7 @@ export function RealtimeChartWidget() {
                   type="number" 
                   value={newIndPeriod} 
                   onChange={e => setNewIndPeriod(parseInt(e.target.value) || 1)} 
-                  className="w-16 bg-surface-container border border-outline-variant/40 rounded px-2 py-1 text-xs text-on-surface focus:border-primary focus:outline-none"
+                  className="w-16 bg-surface-container border border-outline-variant/40 rounded px-2 py-1 text-xs text-on-surface focus:border-primary focus:outline-hidden"
                   min="1"
                 />
                 <button onClick={handleAddIndicator} className="bg-primary/20 text-primary hover:bg-primary/30 p-1 rounded transition-colors flex-1 flex justify-center">
@@ -305,17 +337,19 @@ export function RealtimeChartWidget() {
         </div>
       )}
       
-      <div className="flex-1 w-full relative min-h-0">
+      <div ref={plotContainerRef} className="flex-1 w-full relative min-h-0">
         {data.length > 0 ? (
-          <div className="absolute inset-0">
-            <Plot
-              data={chartData}
-              layout={layout}
-              useResizeHandler={true}
-              style={{ width: '100%', height: '100%' }}
-              config={{ responsive: true, displayModeBar: false }}
-            />
-          </div>
+          plotSize.width > 0 && plotSize.height > 0 ? (
+            <div className="absolute inset-0">
+              <Plot data={chartData} layout={layout} config={{ displayModeBar: false }} />
+            </div>
+          ) : (
+            // Widoczny błąd zamiast cicho pustego wykresu — jeśli to zobaczysz, kontener
+            // nie ma wymiarów i problem leży w układzie strony, nie w Plotly.
+            <div className="absolute inset-0 flex items-center justify-center text-center text-xs text-error font-label p-4">
+              Nie udało się zmierzyć kontenera wykresu ({plotSize.width}×{plotSize.height} px).
+            </div>
+          )
         ) : (
           !loading && <div className="flex items-center justify-center h-full text-on-surface-variant font-label text-sm">No data available for {config.activeSymbol}</div>
         )}

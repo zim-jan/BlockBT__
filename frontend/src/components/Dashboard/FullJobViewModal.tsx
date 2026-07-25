@@ -19,6 +19,15 @@ export function FullJobViewModal({ jobId, strategyId, onClose }: FullJobViewModa
   // Right panel state: 'chat' | 'notes'
   const [activePanel, setActivePanel] = useState<'chat' | 'notes'>('notes')
 
+  // Esc zamyka modal (uwaga z testów S7.7).
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') onClose()
+    }
+    document.addEventListener('keydown', onKeyDown)
+    return () => document.removeEventListener('keydown', onKeyDown)
+  }, [onClose])
+
   useEffect(() => {
     const fetchTearsheet = async () => {
       try {
@@ -51,19 +60,30 @@ export function FullJobViewModal({ jobId, strategyId, onClose }: FullJobViewModa
             <h2 className="font-headline font-bold text-lg">Job #{jobId} Results</h2>
           </div>
           
-          {/* Mobile panel toggle (if needed) or general panel tabs */}
-          <div className="flex bg-surface-container-high rounded-lg p-1 border border-outline-variant/30">
-            <button 
-              onClick={() => setActivePanel('notes')}
-              className={`px-3 py-1 text-xs font-label rounded-md flex items-center gap-1.5 transition-colors ${activePanel === 'notes' ? 'bg-primary/20 text-primary' : 'text-on-surface-variant hover:text-on-surface'}`}
+          {/* Przełącznik paneli + zamknięcie. Przycisk zamykania jest normalnym elementem
+              flex w pasku nagłówka — jako pływający `absolute` nachodził na te zakładki. */}
+          <div className="flex items-center gap-3">
+            <div className="flex bg-surface-container-high rounded-lg p-1 border border-outline-variant/30">
+              <button
+                onClick={() => setActivePanel('notes')}
+                className={`px-3 py-1 text-xs font-label rounded-md flex items-center gap-1.5 transition-colors ${activePanel === 'notes' ? 'bg-primary/20 text-primary' : 'text-on-surface-variant hover:text-on-surface'}`}
+              >
+                <StickyNote className="w-3.5 h-3.5" /> Notes
+              </button>
+              <button
+                onClick={() => setActivePanel('chat')}
+                className={`px-3 py-1 text-xs font-label rounded-md flex items-center gap-1.5 transition-colors ${activePanel === 'chat' ? 'bg-primary/20 text-primary' : 'text-on-surface-variant hover:text-on-surface'}`}
+              >
+                <MessageSquare className="w-3.5 h-3.5" /> AI Chat
+              </button>
+            </div>
+
+            <button
+              onClick={onClose}
+              className="w-9 h-9 shrink-0 flex items-center justify-center rounded-full border border-outline-variant/50 bg-surface-container-high text-on-surface-variant hover:text-on-surface hover:bg-surface-container-highest transition-colors"
+              title="Close full view"
             >
-              <StickyNote className="w-3.5 h-3.5" /> Notes
-            </button>
-            <button 
-              onClick={() => setActivePanel('chat')}
-              className={`px-3 py-1 text-xs font-label rounded-md flex items-center gap-1.5 transition-colors ${activePanel === 'chat' ? 'bg-primary/20 text-primary' : 'text-on-surface-variant hover:text-on-surface'}`}
-            >
-              <MessageSquare className="w-3.5 h-3.5" /> AI Chat
+              <X className="w-5 h-5" />
             </button>
           </div>
         </div>
@@ -92,16 +112,8 @@ export function FullJobViewModal({ jobId, strategyId, onClose }: FullJobViewModa
         </div>
       </div>
 
-      {/* RIGHT: Selected Panel & Close Button */}
-      <div className="flex shrink-0 h-full relative group shadow-2xl">
-        <button 
-          onClick={onClose}
-          className="absolute -left-12 top-2 z-[100001] w-10 h-10 bg-surface-container-high rounded-full border border-outline-variant/50 text-on-surface-variant hover:text-on-surface hover:bg-surface-container-highest flex items-center justify-center shadow-lg transition-all hover:scale-105 group"
-          title="Close full view"
-        >
-          <X className="w-5 h-5" />
-        </button>
-
+      {/* RIGHT: Selected Panel */}
+      <div className="flex shrink-0 h-full relative shadow-2xl">
         {activePanel === 'chat' ? (
           <div className="h-full w-[420px] flex">
             {/* The ChatPanel already brings its own wrapper and styling.

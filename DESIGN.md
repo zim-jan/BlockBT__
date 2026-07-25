@@ -1,194 +1,214 @@
-# 🎨 BlockBT - Design System & UI/UX Guidelines (`DESIGN.md`)
+# BlockBT — System Projektowy (`DESIGN.md`)
 
-> **Wersja:** 1.0.0  
-> **Status:** Obowiązująca dla Fazy 19 (Refaktoryzacja Interfejsu GUI)  
-> **Cel:** Przekształcenie surowego interfejsu prototypowego BlockBT w nowoczesną, ergonomiczną platformę klasy Enterprise FinTech / SaaS.
+**Wersja:** 2.0 · **Data:** 2026-07-25 · **Zastępuje:** wersję 1.x (Fazy 19–24)
 
----
+Dokument opisuje **stan faktyczny** warstwy wizualnej po naprawie builda Tailwinda, nie stan pożądany. Każda reguła ma wskazanie źródła w kodzie — jeśli kod i ten dokument się rozejdą, kod jest prawdą, a dokument błędem do poprawienia.
 
-## 1. 🌟 Core Vision & Design Principles
-
-1. **Elevation & Depth Layering:** Odchodzimy od płaskiego kontrastu `#000000` / `#FFFFFF`. Używamy wielowarstwowych cieni (`elevation-1` do `elevation-3`), łagodnych ramek z alfanumerycznym kryciem oraz subtelnych poświat (glow) dla wyróżnienia aktywnych elementów.
-2. **Kanwa wolna od szumu (Clean Canvas First):** Węzły DAG służą do szybkiego podglądu przepływu i kluczowych wskaźników. Pełne formularze edycyjne przenosimy do wysuwanego **Inspector Panel** po prawej stronie.
-3. **Dedykowany Panel Wyników (Bottom Drawer Strategy):** Interaktywne wykresy Plotly oraz QuantStats tearsheety renderujemy w dolnym rozsuwanym panelu (Bottom Drawer), eliminując ciasne wykresy i konflikty myszy wewnątrz węzłów.
-4. **Human-Centric Error Handling:** Żadnych surowych zrzutów JSON (błędy 422)! Każdy błąd walidacji i API jest tłumaczony na zwięzły komunikat w języku naturalnym.
-5. **Zero Native Browser Popups:** Bezwzględny zakaz używania `window.prompt()` oraz `window.alert()`. Wyszukiwanie, zapis i potwierdzenia odbywają się wyłącznie przez komponenty React Dialog / Modal z systemem Toast powiadomień.
+> **Dlaczego wersja 2.0 pisana od zera:** wersja 1.x powstawała między majem a lipcem 2026, gdy build generował **20% klas Tailwinda** (patrz sekcja 1). Opisywała więc wygląd aplikacji pozbawionej większości stylów, a jej zalecenia — w szczególności „nakładki MUSZĄ mieć inline style, bo Tailwind v4 ich nie widzi" — były obejściami zepsutego builda, nie decyzjami projektowymi. Wszystkie takie zalecenia zostały usunięte.
 
 ---
 
-## 2. 🎨 Color Palette & CSS Design Tokens
+## 1. Kontrakt builda — reguła nadrzędna
 
-Wszystkie tokeny kolorów należy umieścić w głównym pliku arkusza stylów `frontend/src/assets/index.css`:
+Frontend używa **Tailwind CSS 4.3** z konfiguracją w starym formacie JS. To wymaga dwóch rzeczy, których brak nie powoduje żadnego błędu — utilities po prostu cicho nie powstają:
 
 ```css
-:root {
-  /* Tła i Powierzchnie (Elevation Layering) */
-  --bg-app: #0b0d14;           /* Deep Midnight Black/Blue - Główne tło aplikacji */
-  --bg-surface-1: #131722;     /* Topbar, Sidebar, Panel boczny, Modale */
-  --bg-surface-2: #1c2130;     /* Węzły kanwy, podświetlone karty, sekcje wejściowe */
-  --bg-surface-hover: #262c3e; /* Stan hover przycisków i wierszy */
-  --bg-surface-active: #31384e;/* Stan active/pressed */
-
-  /* Obramowania i Linie (Subtle Borders) */
-  --border-subtle: rgba(255, 255, 255, 0.08); /* Domyślne ramki kart */
-  --border-medium: rgba(255, 255, 255, 0.16); /* Obramowania wierszy i sekcji */
-  --border-strong: #4f5875;                   /* Hover/Focus na obramowaniu */
-  --border-accent: #6366f1;                   /* Ramka aktywnego węzła / wybranego elementu */
-
-  /* Kolory Semantyczne Węzłów DAG */
-  --node-data: #2563eb;        /* Data Source (Niebieski) */
-  --node-indicator: #7c3aed;   /* Indicators (Fioletowy) */
-  --node-logic: #d97706;       /* Signal Logic / Operators (Bursztynowy) */
-  --node-execution: #059669;   /* Portfolio / Execution (Szmaragdowy) */
-  --node-optimizer: #ec4899;   /* Optuna / WFO Optimizer (Różowy) */
-
-  /* Akcenty i Stany Aplikacji */
-  --accent-primary: #6366f1;   /* Indigo - Główny kolor akcji (Buttons, Active Tabs) */
-  --accent-primary-hover: #4f46e5;
-  --accent-success: #10b981;   /* Zyski, sukces, aktywne połączenie */
-  --accent-warning: #f59e0b;   /* Ostrzeżenia, przestarzały stan węzła */
-  --accent-danger: #ef4444;    /* Straty, błędy validation, usuwanie */
-
-  /* Typografia */
-  --text-main: #f9fafb;        /* Główny jasny tekst */
-  --text-muted: #9ca3af;       /* Podpis, etykiety pól, szary tekst */
-  --text-disabled: #4b5563;    /* Wyłączone opcje */
-
-  /* Promienie Zaokrągleń (Border Radius Consistency) */
-  --radius-sm: 4px;            /* Małe tagi, uchwyty, badge */
-  --radius-md: 8px;            /* Przyciski, pola edycyjne, węzły DAG */
-  --radius-lg: 12px;           /* Modale, Karty KPI, Inspector Panel */
-  --radius-xl: 16px;           /* Glówne kontenery dialogów */
-
-  /* Cienie i Efekty Głębokości */
-  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.4);
-  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.5), 0 2px 4px -1px rgba(0, 0, 0, 0.3);
-  --shadow-lg: 0 10px 25px -5px rgba(0, 0, 0, 0.6), 0 8px 10px -6px rgba(0, 0, 0, 0.4);
-  --glow-accent: 0 0 15px rgba(99, 102, 241, 0.35);
-  --glow-success: 0 0 12px rgba(16, 185, 129, 0.35);
-}
+/* frontend/src/assets/index.css — pierwsze linie po importach fontów */
+@import "tailwindcss";
+@config "../../tailwind.config.js";
 ```
 
----
+```js
+// frontend/postcss.config.js — v4 prefiksuje samodzielnie (Lightning CSS)
+export default { plugins: { '@tailwindcss/postcss': {} } }
+```
 
-## 3. 📐 Layout Architecture & Component Redesign
+**Zakazane:** dyrektywy `@tailwind base/components/utilities` (usunięte w v4) oraz `autoprefixer` i `postcss-import` w konfiguracji PostCSS.
 
-### A. Topbar Header (Górny Pasek & KPI Cards)
-* **Karty Wyników (KPI Metrics Cards):** Zastąpić białe obramowania surowych pól tekstu czytelnymi minikartami:
-  - Tło: `--bg-surface-1`, obramowanie: `--border-subtle`, zaokrąglenie: `--radius-md`.
-  - Wartość metryki (np. `+22.85%` lub `1.84` Sharpe) wyrenderowana dużą pogrubioną czcionką (`Font-weight: 700`), kolor zielony dla zysków, czerwony dla strat.
-  - Mała etykieta pod wartością: `--text-muted` (np. *Total Return*, *Sharpe Ratio*, *Max Drawdown*).
-* **Global Action Toolbar:**
-  - Przyciski akcji: `Run Backtest`, `Run Optimization`, `Clear Canvas`, `Save Strategy`, `Load Strategy`.
-  - Przycisk `Run Backtest` na górnym pasku jest wyróżniony z gradientem akcentującym (`--accent-primary`) i ikoną Play (`Lucide Play`).
+### Weryfikacja przed każdym zgłoszeniem buga wizualnego
 
-### B. Visual Builder & Node Canvas
-* **Siatka Tła (Background Grid):** Wdrożyć tło kropkowane (Dot Grid) z tonacją `--border-subtle`, ułatwiające Pan & Zoom i orientację przestrzenną.
-* **Kompaktowe Węzły DAG:**
-  - Zmniejszyć bazowy gabaryt węzłów o ~40%.
-  - Na kanwie prezentować tylko: Nagłówek (Nazwa + Ikona kategorii + Kropka statusu), zwięzłe podsumowanie parametrów (np. `SMA (14, 50)`) oraz mały wskaźnik statusu (zaznaczony na zielono po wyliczeniu, na żółto po zmianie parametrów).
-  - Usunąć rozbudowane selektory dat, suwaki i wykresy bezpośrednio z wewnątrz węzła!
-* **Porty i Połączenia (Handles & Edges):**
-  - Uchwyty połączeń (Handles) o minimalnej strefie trafienia `20px` z delikatną poświatą przy najechaniu myszą.
-  - Linie połączeń (Edges) z animacją przepływu (`animated: true`) podczas wykonywania obliczeń.
-  - Wizualny feedback przy przeciąganiu połączenia (podświetlanie kompatybilnych portów docelowych).
+Historia z 2026-07-25: godzina debugowania Plotly, bo karta wykresu miała 0 px wysokości — klasa `h-96` nie istniała w CSS. Zanim zaczniesz szukać winy w komponencie albo bibliotece, sprawdź, czy klasa w ogóle powstała:
 
-### C. Inspector Panel (Wysuwany Panel Edycji Węzła)
-* Po kliknięciu dowolnego węzła na kanwie, po prawej stronie otwierany jest **Inspector Panel**:
-  - Nagłówek panelu zawiera typ węzła, jego identyfikator i krótki opis.
-  - Wszystkie formularze edycji parametrów (daty, selektory tickerów, okna czasowe wskaźników, stop loss/take profit, budowanie custom kodu Numba JIT) znajdują się w tym panelu.
-  - Zmiany w panelu natychmiast aktualizują stan węzła na kanwie.
+```bash
+curl -s http://127.0.0.1:3000/src/assets/index.css | tr -d '\\' | grep -c '\.h-96'
+npm run build   # rozmiar CSS: zdrowy build to ~75 kB, nie ~23 kB
+```
 
-### D. Results Panel (Bottom Drawer Strategy)
-* Wyniki po uruchomieniu symulacji wyświetlane są w **Bottom Drawer**:
-  - Wysuwany panel z dolnej krawędzi ekranu z możliwością zwijania/rozwijania i pełnego ekranu.
-  - Zakładki panelu: `Overview Metrics`, `Plotly Equity Curve & Trades`, `QuantStats Tearsheet`, `Execution Logs`.
-  - Wykresy Plotly mają zapewnioną odpowiednią przestrzeń, responsywność i obsługę zdarzeń bez nakładania się na przewijanie kanwy.
-
-### E. System Powiadomień (Toasts) & Modale Zapisywania
-* **Brak `window.prompt()`:** Zapisywanie nowej strategii otwiera elegancki modal React ze słownikiem nazw, tagami oraz podglądem struktury DAG.
-* **Wyszukiwarka Strategii:** Popup wczytywania strategii posiada wbudowany input filtrowania po nazwie, datach utworzenia oraz przyciski szybkiego usuwania/wczytania z czytelnym kontrastem.
-* **Toast Notifications:** Powiadomienia w prawym dolnym rogu (np. *"Strategia 'Momentum SMA' została pomyślnie zapisana"*, *"Błąd połączenia z serwerem"*).
-
-### F. Chat AI Analyst (Ollama Integration)
-* Przełączany panel czatu AI po prawej stronie ekranu z płynnym podglądem generowanego tekstu.
-* Czytelny wskaźnik stanu ładowania (animowane kroki: *Pobieranie metryk* ➔ *Analiza wskaźników Sharpe/Drawdown* ➔ *Generowanie raportu*).
+Testy tego **nie wyłapią** — vitest przechodzi 47/47 i `npm run build` kończy się sukcesem przy 80% brakującego CSS, bo jsdom nie ładuje Tailwinda i nic nie asertuje wyglądu. Ostatni pomiar pokrycia: **399 z 409 klas użytych w kodzie (98%)**.
 
 ---
 
-## 4. 🛠️ Guideline dla Zespołu Programistycznego (Faza 19 Roadmap)
+## 2. Dwa równoległe systemy tokenów — stan faktyczny
 
-Podczas wdrożenia w Fazie 19 postępujemy według kroków:
-1. **Zmienne i style bazowe:** Aktualizacja `frontend/src/assets/index.css` o zaktualizowane tokeny `:root` i style kart/przycisków.
-2. **Topbar & KPI Metrics:** Przebudowa nagłówka aplikacji z nowymi kartami KPI i globalnym przyciskiem Run.
-3. **Inspector Panel & Odchudzenie Węzłów:** Stworzenie `InspectorPanel.tsx`, usunięcie formularzy i wykresów z wnętrza węzłów (`*Node.tsx`).
-4. **Bottom Drawer dla Wyników:** Utworzenie `ResultsDrawer.tsx` dla wykresów Plotly i QuantStats.
-5. **System Powiadomień & Modale:** Usunięcie native `prompt()` i `alert()`, wdrożenie toasta i modalu zapisu.
+W repo współistnieją **dwie niezależne palety**. To nie jest zamierzone, ale jest realne i trzeba to wiedzieć, żeby nie mieszać:
 
-## 7. 📏 Architektura i Pozycjonowanie Paneli Bocznych (Sidebars) i Nakładek (Overlays)
+| System | Źródło | Zasięg | Charakter |
+|:--|:--|:--|:--|
+| **Material 3 dark** | `frontend/tailwind.config.js` | wszystkie utilities Tailwinda (`bg-surface-container`, `text-on-surface`, `text-primary`…) | cyjan `#81ecff`, tła prawie czarne, **promienie 0 px** |
+| **Legacy `:root`** | `frontend/src/assets/index.css` | wyłącznie klasy `.rf-*` kanwy React Flow | indygo `#6366f1`, tła granatowe, promienie 4/8/12/16 px |
 
-Aby uniknąć problemów z ucinaniem zawartości (clipping) przez kontenery z `overflow-hidden` (np. `MainLayout`) oraz problemów z brakiem widoczności w Tailwind v4, należy bezwzględnie stosować poniższe reguły architektoniczne:
-
-1. **Boczne Panele (InspectorPanel, ChatPanel):**
-   - **Zakaz pozycjonowania `fixed`:** Nigdy nie używaj `fixed right-0` dla elementów, które mają działać jako sidebar obok głównej treści. 
-   - **Zawsze używaj Flexbox:** Panel boczny musi być naturalnym bratem (sibling) głównego kontenera w układzie flex. Należy stosować klasy `flex-none w-[szerokość] border-l` i umieszczać go na tym samym poziomie drzewa co `<main className="flex-1">`.
-   - **Przykład w `MainLayout.tsx`:**
-     ```tsx
-     <div className="flex h-screen overflow-hidden">
-       <Sidebar />
-       <div className="flex-1 overflow-hidden"> ... GŁÓWNA ZAWARTOŚĆ ... </div>
-       <ChatPanel />      {/* Flex sibling na prawej stronie */}
-       <InspectorPanel /> {/* Flex sibling na prawej stronie */}
-     </div>
-     ```
-
-2. **Modale i Full-Screen Overlays (ResultsOverlay, SaveStrategyModal, itp.):**
-   - **Gwarancja Portali (`createPortal`):** Wszystkie nakładki pełnoekranowe i dialogi muszą renderować się w `document.body` poprzez `createPortal(..., document.body)`.
-   - **Jawne Inline Fixed Styles:** Ze względu na specyfikę kompilacji Tailwind v4, kontenery nakładek MUSZĄ posiadać natywne style inline dla pełnego pokrycia rzutni:
-     ```tsx
-     style={{
-       position: 'fixed',
-       top: 0,
-       left: 0,
-       right: 0,
-       bottom: 0,
-       backgroundColor: 'rgba(11, 13, 20, 0.96)',
-       backdropFilter: 'blur(8px)',
-       zIndex: 100000,
-       display: 'flex',
-       flexDirection: 'column'
-     }}
-     ```
-   - **Zarządzanie Stanem:** Stan widoczności (`isSaveModalOpen`, `isResultsOpen`) musi pochodzić z `useWorkflowStore` z użyciem atomowych selektorów `useWorkflowStore((s) => s.isSaveModalOpen)`.
-
-3. **Renderowanie Raportów HTML w `iframe`:**
-   - Ekrany z raportami (np. QuantStats Tearsheet) należy pobierać via API (`fetch`) i przekazywać do elementu `iframe` za pomocą `srcDoc={html}`. Bezwzględny zakaz podawania URL API bezpośrednio w `src` iframe (zapobiega to wyświetlaniu surowej odpowiedzi JSON).
-
-4. **Kontrast Formularzy w Dark Mode:**
-   - Wszystkie listy rozwijane `<select>` i polecenia wyboru muszą posiadać reguły CSS zapewniające jasny tekst (`#f9fafb`) na ciemnym tle (`#131722`):
-     ```css
-     select option {
-       background-color: #131722 !important;
-       color: #f9fafb !important;
-     }
-     input, select, textarea {
-       color-scheme: dark;
-     }
-     ```
+**Reguła:** nowy kod używa **wyłącznie utilities Tailwinda** z palety M3. Zmienne `:root` są zamrożone — dotykamy ich tylko przy pracy nad kanwą React Flow. Nie definiuj nowych zmiennych `--*` dla komponentów Reactowych.
 
 ---
 
-## 8. 📏 Reguły Odstępów, Obramowań Węzłów i Uchwytów Połączeń (Handles & Spacing System)
+## 3. Paleta (Material 3 dark, `tailwind.config.js`)
 
-1. **Uchwyty Połączeń (React Flow Handles):**
-   - Uchwyty (`.react-flow__handle`, `.easy-connect-handle`) posiadają stały rozmiar 12px (bez animacji powiększania `scale(1.25)` po najechaniu), ujemne przesunięcie `left: -6px`, `right: -6px` oraz `z-index: 25`.
-   - Czyste koła uchwytów znajdują się na linii obramowania karty, nie nachodząc na wewnętrzne etykiety.
-2. **Eleganckie Obramowanie 1px i Obszerny Padding Węzłów (Refined Borders & Generous Inner Padding):**
-   - Karty węzłów kanwy (`DataNode`, `IndicatorNode`, `SignalNode`, `PortfolioNode`, `OptimizerNode`, `WfoNode`) posiadają 1px obramowania `border` z subtelnymi odcieniami przezroczystości (`border-blue-500/30`, `border-purple-500/30`, `border-emerald-500/30`, etc.).
-   - Główny kontener karty posiada obszerny padding `p-4` (16px bezpiecznej przestrzeni od krawędzi karty), a wewnętrzne bloki parametrów stosują padding `px-3 py-1.5` (12px w poziomie, 6px w pionie) i odstęp `space-y-2` / `space-y-2.5`.
-3. **Standaryzacja Wcięć i Marginesów Kontenerów (Container Padding & Margins):**
-   - Żaden nagłówek, podtytuł (np. `<p class="font-label text-sm text-on-surface-variant mt-1.5 leading-relaxed">`) ani przycisk nie może stykać się bezpośrednio z krawędzią kontenera.
-   - Paski górne i nagłówki podstron stosują `px-6 py-5` z ujednoliconym `leading-relaxed`.
-   - Karty sekcji oraz widżety stosują minimalne wcięcia `p-5` lub `p-6` oraz marginesy dolne `space-y-3` / `space-y-4`.
+| Token | Hex | Zastosowanie |
+|:--|:--|:--|
+| `background`, `surface` | `#0e0e0f` | tło aplikacji |
+| `surface-container-lowest` | `#000000` | kanwa, obszary „wgłębione" |
+| `surface-container-low` | `#131314` | paski nagłówków sekcji |
+| `surface-container` | `#1a191b` | **domyślne tło kart i widżetów** |
+| `surface-container-high` | `#201f21` | hover wierszy, kontrolki w kartach |
+| `surface-container-highest`, `surface-variant` | `#262627` | modale, elementy wyniesione |
+| `primary` | `#81ecff` | akcje, akcenty, aktywny stan |
+| `secondary` | `#5cfd80` | wartości dodatnie, sukces |
+| `error` | `#ff716c` | błędy, wartości ujemne |
+| `on-surface` | `#ffffff` | tekst główny |
+| `on-surface-variant` | `#adaaab` | tekst pomocniczy, etykiety |
+| `outline-variant` | `#484849` | obramowania (zawsze z alfą, patrz §5) |
 
+Wartości dodatnie/ujemne w tabelach i KPI: `text-green-400` / `text-error` (patrz `HistoryWidget.tsx`, `MetricCard.tsx`). Kolory kategorii węzłów kanwy — sekcja 8.
 
+---
+
+## 4. Typografia
+
+| Klasa | Font | Zastosowanie |
+|:--|:--|:--|
+| `font-headline` | Space Grotesk | nagłówki stron, tytuły kart i modali |
+| `font-body` | Inter | treść, tabele, akapity |
+| `font-label` | Inter | etykiety, podpisy, opisy pól |
+
+Fonty ładowane przez `@import url(...)` z Google Fonts w pierwszej linii `index.css`.
+
+**Skala w praktyce:** `text-3xl` nagłówek strony · `text-xl` nagłówek sekcji · `text-base` tytuł modala · `text-sm` treść · `text-xs` etykiety i tabele (najczęstsza klasa w repo, 145 użyć) · `text-[10px]`/`text-[11px]` chipy i plakietki. Nagłówki: `font-bold` lub `font-semibold`; etykiety: `font-medium`.
+
+---
+
+## 5. Geometria, obramowania, cienie
+
+1. **Promienie: 0 px.** `borderRadius` w configu nadpisuje `DEFAULT`, `lg` i `xl` na `0px` — `rounded`, `rounded-lg`, `rounded-xl` **nie zaokrąglają**. Ostre krawędzie są decyzją projektową. Wyjątek: `rounded-full` (9999 px) dla kropek statusu, plakietek pigułkowych i awatarów.
+2. **Obramowania: 1 px z alfą.** Standard karty to `border border-outline-variant/30`; separatory wewnętrzne `border-outline-variant/20`; bardzo subtelne linie wierszy `border-outline-variant/10`. Nigdy nie używaj `border` bez klasy koloru — w v4 domyślnym kolorem jest `currentColor`, czyli obramowanie przyjmie barwę tekstu.
+3. **Cienie:** wyłącznie dla elementów wyniesionych nad płaszczyznę — `shadow-2xl` dla modali, `shadow-lg` dla przycisków pływających, `shadow-inner` dla obszarów wgłębionych. Karty w treści są płaskie.
+
+---
+
+## 6. Architektura layoutu
+
+Źródło: `frontend/src/components/layout/MainLayout.tsx`.
+
+```
+<div flex h-screen overflow-hidden>
+  <Sidebar w-64 />                          ← nawigacja, flex sibling
+  <div flex-1 flex flex-col min-w-0>
+    <header px-6 py-5 border-b sticky />    ← tytuł + status API
+    <main flex-1 flex flex-col p-6 gap-6>
+      <div grid md:grid-cols-3 gap-6 />     ← karty KPI
+      <div flex-1 border overflow-hidden /> ← obszar treści (children)
+    </main>
+  </div>
+  <ChatPanel />                             ← panel boczny, flex sibling
+  <InspectorPanel />                        ← panel boczny, flex sibling
+</div>
+```
+
+### Reguły, od których nie ma odstępstw
+
+1. **Panele boczne to flex-siblings, nie `fixed`.** `InspectorPanel` i `ChatPanel` są rodzeństwem głównego kontenera i używają `flex-none w-[szerokość] border-l`. Pozycjonowanie `fixed` dla panelu bocznego jest zakazane.
+2. **Nakładki pełnoekranowe przez `createPortal(..., document.body)`** + `fixed inset-0 z-[9999]` klasami Tailwinda. Inline style **nie są** potrzebne (wersja 1.x tego wymagała — wyłącznie z powodu zepsutego builda).
+3. **Nigdy `content-visibility`, `contain`, `transform`, `filter` ani `backdrop-filter` na kontenerach layoutu.** Każda z tych właściwości czyni element blokiem zawierającym dla potomków `position: fixed`, więc modal przestaje pokrywać rzutnię i zostaje przycięty do sekcji. To była przyczyna dwóch osobnych bugów Fazy 25 (`DashboardPage.tsx`, historia commitów 2026-07-25).
+4. **Raporty HTML w `iframe` przez `srcDoc={html}`**, nigdy przez `src` z adresem API — inaczej użytkownik zobaczy surowy JSON.
+5. **Zero `alert()`, `confirm()`, `prompt()`.** Powiadomienia idą przez `useToastStore`, potwierdzenia przez własne modale.
+
+---
+
+## 7. Wzorce komponentów
+
+**Karta / widżet**
+```tsx
+<div className="bg-surface-container border border-outline-variant/30 p-6">
+  <h3 className="font-headline font-semibold text-on-surface">Tytuł</h3>
+</div>
+```
+
+**Pasek nagłówka wewnątrz karty** — `p-4 border-b border-outline-variant/20 bg-surface-container-low shrink-0`.
+
+**Plakietka statusu** — `text-xs px-2 py-1 rounded-full font-medium` + para kolorów: sukces `bg-green-500/10 text-green-400`, błąd `bg-error/10 text-error`, w toku `bg-yellow-500/10 text-yellow-400`.
+
+**Przycisk akcji** — `bg-primary/20 text-primary hover:bg-primary/30 transition-colors`. Przycisk ikonowy — `p-2 bg-surface-container-high text-on-surface-variant hover:text-on-surface`; stan aktywny `bg-primary/20 text-primary`.
+
+**Formularze** — `bg-surface-container border border-outline-variant/40 px-2 py-1 text-xs focus:border-primary focus:outline-hidden`. Dark mode dla kontrolek natywnych wymusza `index.css`:
+```css
+select option { background-color: #131722 !important; color: #f9fafb !important; }
+input, select, textarea { color-scheme: dark; }
+```
+
+**Tabela** — `w-full text-left border-collapse`; nagłówek `text-on-surface-variant font-label text-xs uppercase`; wiersz `border-b border-outline-variant/10 hover:bg-surface-container-high`.
+
+**Odstępy** — kontenery stron `p-6 gap-6`; karty `p-4`–`p-6`; listy `space-y-2`…`space-y-4`. Żaden nagłówek, podtytuł ani przycisk nie styka się z krawędzią kontenera.
+
+---
+
+## 8. Kanwa React Flow
+
+Jedyny obszar rządzony paletą `:root` z `index.css`.
+
+| Kategoria węzła | Zmienna | Kolor | Obramowanie karty |
+|:--|:--|:--|:--|
+| Data Source | `--node-data` | `#2563eb` | `border-blue-500/30` |
+| Indicators | `--node-indicator` | `#7c3aed` | `border-purple-500/30` |
+| Signal / Logic | `--node-logic` | `#d97706` | `border-amber-500/30` |
+| Portfolio / Execution | `--node-execution` | `#059669` | `border-emerald-500/30` |
+| Optimizer / WFO | `--node-optimizer` | `#ec4899` | `border-pink-500/30` |
+
+1. **Uchwyty połączeń** (`.react-flow__handle`, `.easy-connect-handle`): stały rozmiar, `z-index: 25`, ujemne przesunięcia `left/right`, środek na linii obramowania. Bez animacji `scale()` na hover.
+2. **Węzły:** obramowanie 1 px w kolorze kategorii z alfą, padding `p-4`, bloki parametrów `px-3 py-1.5`, odstępy `space-y-2`/`space-y-2.5`.
+3. **Bez emoji w nagłówkach węzłów** (decyzja z commita `a1ddda1`).
+4. Formularze i wykresy **nie** mieszkają w węzłach — trafiają do `InspectorPanel`.
+
+---
+
+## 9. Dashboard (Faza 25)
+
+Źródło: `DashboardPage.tsx`, `RealtimeChartWidget.tsx`, `HistoryWidget.tsx`, `NotesWidget.tsx`, `FullJobViewModal.tsx`.
+
+1. **Karta wykresu:** `w-full h-96 bg-surface-container border border-outline-variant/30 shrink-0 relative overflow-hidden`. `overflow-hidden` jest obowiązkowe — trzyma płótno Plotly w granicach karty.
+2. **Plotly dostaje jawne wymiary w pikselach**, mierzone `ResizeObserver` na kontenerze. Zakaz polegania na `autosize`/`responsive: true` — te mechanizmy mierzą kontener tylko przy montowaniu i na `resize` **okna**; przy pomiarze 0×0 Plotly wpada w domyślne 700×450 i wychodzi poza kartę.
+3. **`layout.uirevision`** ustawione na `symbol-interwał` — zachowuje zoom przy odświeżeniu danych co 60 s, resetuje po zmianie instrumentu.
+4. **Brak cichych awarii wykresu:** gdy pomiar kontenera zwróci 0, komponent renderuje widoczny komunikat błędu z odczytanymi wymiarami, nie puste miejsce.
+5. **Wskaźniki:** na wykresie OHLC nakładane są wyłącznie SMA i EMA. RSI i MACD backend liczy, ale UI ich nie oferuje — wymagałyby subplotów z osobną osią Y (decyzja odłożona, warunek wstępny: rozstrzygnięcie, czy `/api/data/realtime` przechodzi na `ConnectorRegistry`).
+6. **Modal szczegółów joba:** tearsheet QuantStats w `iframe srcDoc` po lewej, przełączane panele Notes/AI Chat po prawej, przycisk zamknięcia poza panelem.
+
+---
+
+## 10. Język i treść
+
+- **UI wyłącznie po angielsku** (decyzja z commita `4cd2855`). Dokumentacja i komentarze w kodzie — po polsku.
+- Emoji w interfejsie: tylko w plakietce statusu API. Poza tym nie.
+- Komunikaty błędów mówią, **co** się stało i **co zrobić**, nie „Error occurred".
+
+---
+
+## 11. Martwe klasy — nie używać
+
+Te klasy występują w kodzie, ale **nie mają żadnej definicji** i nic nie robią. Przy okazji pracy w tych plikach należy je usunąć:
+
+| Klasa | Gdzie | Dlaczego martwa |
+|:--|:--|:--|
+| `prose`, `prose-invert`, `prose-xs` | `ChatPanel.tsx:140` | brak `@tailwindcss/typography`; `plugins: []` w configu |
+| `modal-overlay`, `modal-content` | modale Visual Buildera | brak definicji w `index.css` |
+| `strategy-item` | `StrategyListModal.tsx` | brak definicji w `index.css` |
+
+---
+
+## 12. Jak sprawdzić zgodność zmiany
+
+```bash
+cd frontend
+npx tsc --noEmit          # typy
+npx vitest run            # 47 testów
+npm run build             # CSS ~75 kB — spadek do ~23 kB oznacza zepsuty build Tailwinda
+```
+
+Testy **nie sprawdzają wyglądu**. Zmiana wizualna wymaga obejrzenia w przeglądarce; przy podejrzeniu, że klasa nie działa — najpierw pomiar z sekcji 1, potem debugowanie komponentu.

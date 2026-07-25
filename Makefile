@@ -2,7 +2,7 @@
 # BlockBT — Makefile
 # ──────────────────────────────────────────────────────────────
 
-.PHONY: help dev api frontend generate-api lint test docs docs-serve
+.PHONY: help dev api frontend generate-api lint test docs docs-serve kill-api kill-front kill-all clean
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | \
@@ -36,6 +36,12 @@ clean: ## Clean up temporary files, caches and leaked resources
 
 frontend: ## Start Vite frontend (dev mode)
 	cd frontend && npm run dev
+
+kill-front: ## Kill any existing Vite processes on port 3000
+	@lsof -ti:3000 | xargs -r kill -9
+	@echo "✓ Frontend processes on port 3000 killed."
+
+kill-all: kill-api kill-front ## Kill both backend (8000) and frontend (3000)
 
 rebuild-front: ## cd frontend && npx tsc --noEmit && npm run build && npm run dev
 	cd frontend && npx tsc --noEmit && npm run build && npm run dev

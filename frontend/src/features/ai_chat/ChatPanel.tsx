@@ -91,7 +91,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ jobId, isOpen, onClose }) 
         </div>
         <button
           onClick={onClose}
-          className="text-on-surface-variant hover:text-on-surface focus:outline-none transition-colors p-1 rounded-md hover:bg-surface-container-high"
+          className="text-on-surface-variant hover:text-on-surface focus:outline-hidden transition-colors p-1 rounded-md hover:bg-surface-container-high"
         >
           <X className="w-5 h-5" />
         </button>
@@ -173,7 +173,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ jobId, isOpen, onClose }) 
             onChange={(e) => setInputMessage(e.target.value)}
             placeholder="Ask about the strategy results..."
             disabled={isSending || isLoadingHistory}
-            className="flex-1 px-3 py-2 bg-surface-container-low border border-outline-variant/40 text-on-surface text-xs focus:outline-none focus:border-primary disabled:opacity-50"
+            className="flex-1 px-3 py-2 bg-surface-container-low border border-outline-variant/40 text-on-surface text-xs focus:outline-hidden focus:border-primary disabled:opacity-50"
           />
           <button
             type="submit"

@@ -1,7 +1,10 @@
 @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap');
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+/* Tailwind v4: dyrektywy `@tailwind base/components/utilities` zostały usunięte w v4 —
+   wejściem jest `@import "tailwindcss"`, a stary config JS ładuje się jawnie przez `@config`.
+   Bez tego generowały się wyłącznie utilities o wartościach statycznych (80% klas, w tym cała
+   własna paleta, cicho nie powstawało). Patrz upgrade-guide Tailwind v4. */
+@import "tailwindcss";
+@config "../../tailwind.config.js";
 
 
 *, *::before, *::after {

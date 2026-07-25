@@ -99,7 +99,7 @@ export function NotesWidget({ strategyId }: NotesWidgetProps) {
             value={newNoteContent}
             onChange={(e) => setNewNoteContent(e.target.value)}
             placeholder="Add a new note..."
-            className="w-full bg-surface-container-low border border-outline-variant/40 rounded p-2 text-sm text-on-surface focus:outline-none focus:border-primary resize-none h-20"
+            className="w-full bg-surface-container-low border border-outline-variant/40 rounded p-2 text-sm text-on-surface focus:outline-hidden focus:border-primary resize-none h-20"
           />
           <button
             onClick={() => createNote.mutate(newNoteContent)}
