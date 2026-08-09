@@ -80,3 +80,9 @@ data/
 
 # npm install odpalony w katalogu głównym zamiast frontend/ zostawia pusty lockfile
 /package-lock.json
+
+# Materiały prywatne i artefakty procesu publikacji. Trzymane lokalnie, nigdy w repo —
+# jedno `git add -A` przywróciłoby do drzewa dokładnie to, co czyszczenie historii usuwa.
+/TESTY_MANUALNE/
+/HANDOFF*.md
+*.bundle
