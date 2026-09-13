@@ -26,7 +26,7 @@ jobs:
         id: cache-talib
         uses: actions/cache@v4
         with:
-          path: /usr/local/ta-lib-install
+          path: ~/ta-lib-install
           key: talib-${{ runner.os }}-${{ env.TA_LIB_VERSION }}
 
       - name: Build TA-Lib from source
@@ -37,11 +37,13 @@ jobs:
           cd "ta-lib-${TA_LIB_VERSION}"
           ./configure --prefix=/usr
           make -j"$(nproc)"
-          make install DESTDIR=/usr/local/ta-lib-install
+          # DESTDIR w katalogu domowym: /usr/local należy do roota, a bez sudo
+          # install pada na Permission denied. Kopia do /usr idzie niżej przez sudo.
+          make install DESTDIR="$HOME/ta-lib-install"
 
       - name: Install TA-Lib
         run: |
-          sudo cp -r /usr/local/ta-lib-install/usr/* /usr/
+          sudo cp -r "$HOME/ta-lib-install/usr/"* /usr/
           sudo ldconfig
 
       - uses: astral-sh/setup-uv@v5
