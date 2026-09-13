@@ -76,7 +76,6 @@ data/
 .opencode/
 .windsurf/
 .gemini/
-/graphify-out/
 
 # npm install odpalony w katalogu głównym zamiast frontend/ zostawia pusty lockfile
 /package-lock.json

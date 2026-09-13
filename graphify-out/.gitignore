@@ -1,0 +1,14 @@
+# Artefakty maszynowe i robocze graphify — nie wersjonujemy.
+# Wersjonujemy: graph.json, graph.html, GRAPH_REPORT.md, manifest.json,
+# PLAYBOOK.md, cost.json, .graphify_labels.json.
+cache/
+# Datowane kopie zapasowe grafu (YYYY-MM-DD/)
+[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]/
+# Pliki pośrednie przebiegu
+.graphify_*.json
+!.graphify_labels.json
+.graphify_uncached.txt
+# Ścieżki interpretera i korzenia specyficzne dla maszyny
+.graphify_python
+.graphify_root
+.needs_update

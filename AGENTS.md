@@ -2,7 +2,7 @@
 
 > **UNIEWAŻNIENIE WCZEŚNIEJSZYCH USTALEŃ.** Jeśli pamiętasz cokolwiek z wcześniejszej
 > pracy w tym repozytorium — fazy projektu, statusy `[DONE]`/`[IN_PROGRESS]`,
-> instrukcje o `graphify`, `claude-mem`, `context7`, serwerze MCP
+> instrukcje o `claude-mem`, `context7`, serwerze MCP
 > `BlockBT-Architectural-Router`, obowiązkowych skillach czy zapisywaniu obserwacji
 > do pamięci trwałej — **wszystko to jest nieaktualne i zostało usunięte**.
 > Ten plik jest jedynym źródłem prawdy. Nie szukaj plików, o których tu nie ma mowy.
@@ -73,6 +73,14 @@ Jeśli Twoje środowisko nie zainstaluje TA-Liba ani `vectorbt[rust]`, testy bac
 u Ciebie nie ruszą — to oczekiwane. Zweryfikuj to, co się da (`ruff`, `tsc`, `vitest`,
 `mkdocs`), a resztę zostaw CI. **Nie obchodź problemu przez zmiany w kodzie ani
 w konfiguracji testów.**
+
+## Graf wiedzy o repozytorium
+
+`graphify-out/` zawiera graf zależności kodu i dokumentacji wygenerowany narzędziem
+[graphify](https://github.com/Graphify-Labs/graphify). Zacznij od `GRAPH_REPORT.md`
+(węzły centralne, społeczności, nieoczywiste powiązania); `graph.html` to wersja
+interaktywna. Graf jest **mapą do nawigacji, nie źródłem prawdy** — rozstrzyga kod
+i ten plik. Regeneracja: [`graphify-out/PLAYBOOK.md`](graphify-out/PLAYBOOK.md).
 
 ## Więcej kontekstu
 
